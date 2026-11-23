@@ -345,6 +345,14 @@ export interface PaperclipChatThreadDto {
   lastMessagePreview?: string;
   ownerUserId?: string;
   canSend?: boolean;
+  /* Campos reais retornados por /companies/{companyId}/chats */
+  conversationAgentId?: string | null;
+  conversationUserId?: string | null;
+  conversationState?: string | null;
+  projectId?: string | null;
+  goalId?: string | null;
+  status?: string | null;
+  companyId?: string | null;
 }
 
 export interface PaperclipIssueDto {
@@ -519,6 +527,65 @@ export interface PaperclipOverviewBundle {
   routines: PaperclipRoutineDto[];
   costs: PaperclipCostSummaryDto | null;
   activity: PaperclipActivityDto[];
+}
+
+/* --- Novos DTOs para endpoints oficiais do Paperclip ainda não expostos --- */
+
+export interface PaperclipArtifactDto {
+  id: string;
+  source?: string;
+  mediaKind?: string;
+  title?: string;
+  previewText?: string | null;
+  description?: string | null;
+  issueId?: string | null;
+  authorName?: string | null;
+  createdAt?: string | null;
+  sizeBytes?: number | null;
+  contentType?: string | null;
+  url?: string | null;
+}
+
+export interface PaperclipCompanySkillDto {
+  id: string;
+  companyId?: string | null;
+  folderId?: string | null;
+  folderPath?: string | null;
+  key?: string | null;
+  slug?: string | null;
+  name?: string | null;
+  description?: string | null;
+  version?: string | null;
+  status?: string | null;
+  installedAt?: string | null;
+  source?: string | null;
+}
+
+export interface PaperclipInboxItemDto {
+  id: string;
+  companyId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  assigneeAgentId?: string | null;
+  assigneeAgentName?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  goalId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  source?: string | null;
+  url?: string | null;
+}
+
+export interface PaperclipAttentionDto {
+  companyId?: string | null;
+  generatedAt?: string | null;
+  totalCount?: number | null;
+  deskBadgeCount?: number | null;
+  countsBySourceKind?: Record<string, number> | null;
+  items?: Array<Record<string, unknown>> | null;
 }
 
 /* Legacy/Optional helper types kept cleanly if referenced by Agency library */

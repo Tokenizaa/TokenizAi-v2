@@ -183,6 +183,38 @@ export const CAPABILITY_DEFINITIONS: CapabilityDefinition[] = [
     method: 'POST',
     requiredPermission: 'Board / Attachments Write',
   },
+  {
+    key: 'artifacts:read',
+    label: 'Consultar biblioteca de artefatos da empresa',
+    domain: 'artifacts',
+    route: '/api/companies/{companyId}/artifacts',
+    method: 'GET',
+    requiredPermission: 'Board / Artifacts Read',
+  },
+  {
+    key: 'skills:read',
+    label: 'Consultar skills instaladas na empresa',
+    domain: 'skills',
+    route: '/api/companies/{companyId}/skills',
+    method: 'GET',
+    requiredPermission: 'Board / Skills Read',
+  },
+  {
+    key: 'inbox:read',
+    label: 'Consultar caixa de entrada (inbox/mine) do usuário',
+    domain: 'inbox',
+    route: '/api/companies/{companyId}/inbox/mine',
+    method: 'GET',
+    requiredPermission: 'Board / Inbox Read',
+  },
+  {
+    key: 'attention:read',
+    label: 'Consultar feed de atenção e decisões da empresa',
+    domain: 'attention',
+    route: '/api/companies/{companyId}/attention',
+    method: 'GET',
+    requiredPermission: 'Board / Attention Read',
+  },
 ];
 
 export interface RuntimeCapabilityObservation {

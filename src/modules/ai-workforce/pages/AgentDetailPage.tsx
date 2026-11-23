@@ -55,6 +55,18 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({
   const [runtimeState, setRuntimeState] = useState<Record<string, unknown> | null>(null);
   const [tab, setTab] = useState<AgentTab>('geral');
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [editingAgent, setEditingAgent] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', role: '', budgetMonthlyCents: '' });
+
+  useEffect(() => {
+    if (agent) {
+      setEditForm({
+        title: agent.title || '',
+        role: agent.role || '',
+        budgetMonthlyCents: typeof agent.budgetMonthlyCents === 'number' ? String(agent.budgetMonthlyCents) : '',
+      });
+    }
+  }, [agent]);
 
   const loadAgent = useCallback(async () => {
     setLoading(true);
@@ -92,6 +104,29 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({
       setBusy((prev) => ({ ...prev, [action]: false }));
     }
   }, [agentId, loadAgent, onToast]);
+
+  const handleSaveAgent = async () => {
+    const payload: Record<string, unknown> = {};
+    if (editForm.title) payload.title = editForm.title;
+    if (editForm.role) payload.role = editForm.role;
+    if (editForm.budgetMonthlyCents !== '') {
+      const n = Number(editForm.budgetMonthlyCents);
+      if (Number.isFinite(n) && n >= 0) payload.budgetMonthlyCents = Math.round(n * 100);
+    }
+    if (Object.keys(payload).length === 0) {
+      onToast('Nenhum campo para atualizar.');
+      return;
+    }
+    setEditingAgent(false);
+    try {
+      await paperclipService.updateAgent(agentId, payload);
+      onToast('Agente atualizado no Paperclip.');
+      await loadAgent();
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : 'Falha ao atualizar o agente.');
+      setEditingAgent(true);
+    }
+  };
 
   const relatedIssues = (agent ? [] : []) as PaperclipIssueDto[];
   const relatedRuns = (agent ? [] : []) as PaperclipRunDto[];
@@ -222,6 +257,51 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({
                 {isPaused ? <Play className="w-3.5 h-3.5 mr-1.5" /> : <Pause className="w-3.5 h-3.5 mr-1.5" />}
                 {isPaused ? 'Retomar' : 'Pausar'}
               </button>
+              {editingAgent ? (
+                <>
+                  <input
+                    autoFocus
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    placeholder="Título"
+                    className="px-2 py-1.5 rounded border border-line-strong bg-white text-xs text-ink focus:border-accent focus:ring-0 outline-none"
+                  />
+                  <input
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    placeholder="Role"
+                    className="px-2 py-1.5 rounded border border-line-strong bg-white text-xs text-ink focus:border-accent focus:ring-0 outline-none"
+                  />
+                  <input
+                    value={editForm.budgetMonthlyCents}
+                    onChange={(e) => setEditForm({ ...editForm, budgetMonthlyCents: e.target.value })}
+                    placeholder="Orçamento mensal (USD)"
+                    className="px-2 py-1.5 rounded border border-line-strong bg-white text-xs text-ink focus:border-accent focus:ring-0 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveAgent}
+                    className="px-2.5 py-1.5 rounded-lg border border-line-strong bg-accent text-white text-xs font-semibold hover:bg-accent-hover cursor-pointer"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingAgent(false)}
+                    className="px-2.5 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingAgent(true)}
+                  className="px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
+                >
+                  Editar dados
+                </button>
+              )}
             </div>
           </div>
         </div>

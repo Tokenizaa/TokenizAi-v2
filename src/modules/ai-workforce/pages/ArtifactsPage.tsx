@@ -9,6 +9,7 @@ import {
   LoadingState,
 } from '../components';
 import { paperclipService } from '../services/paperclip';
+import type { PaperclipArtifactDto } from '../../../types/platform';
 
 interface ArtifactsPageProps {
   onNavigate: (id: string) => void;
@@ -18,38 +19,16 @@ interface ArtifactsPageProps {
 export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [artifacts, setArtifacts] = useState<Array<{ id: string; issueId: string; filename: string; contentType?: string; sizeBytes?: number }>>([]);
+  const [artifacts, setArtifacts] = useState<PaperclipArtifactDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Não há endpoint global de biblioteca de artefatos; agrega anexos das issues recentes.
-      const iRes = await paperclipService.listIssues({ limit: 25 });
-      const issues = iRes.issues || [];
-      const collected: Array<{ id: string; issueId: string; filename: string; contentType?: string; sizeBytes?: number }> = [];
-      await Promise.all(
-        issues.map(async (issue) => {
-          if (!issue.id) return;
-          try {
-            const aRes = await paperclipService.getIssueAttachments(issue.id);
-            for (const a of aRes.attachments || []) {
-              collected.push({
-                id: a.id,
-                issueId: issue.id,
-                filename: a.filename,
-                contentType: a.contentType,
-                sizeBytes: a.sizeBytes,
-              });
-            }
-          } catch {
-            // Anexo não acessível para esta issue; ignora silenciosamente.
-          }
-        })
-      );
-      setArtifacts(collected);
+      const res = await paperclipService.getArtifacts();
+      setArtifacts(res.artifacts || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar os artefatos.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar os artefatos do Paperclip.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +44,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
     return (
       <EmptyState
         title="Nenhum artefato encontrado"
-        description="Não há anexos de issues na instância Paperclip conectada para exibir na biblioteca."
+        description="A instância Paperclip conectada não retornou artefatos para esta empresa."
       />
     );
   }
@@ -74,7 +53,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
     <div className="space-y-5">
       <PageHeader
         title="Artefatos e anexos (Paperclip)"
-        subtitle="Biblioteca de arquivos anexados a conversas e issues, com navegação e acesso conforme permissões da instância."
+        subtitle="Biblioteca de artefatos da empresa, com navegação e acesso conforme permissões da instância. Fonte: /companies/{companyId}/artifacts."
         actions={
           <button
             type="button"
@@ -88,7 +67,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
 
       <CollectionToolbar>
         <div className="flex items-center justify-between gap-3 flex-1 min-w-0">
-          <SectionTitle title={`Artefatos (${artifacts.length})`} subtitle="Agregado a partir dos anexos das issues operacionais recentes." />
+          <SectionTitle title={`Artefatos (${artifacts.length})`} subtitle="Biblioteca de artefatos da empresa no Paperclip." />
         </div>
       </CollectionToolbar>
 
@@ -96,25 +75,40 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
         {artifacts.map((a) => (
           <div key={a.id} className="p-4 flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="font-medium text-ink truncate">{a.filename}</div>
+              <div className="font-medium text-ink truncate">{a.title || 'Artefato sem título'}</div>
               <div className="text-[11px] text-ink-muted">
-                Issue: {a.issueId} · {a.contentType || '—'} · {a.sizeBytes != null ? a.sizeBytes + ' bytes' : '—'}
+                {a.source || '—'} · {a.mediaKind || '—'} · {a.authorName || '—'}
               </div>
+              {a.previewText && (
+                <div className="text-[11px] text-ink-subtle line-clamp-1 mt-1">{a.previewText}</div>
+              )}
+              {a.issueId && (
+                <div className="text-[10px] text-ink-muted mt-1">
+                  Issue relacionada: {a.issueId}
+                </div>
+              )}
             </div>
-            <a
-              href={paperclipService.getAttachmentContentUrl(a.id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"
-            >
-              Abrir arquivo
-            </a>
+            <div className="text-right">
+              {a.sizeBytes != null ? (
+                <div className="font-mono text-ink">{a.sizeBytes} bytes</div>
+              ) : (
+                <div className="font-mono text-ink-muted">—</div>
+              )}
+              <a
+                href={a.url || paperclipService.getAttachmentContentUrl(a.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 text-[11px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"
+              >
+                Abrir arquivo
+              </a>
+            </div>
           </div>
         ))}
       </div>
 
       <p className="text-xs text-ink-subtle">
-        Os arquivos são servidos pelo backend da TokenizAi como proxy do Paperclip (rota /api/paperclip/attachments/:id/content). Nenhuma credencial é exposta ao navegador.
+        Os arquivos são servidos pelo backend da TokenizAi como proxy do Paperclip. Nenhuma credencial é exposta ao navegador.
       </p>
     </div>
   );

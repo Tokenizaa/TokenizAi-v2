@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { paperclipService, isPaperclipConnected } from '../services/paperclip';
-import type { PaperclipAgentDto, PaperclipIssueDto, PaperclipRunDto, PaperclipCostSummaryDto } from '../../../types/platform';
+import type { PaperclipAgentDto, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
 
 interface DashboardPageProps {
   onRefresh: () => Promise<void>;
@@ -40,24 +40,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     goals: any[];
     approvals: any[];
     routines: any[];
-    costs: PaperclipCostSummaryDto | null;
+    costs: any;
+    activity: any[];
   } | null>(null);
+  const [dashboard, setDashboard] = useState<any>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getOverviewBundle();
-      setBundle({
-        agents: res.agents || [],
-        issues: res.issues || [],
-        runs: res.runs || [],
-        projects: res.projects || [],
-        goals: res.goals || [],
-        approvals: res.approvals || [],
-        routines: res.routines || [],
-        costs: res.costs || null,
-      });
+      const [bundleRes, dashRes] = await Promise.allSettled([
+        paperclipService.getOverviewBundle(),
+        paperclipService.getDashboard(),
+      ]);
+      if (bundleRes.status === 'fulfilled') {
+        setBundle({
+          agents: bundleRes.value.agents || [],
+          issues: bundleRes.value.issues || [],
+          runs: bundleRes.value.runs || [],
+          projects: bundleRes.value.projects || [],
+          goals: bundleRes.value.goals || [],
+          approvals: bundleRes.value.approvals || [],
+          routines: bundleRes.value.routines || [],
+          costs: bundleRes.value.costs || null,
+          activity: bundleRes.value.activity || [],
+        });
+      }
+      if (dashRes.status === 'fulfilled') setDashboard(dashRes.value);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar o dashboard operacional.');
     } finally {
@@ -82,11 +91,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   if (error) return <ErrorState title="Não foi possível carregar o dashboard" message={error} onRetry={load} />;
   if (!bundle) return <EmptyState title="Sem dados do Paperclip" description="Nenhum pacote de visão geral disponível." />;
 
+  const dAgents = dashboard?.agents ?? { active: agents.length, running: runningAgents, paused: 0, error: 0 };
+  const dTasks = dashboard?.tasks ?? { open: openIssues, inProgress: 0, blocked: blockedIssues, done: 0 };
+  const dCosts = dashboard?.costs ?? { monthSpendCents: costs?.totalCostCents ?? 0, monthBudgetCents: costs?.budgetMonthlyCents ?? 0, monthUtilizationPercent: 0 };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard operacional — Força de trabalho IA"
-        subtitle="Indicadores da instância Paperclip conectada (TokenizAi). Todos os números vêm da API operacional."
+        subtitle="Indicadores da instância Paperclip conectada (TokenizAi). Todos os números vêm da API operacional (endpoint /companies/{id}/dashboard)."
         actions={
           <button
             type="button"
@@ -102,12 +115,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="nc-card rounded-2xl p-5 text-left">
           <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Agentes operacionais</div>
           <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">{agents.length}</div>
-          <div className="mt-1 text-xs text-ink-muted">{runningAgents} em execução · {agents.filter((a) => a.status === 'paused').length} pausado(s)</div>
+          <div className="mt-1 text-xs text-ink-muted">
+            {dAgents.running} em execução · {dAgents.paused} pausado(s) · {dAgents.error} com erro
+          </div>
         </div>
         <div className="nc-card rounded-2xl p-5 text-left">
           <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Tarefas abertas</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">{openIssues}</div>
-          <div className="mt-1 text-xs text-ink-muted">{blockedIssues} bloqueada(s)</div>
+          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">{dTasks.open}</div>
+          <div className="mt-1 text-xs text-ink-muted">{dTasks.blocked} bloqueada(s) · {dTasks.done} concluída(s)</div>
         </div>
         <div className="nc-card rounded-2xl p-5 text-left">
           <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Aprovações pendentes</div>
@@ -115,11 +130,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="mt-1 text-xs text-ink-muted">Aguardando decisão humana</div>
         </div>
         <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Consumo (USD)</div>
+          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Consumo do mês (USD)</div>
           <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-accent">
-            {costs ? ((costs.totalCostCents / 100).toFixed(2)) : '—'}
+            {(dCosts.monthSpendCents / 100).toFixed(2)}
           </div>
-          <div className="mt-1 text-xs text-ink-muted">{runs.length} execução(ões) recente(s)</div>
+          <div className="mt-1 text-xs text-ink-muted">
+            Utilização: {dCosts.monthUtilizationPercent}% · {runs.length} execução(ões)
+          </div>
         </div>
       </section>
 
@@ -135,7 +152,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             {issues.slice(0, 8).map((issue) => (
               <div key={issue.id} className="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm">
                 <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-mono text-accent dark:text-cyan-300 truncate">{issue.identifier || issue.id}</span>
+                  <span className="font-mono text-accent dark:text-cyan-300 truncate">
+                    {issue.identifier || issue.id}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-ink truncate">{issue.title}</div>
                     <div className="text-[10px] text-ink-subtle">

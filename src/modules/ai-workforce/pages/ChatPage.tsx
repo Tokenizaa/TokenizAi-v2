@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Search, MessageSquare, Users, User, Send, Paperclip, RefreshCw } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Search, MessageSquare, Users, User, RefreshCw, Bot, AlertCircle } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/Primitives';
 import {
   SectionTitle,
+  StatusBadge,
   EmptyState,
   ErrorState,
   LoadingState,
 } from '../components';
 import { paperclipService } from '../services/paperclip';
-import type { PaperclipChatThreadDto, PaperclipCommentDto } from '../../../types/platform';
+import type { PaperclipChatThreadDto } from '../../../types/platform';
 
 interface ChatPageProps {
   onNavigate: (id: string) => void;
@@ -20,15 +21,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
   const [error, setError] = useState<string | null>(null);
   const [chats, setChats] = useState<PaperclipChatThreadDto[]>([]);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
-  const [thread, setThread] = useState<PaperclipChatThreadDto | null>(null);
-  const [messages, setMessages] = useState<PaperclipCommentDto[]>([]);
-  const [composer, setComposer] = useState('');
-  const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [agent, setAgent] = useState<any>(null);
+  const [directSendAvailable, setDirectSendAvailable] = useState<boolean | null>(null);
 
   const loadChats = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setAgent(null);
     try {
       const res = await paperclipService.listChats();
       setChats(res.chats || []);
@@ -43,46 +42,40 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     loadChats();
   }, [loadChats]);
 
-  const openChat = async (agentRef: string) => {
-    setSelectedRef(agentRef);
-    setThread(null);
-    setMessages([]);
+  const openConversation = async (conversation: PaperclipChatThreadDto) => {
+    setSelectedRef(conversation.conversationAgentId || conversation.agentRef || conversation.id);
+    setAgent(null);
     try {
-      const res = await paperclipService.getChat(agentRef);
-      setThread(res.thread || null);
-      setMessages(res.messages || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar a conversa.');
+      const agentId = conversation.conversationAgentId || conversation.agentRef;
+      if (agentId) {
+        const res = await paperclipService.getAgent(agentId);
+        setAgent(res.agent || null);
+      }
+    } catch {
+      setAgent(null);
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!composer.trim() || !selectedRef) return;
-    setSending(true);
-    try {
-      await paperclipService.sendChatMessage(selectedRef, { body: composer.trim() });
-      setComposer('');
-      await openChat(selectedRef);
-    } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Falha ao enviar a mensagem.');
-    } finally {
-      setSending(false);
-    }
+  const handleOpenAgentDetail = () => {
+    if (agent?.id) onNavigate(`ia-agente-detalhe:${agent.id}`);
   };
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState title="Não foi possível carregar o chat" message={error} onRetry={loadChats} />;
+  if (chats.length === 0) {
+    return (
+      <EmptyState
+        title="Nenhuma conversa encontrada"
+        description="A instância Paperclip conectada não retornou conversas de agentes para esta empresa."
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full gap-0">
       <PageHeader
         title="Chat com agentes (Agent Chat)"
-        subtitle="Conversas reais por agente diretamente na estrutura oficial do Paperclip."
+        subtitle="Conversas reais por agente diretamente na estrutura oficial do Paperclip. O envio de mensagem direta depende de sessão de agente autenticada na instância operacional."
         actions={
           <button
             type="button"
@@ -101,46 +94,45 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
             <SectionTitle title="Conversas" subtitle={chats.length > 0 ? `${chats.length} conversa(s)` : undefined} />
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
-            {chats.length === 0 ? (
-              <div className="px-3 py-4 text-center text-xs text-ink-subtle">Nenhuma conversa encontrada.</div>
-            ) : (
-              chats.map((chat) => (
-                <button
-                  key={chat.agentRef}
-                  type="button"
-                  onClick={() => openChat(chat.agentRef)}
-                  className={`w-full text-left rounded-xl p-3 transition-colors ${
-                    selectedRef === chat.agentRef
-                      ? 'bg-accent-soft border border-accent text-accent-ink'
-                      : 'hover:bg-surface-subtle border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full border border-line-strong bg-surface-subtle flex items-center justify-center text-[10px] font-semibold shrink-0">
-                        {chat.agentName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-ink truncate">{chat.agentName}</div>
-                        <div className="text-[10px] text-ink-subtle truncate">{chat.agentRole || 'Agente Paperclip'}</div>
+            {chats.map((chat) => (
+              <button
+                key={chat.id}
+                type="button"
+                onClick={() => openConversation(chat)}
+                className={`w-full text-left rounded-xl p-3 transition-colors ${
+                  selectedRef === chat.conversationAgentId
+                    ? 'bg-accent-soft border border-accent text-accent-ink'
+                    : 'hover:bg-surface-subtle border border-transparent'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full border border-line-strong bg-surface-subtle flex items-center justify-center text-[10px] font-semibold shrink-0">
+                      {(chat.agentName || 'A').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-ink truncate">{chat.agentName || 'Agente'}</div>
+                      <div className="text-[10px] text-ink-subtle truncate">
+                        {chat.conversationState || '—'} · {chat.status || '—'}
                       </div>
                     </div>
-                    {chat.unreadCount && chat.unreadCount > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center">
-                        {chat.unreadCount}
-                      </span>
-                    )}
                   </div>
-                  {chat.lastMessagePreview && (
-                    <div className="mt-1 text-[11px] text-ink-subtle truncate">{chat.lastMessagePreview}</div>
-                  )}
-                </button>
-              ))
-            )}
+                  <StatusBadge status={chat.status || 'desconhecido'} size="sm" />
+                </div>
+                {chat.title && (
+                  <div className="mt-1 text-[11px] text-ink-subtle truncate">{chat.title}</div>
+                )}
+                {chat.lastMessagePreview && (
+                  <div className="mt-0.5 text-[11px] text-ink-subtle truncate">
+                    {chat.lastMessagePreview}
+                  </div>
+                )}
+              </button>
+            ))}
           </div>
         </aside>
 
-        {/* Painel central: mensagens */}
+        {/* Painel central: detalhe da conversa / agente */}
         <main className="flex-1 min-w-0 flex flex-col bg-surface">
           {!selectedRef ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
@@ -148,7 +140,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                 <MessageSquare className="w-6 h-6" />
               </div>
               <div className="text-base font-semibold text-ink">Selecione uma conversa</div>
-              <p className="text-xs text-ink-muted mt-1">Escolha um agente à esquerda para iniciar ou continuar o chat.</p>
+              <p className="text-xs text-ink-muted mt-1">
+                Escolha um agente à esquerda para ver seus dados operacionais no Paperclip.
+              </p>
             </div>
           ) : (
             <>
@@ -156,15 +150,30 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                 <div>
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full border border-line-strong bg-surface-subtle flex items-center justify-center text-[10px] font-semibold shrink-0">
-                      {thread?.agentName.charAt(0).toUpperCase()}
+                      {(agent?.title || agent?.name || 'A').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-medium text-ink">{thread?.agentName}</div>
-                      <div className="text-[10px] text-ink-subtle">{thread?.agentRole || 'Agente Paperclip'}</div>
+                      <div className="font-medium text-ink">
+                        {agent?.title || agent?.name || 'Agente'}
+                      </div>
+                      <div className="text-[10px] text-ink-subtle">
+                        {agent?.role || 'Agente Paperclip'} ·
+                        {agent?.status || '—'}
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {agent && (
+                    <button
+                      type="button"
+                      onClick={handleOpenAgentDetail}
+                      className="p-1.5 rounded-lg border border-line-strong text-accent dark:text-cyan-300 hover:bg-surface-blue cursor-pointer"
+                      title="Abrir detalhe do agente"
+                    >
+                      <Bot className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedRef(null)}
@@ -174,96 +183,69 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 ? (
-                  <div className="text-center py-10 text-xs text-ink-subtle">
-                    Sem mensagens nesta conversa. Escreva abaixo para iniciar.
-                  </div>
-                ) : (
-                  <>
-                    {messages.map((m) => (
-                      <div
-                        key={m.id}
-                        className={`max-w-[80%] ${
-                          m.authorType === 'user' ? 'ml-auto' : 'mr-auto'
-                        }`}
-                      >
-                        <div className="inline-block rounded-xl px-3 py-2 text-sm ${
-                          m.authorType === 'user'
-                            ? 'bg-accent text-white'
-                            : 'bg-surface-subtle border border-line text-ink'
-                        }">
-                          {m.body}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {agent ? (
+                  <div className="space-y-4">
+                    <div className="nc-card rounded-2xl p-4 space-y-3">
+                      <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">
+                        Conversa
+                      </div>
+                      <div className="text-sm text-ink">{selectedRef}</div>
+                      <div className="text-xs text-ink-muted">
+                        Fonte: endpoint de conversas da instância Paperclip
+                      </div>
+                    </div>
+                    <div className="nc-card rounded-2xl p-4 space-y-3">
+                      <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">
+                        Agente da conversa
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-ink-subtle">Nome</div>
+                          <div className="font-medium text-ink">{agent.title || agent.name}</div>
                         </div>
-                        <div className="text-[10px] text-ink-subtle mt-0.5">
-                          {m.authorName} · {m.createdAt}
+                        <div>
+                          <div className="text-ink-subtle">Role</div>
+                          <div className="font-medium text-ink">{agent.role || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-ink-subtle">Status</div>
+                          <StatusBadge status={agent.status || 'desconhecido'} size="sm" />
+                        </div>
+                        <div>
+                          <div className="text-ink-subtle">Adapter</div>
+                          <div className="font-mono text-ink-muted">{agent.adapterType || '—'}</div>
                         </div>
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-xs text-ink-subtle">
+                    Carregando dados do agente…
+                  </div>
                 )}
-              </div>
-              <form onSubmit={sendMessage} className="px-4 py-3 border-t border-line bg-surface">
-                <div className="flex items-center gap-2">
-                  <textarea
-                    value={composer}
-                    onChange={(e) => setComposer(e.target.value)}
-                    placeholder="Escreva uma mensagem para o agente…"
-                    rows={1}
-                    className="flex-1 resize-none p-2.5 rounded-xl border border-line-strong bg-white text-xs text-ink focus:border-accent focus:ring-0 outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sending || !composer.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-accent text-white text-xs font-semibold hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Enviar</span>
-                  </button>
+
+                <div className="nc-card rounded-2xl p-5 border border-amber-200/60 bg-amber-50/40 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/20 dark:text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-amber-900 dark:text-amber-200">
+                        Envio de mensagem direta indisponível neste modo
+                      </div>
+                      <div className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                        O endpoint de envio de chat do Paperclip exige uma sessão de agente autenticada
+                        (task run), que não está disponível no modo local_trusted sem bearer. As
+                        conversas acima são reais e vêm da instância conectada. Para trocar mensagens
+                        vinculadas a uma tarefa, use os comentários na página de detalhe da tarefa
+                        (endpoint de comentários da issue relacionada).
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </form>
+              </div>
             </>
           )}
         </main>
-
-        {/* Painel direito: informações do agente */}
-        <aside className="hidden lg:flex flex-col w-[300px] border-l border-line bg-surface">
-          <div className="px-4 py-3 border-b border-line bg-surface-subtle/40">
-            <SectionTitle title="Informações do agente" />
-          </div>
-          <div className="flex-1 p-3 space-y-4">
-            {thread ? (
-              <div className="space-y-3">
-                <div>
-                  <div className="text-[10px] font-semibold text-ink-subtle uppercase">Identidade</div>
-                  <div className="font-medium text-ink">{thread.agentName}</div>
-                  <div className="text-[11px] text-ink-muted">{thread.agentRole || 'Agente Paperclip'}</div>
-                </div>
-                {thread.issueId && (
-                  <div>
-                    <div className="text-[10px] font-semibold text-ink-subtle uppercase">Issue relacionada</div>
-                    <div className="font-mono text-[11px] text-accent dark:text-cyan-300">{thread.issueId}</div>
-                    <button
-                      type="button"
-                      onClick={() => onNavigate(`ia-tarefa-detalhe:${thread.issueId}`)}
-                      className="mt-2 text-[11px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"
-                    >
-                      Abrir tarefa
-                    </button>
-                  </div>
-                )}
-                <div>
-                  <div className="text-[10px] font-semibold text-ink-subtle uppercase">Estado</div>
-                  <span className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> Ativo no Paperclip
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-xs text-ink-subtle">Selecione uma conversa para ver os detalhes do agente.</div>
-            )}
-          </div>
-        </aside>
       </div>
     </div>
   );

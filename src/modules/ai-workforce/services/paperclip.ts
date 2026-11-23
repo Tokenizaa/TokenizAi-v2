@@ -106,6 +106,16 @@ export const paperclipService = {
   // --- Attachments ---
   getAttachmentContentUrl: (attachmentId: string) =>
     PaperclipApi.getAttachmentContentUrl(attachmentId),
+
+  // --- Artifacts, Skills (company), Inbox, Attention ---
+  getArtifacts: () => PaperclipApi.getArtifacts(),
+  getSkills: () => PaperclipApi.getSkills(),
+  getInbox: () => PaperclipApi.getInbox(),
+  getAttention: () => PaperclipApi.getAttention(),
+
+  // --- Agent updates ---
+  updateAgent: (agentId: string, payload: Record<string, unknown>) =>
+    PaperclipApi.updateAgent(agentId, payload),
 };
 
 export function isPaperclipConnected(status: PaperclipIntegrationStatus | null | undefined): boolean {

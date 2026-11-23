@@ -18,16 +18,20 @@ export interface PaperclipCapability {
   label: string;
   domain:
     | 'agents'
+    | 'artifacts'
+    | 'attention'
     | 'chat'
     | 'issues'
-    | 'runs'
+    | 'inbox'
     | 'org'
     | 'projects'
     | 'routines'
+    | 'runs'
     | 'approvals'
     | 'costs'
     | 'activity'
-    | 'attachments';
+    | 'attachments'
+    | 'skills';
   route: string;
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   availableInVersion: boolean | null;
@@ -306,3 +310,63 @@ export interface PaperclipOverviewBundle {
   costs: PaperclipCostSummaryDto | null;
   activity: PaperclipActivityDto[];
 }
+
+/* --- Novos DTOs para endpoints oficiais do Paperclip ainda não expostos --- */
+
+export interface PaperclipArtifactDto {
+  id: string;
+  source?: string;
+  mediaKind?: string;
+  title?: string;
+  previewText?: string | null;
+  description?: string | null;
+  issueId?: string | null;
+  authorName?: string | null;
+  createdAt?: string | null;
+  sizeBytes?: number | null;
+  contentType?: string | null;
+  url?: string | null;
+}
+
+export interface PaperclipCompanySkillDto {
+  id: string;
+  companyId?: string | null;
+  folderId?: string | null;
+  folderPath?: string | null;
+  key?: string | null;
+  slug?: string | null;
+  name?: string | null;
+  description?: string | null;
+  version?: string | null;
+  status?: string | null;
+  installedAt?: string | null;
+  source?: string | null;
+}
+
+export interface PaperclipInboxItemDto {
+  id: string;
+  companyId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  assigneeAgentId?: string | null;
+  assigneeAgentName?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  goalId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  source?: string | null;
+  url?: string | null;
+}
+
+export interface PaperclipAttentionDto {
+  companyId?: string | null;
+  generatedAt?: string | null;
+  totalCount?: number | null;
+  deskBadgeCount?: number | null;
+  countsBySourceKind?: Record<string, number> | null;
+  items?: Array<Record<string, unknown>> | null;
+}
+

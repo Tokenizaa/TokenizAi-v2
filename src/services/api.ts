@@ -8,10 +8,14 @@ import type {
   PaperclipAgentDto,
   PaperclipApprovalDto,
   PaperclipAttachmentDto,
+  PaperclipArtifactDto,
   PaperclipChatThreadDto,
   PaperclipCommentDto,
+  PaperclipCompanySkillDto,
   PaperclipCostSummaryDto,
   PaperclipGoalDto,
+  PaperclipInboxItemDto,
+  PaperclipAttentionDto,
   PaperclipIntegrationStatus,
   PaperclipIssueDto,
   PaperclipOrgNodeDto,
@@ -430,6 +434,11 @@ export const PaperclipApi = {
     request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/pause`, { method: 'POST' }),
   resumeAgent: (agentId: string) =>
     request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/resume`, { method: 'POST' }),
+  updateAgent: (agentId: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; agent: PaperclipAgentDto }>(
+      `/api/paperclip/agents/${encodeURIComponent(agentId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    ),
 
   hireSpecialist: (payload: {
     specialistId: string;
@@ -655,6 +664,14 @@ export const PaperclipApi = {
 
   getAttachmentContentUrl: (attachmentId: string) =>
     `/api/paperclip/attachments/${encodeURIComponent(attachmentId)}/content`,
+  getArtifacts: () =>
+    request<{ ok: boolean; artifacts: PaperclipArtifactDto[] }>('/api/paperclip/artifacts'),
+  getSkills: () =>
+    request<{ ok: boolean; skills: PaperclipCompanySkillDto[] }>('/api/paperclip/skills'),
+  getInbox: () =>
+    request<{ ok: boolean; inbox: PaperclipInboxItemDto[] }>('/api/paperclip/inbox'),
+  getAttention: () =>
+    request<{ ok: boolean; attention: PaperclipAttentionDto }>('/api/paperclip/attention'),
 };
 
 export interface BootstrapAdminResult {

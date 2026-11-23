@@ -168,4 +168,18 @@ export class PaperclipAgentsService {
       capabilityKey: 'agents:manage',
     });
   }
+
+  async updateAgent(agentId: string, payload: Record<string, unknown>): Promise<PaperclipAgentDto> {
+    const openApi = this.getOpenApi();
+    const route =
+      findOpenApiRoute(openApi, 'PATCH', ['/api/agents/{agentId}']) ||
+      '/api/agents/{agentId}';
+    const resolved = route.replace(/\{[^}]+\}/, encodeURIComponent(agentId));
+    const raw = await this.client.requestJson<Record<string, unknown>>(resolved, {
+      method: 'PATCH',
+      body: payload,
+      capabilityKey: 'agents:manage',
+    });
+    return normalizeAgent(raw);
+  }
 }

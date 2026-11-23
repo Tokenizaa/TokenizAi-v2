@@ -1,6 +1,7 @@
 import { PaperclipActivityService } from './activity.ts';
 import { PaperclipAgentsService } from './agents.ts';
 import { PaperclipApprovalsService } from './approvals.ts';
+import { PaperclipArtifactsService } from './artifacts.ts';
 import { PaperclipAttachmentsService } from './attachments.ts';
 import { readPaperclipConfig } from './auth.ts';
 import {
@@ -9,17 +10,20 @@ import {
   resolveConnectionStatus,
   type RuntimeCapabilityObservation,
 } from './capabilities.ts';
+import { PaperclipAttentionService } from './attention.ts';
 import { PaperclipChatsService } from './chats.ts';
 import { PaperclipHttpClient } from './client.ts';
 import { PaperclipCostsService } from './costs.ts';
 import { PaperclipIntegrationError } from './errors.ts';
 import { probePaperclipHealth, type PaperclipHealthReport } from './health.ts';
+import { PaperclipInboxService } from './inbox.ts';
 import { PaperclipIssuesService } from './issues.ts';
 import { fetchPaperclipOpenApi, type PaperclipOpenApiSpecSummary } from './openapi.ts';
 import { PaperclipOrgService } from './org.ts';
 import { PaperclipProjectsService } from './projects.ts';
 import { PaperclipRoutinesService } from './routines.ts';
 import { PaperclipRunsService } from './runs.ts';
+import { PaperclipSkillsService } from './skills.ts';
 import type {
   PaperclipIntegrationStatus,
   PaperclipOverviewBundle,
@@ -89,6 +93,26 @@ export class PaperclipGateway {
     () => this.openApi,
   );
   readonly attachments = new PaperclipAttachmentsService(
+    this.client,
+    () => this.getActiveCompanyId(),
+    () => this.openApi,
+  );
+  readonly artifacts = new PaperclipArtifactsService(
+    this.client,
+    () => this.getActiveCompanyId(),
+    () => this.openApi,
+  );
+  readonly skills = new PaperclipSkillsService(
+    this.client,
+    () => this.getActiveCompanyId(),
+    () => this.openApi,
+  );
+  readonly inbox = new PaperclipInboxService(
+    this.client,
+    () => this.getActiveCompanyId(),
+    () => this.openApi,
+  );
+  readonly attention = new PaperclipAttentionService(
     this.client,
     () => this.getActiveCompanyId(),
     () => this.openApi,

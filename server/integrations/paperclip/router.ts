@@ -357,6 +357,19 @@ export function createPaperclipRouter(
     }
   });
 
+  router.patch('/api/paperclip/agents/:agentId', requirePermission('paperclip:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = resolveWorkspaceActor(req);
+      paperclipGateway.ensureCapabilityAvailable('agents:manage');
+      const agent = await paperclipGateway.agents.updateAgent(agentId, pickFields(req.body, ['title', 'role', 'budgetMonthlyCents', 'status', 'reportsTo', 'capabilities']));
+      appendAudit(actor.name, 'Atualizou agente no Paperclip', agentId, 'Paperclip Proxy');
+      res.json({ ok: true, agent });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
   // ============================================================================
   // Org / Teams & Directorate (/api/paperclip/org/*)
   // ============================================================================
@@ -1044,6 +1057,49 @@ export function createPaperclipRouter(
         res.setHeader('Content-Disposition', file.contentDisposition);
       }
       res.send(file.buffer);
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Artifacts, Skills (company), Inbox & Attention (/api/paperclip/*)
+  // ============================================================================
+  router.get('/api/paperclip/artifacts', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      paperclipGateway.ensureCapabilityAvailable('artifacts:read');
+      const artifacts = await paperclipGateway.artifacts.listArtifacts();
+      res.json({ ok: true, artifacts });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/paperclip/skills', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      paperclipGateway.ensureCapabilityAvailable('skills:read');
+      const skills = await paperclipGateway.skills.listCompanySkills();
+      res.json({ ok: true, skills });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/paperclip/inbox', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      paperclipGateway.ensureCapabilityAvailable('inbox:read');
+      const inbox = await paperclipGateway.inbox.listInbox();
+      res.json({ ok: true, inbox });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/paperclip/attention', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      paperclipGateway.ensureCapabilityAvailable('attention:read');
+      const attention = await paperclipGateway.attention.listAttention();
+      res.json({ ok: true, attention });
     } catch (err) {
       sendError(res, err);
     }
