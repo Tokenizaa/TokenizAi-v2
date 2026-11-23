@@ -72,12 +72,8 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
     const pendingApprovals = paperclip.approvals.filter(
       (approval) => approval.status === 'pending',
     ).length;
-    const activeProjects = enterprise.projects.filter(
-      (project) => project.stage !== 'Entregue',
-    ).length;
-
-    return { activeAgents, openTasks, blockedTasks, pendingApprovals, activeProjects };
-  }, [enterprise, paperclip]);
+    return { activeAgents, openTasks, blockedTasks, pendingApprovals };
+  }, [paperclip]);
 
   const priorities = useMemo(() => {
     const items: Priority[] = [];
@@ -113,7 +109,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
     }
 
     return items.slice(0, 7);
-  }, [enterprise, paperclip]);
+  }, [paperclip]);
 
   return (
     <div className="space-y-7">
