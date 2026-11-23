@@ -111,7 +111,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     setExpandedGroups((current) =>
       current.includes(currentItem.group) ? current : [...current, currentItem.group],
     );
-  }, [currentItem.group]);
+  }, [activeSection, currentItem.group]);
 
   const toggleGroup = (group: NavGroup) => {
     setExpandedGroups((current) =>
@@ -193,7 +193,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     aria-label={collapsed ? item.label : undefined}
                     title={collapsed ? item.label : undefined}
                     onClick={() => selectSection(item.id)}
-                    className={`nc-nav-item flex w-full items-center rounded-lg py-2 text-[13px] ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'nc-nav-active' : 'font-medium'}`}
+                    className={`nc-nav-item flex w-full items-center rounded-lg py-2.5 text-sm ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'nc-nav-active' : 'font-medium'}`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
@@ -220,8 +220,8 @@ export const AppShell: React.FC<AppShellProps> = ({
       )}
       {!collapsed && (
         <div className="border-t border-line px-4 py-3">
-          <p className="text-[11px] font-medium text-ink-muted">Uma empresa. Um fundador. Uma força de trabalho de IA.</p>
-          <p className="mt-1 text-[10px] text-ink-subtle">Gestão integrada · TokenizAi</p>
+          <p className="text-xs font-medium text-ink-muted">Uma empresa. Um fundador. Uma força de trabalho de IA.</p>
+          <p className="mt-1 text-xs text-ink-subtle">Gestão integrada · TokenizAi</p>
         </div>
       )}
     </div>
@@ -259,7 +259,7 @@ export const AppShell: React.FC<AppShellProps> = ({
               <Menu className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <p className="hidden truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle sm:block">
+              <p className="hidden truncate text-xs font-semibold uppercase tracking-[0.1em] text-ink-subtle sm:block">
                 {GROUP_LABELS[currentItem.group]}
               </p>
               <h1 className="truncate font-display text-sm font-semibold text-ink">{currentItem.label}</h1>
@@ -275,7 +275,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               <Search className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Buscar</span>
-              <kbd className="hidden rounded border border-line bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-ink-subtle md:inline">⌘K</kbd>
+              <kbd className="hidden rounded border border-line bg-surface-subtle px-1 py-0.5 font-mono text-xs text-ink-subtle md:inline">⌘K</kbd>
             </button>
             <button
               type="button"
