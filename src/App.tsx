@@ -211,6 +211,7 @@ export default function App() {
                 products={enterprise.products}
                 onRefresh={loadAll}
                 onToast={showToast}
+                onNavigate={setActiveSection}
               />
             )}
 
