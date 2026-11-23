@@ -20,10 +20,13 @@ export type NavSectionId =
   | 'admin';
 
 export type NavGroup =
-  | 'Gestão Empresarial'
+  | 'Empresa'
+  | 'Portfólio'
+  | 'Mercado'
+  | 'Gestão'
   | 'Operações de IA'
-  | 'Biblioteca'
-  | 'Administração';
+  | 'Conhecimento'
+  | 'Sistema';
 
 export type ProjectStage = 'Descoberta' | 'Em Execução' | 'Revisão' | 'Entregue';
 

@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   Coins,
-  Compass,
   CreditCard,
   FolderKanban,
   GitBranch,
@@ -38,40 +37,48 @@ export interface NavItemConfig {
 }
 
 export const NAV_ITEMS: NavItemConfig[] = [
-  // A. Gestão Empresarial
-  { id: 'executivo', label: 'Visão Executiva', group: 'Gestão Empresarial', icon: LayoutDashboard },
-  { id: 'projetos', label: 'Projetos', group: 'Gestão Empresarial', icon: FolderKanban },
-  { id: 'clientes', label: 'Clientes & CRM', group: 'Gestão Empresarial', icon: Building2 },
-  { id: 'comercial', label: 'Comercial & Vendas', group: 'Gestão Empresarial', icon: Briefcase },
-  { id: 'produtos', label: 'Produtos & Serviços', group: 'Gestão Empresarial', icon: Package },
-  { id: 'assinaturas', label: 'Assinaturas', group: 'Gestão Empresarial', icon: CreditCard },
-  { id: 'financeiro', label: 'Financeiro', group: 'Gestão Empresarial', icon: Wallet },
-  { id: 'relatorios', label: 'Relatórios', group: 'Gestão Empresarial', icon: BarChart3 },
+  { id: 'executivo', label: 'Cockpit executivo', group: 'Empresa', icon: LayoutDashboard },
+  { id: 'produtos', label: 'Produtos', group: 'Portfólio', icon: Package },
+  { id: 'projetos', label: 'Projetos e entregas', group: 'Portfólio', icon: FolderKanban },
+  { id: 'clientes', label: 'Clientes e CRM', group: 'Mercado', icon: Building2 },
+  { id: 'comercial', label: 'Comercial e vendas', group: 'Mercado', icon: Briefcase },
+  { id: 'assinaturas', label: 'Assinaturas', group: 'Mercado', icon: CreditCard },
+  { id: 'financeiro', label: 'Financeiro', group: 'Gestão', icon: Wallet },
+  { id: 'relatorios', label: 'Indicadores e relatórios', group: 'Gestão', icon: BarChart3 },
 
-  // B. Operações de IA (Paperclip)
-  { id: 'ia-visao', label: 'Visão Geral & Projetos', group: 'Operações de IA', icon: Compass },
-  { id: 'ia-chat', label: 'Chat com Agentes', group: 'Operações de IA', icon: MessageSquare },
+  { id: 'ia-visao', label: 'Visão geral', group: 'Operações de IA', icon: LayoutDashboard },
+  { id: 'ia-chat', label: 'Central de comunicação', group: 'Operações de IA', icon: MessageSquare },
   { id: 'ia-agentes', label: 'Agentes', group: 'Operações de IA', icon: Bot },
-  { id: 'ia-equipes', label: 'Equipes & Diretoria', group: 'Operações de IA', icon: GitBranch },
-  { id: 'ia-tarefas', label: 'Tasks & Delegações', group: 'Operações de IA', icon: ListTodo },
+  { id: 'ia-equipes', label: 'Organização e equipes', group: 'Operações de IA', icon: GitBranch },
+  { id: 'ia-tarefas', label: 'Tarefas e delegações', group: 'Operações de IA', icon: ListTodo },
   { id: 'ia-execucoes', label: 'Execuções', group: 'Operações de IA', icon: Activity },
-  { id: 'ia-rotinas', label: 'Automações & Rotinas', group: 'Operações de IA', icon: Clock },
+  { id: 'ia-rotinas', label: 'Rotinas e automações', group: 'Operações de IA', icon: Clock },
   { id: 'ia-aprovacoes', label: 'Aprovações', group: 'Operações de IA', icon: CheckCircle2 },
-  { id: 'ia-custos', label: 'Custos & Atividade', group: 'Operações de IA', icon: Coins },
+  { id: 'ia-custos', label: 'Custos e atividade', group: 'Operações de IA', icon: Coins },
 
-  // C. Biblioteca
-  { id: 'biblioteca', label: 'Especialistas Agency', group: 'Biblioteca', icon: BookOpen },
-
-  // D. Administração
-  { id: 'admin', label: 'Administração', group: 'Administração', icon: Settings },
+  { id: 'biblioteca', label: 'Biblioteca de especialistas', group: 'Conhecimento', icon: BookOpen },
+  { id: 'admin', label: 'Configurações', group: 'Sistema', icon: Settings },
 ];
 
 const GROUPS: NavGroup[] = [
-  'Gestão Empresarial',
+  'Empresa',
+  'Portfólio',
+  'Mercado',
+  'Gestão',
   'Operações de IA',
-  'Biblioteca',
-  'Administração',
+  'Conhecimento',
+  'Sistema',
 ];
+
+const GROUP_LABELS: Record<NavGroup, string> = {
+  Empresa: 'Empresa',
+  Portfólio: 'Portfólio',
+  Mercado: 'Mercado e relacionamento',
+  Gestão: 'Gestão corporativa',
+  'Operações de IA': 'Força de trabalho IA',
+  Conhecimento: 'Conhecimento',
+  Sistema: 'Sistema',
+};
 
 interface AppShellProps {
   activeSection: NavSectionId;
@@ -100,64 +107,62 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const currentItem = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
 
-  const currentItem = NAV_ITEMS.find((i) => i.id === activeSection) ?? NAV_ITEMS[0];
+  const selectSection = (id: NavSectionId) => {
+    onSelectSection(id);
+    setMobileOpen(false);
+  };
 
   const renderSidebarBody = (collapsed: boolean) => (
-    <div className="flex flex-col h-full bg-surface/95 backdrop-blur-md border-r border-line select-none shadow-[1px_0_24px_-14px_rgba(37,99,235,0.28)]">
-      {/* Brand Header */}
-      <div className={`h-16 border-b border-line flex items-center ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+    <div className="flex h-full flex-col border-r border-line bg-surface select-none">
+      <div className={`flex h-16 shrink-0 items-center border-b border-line ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         <button
           type="button"
-          onClick={() => {
-            onSelectSection('executivo');
-            setMobileOpen(false);
-          }}
-          className="flex items-center gap-2.5 text-left cursor-pointer min-w-0"
-          title="TokenizAi — Início"
+          onClick={() => selectSection('executivo')}
+          className="flex min-w-0 items-center gap-3 text-left"
+          title="TokenizAi — Cockpit executivo"
         >
-          <span className="w-8 h-8 rounded-lg nc-glow-panel flex items-center justify-center shrink-0">
-            <span className="font-display font-bold text-sm text-accent dark:text-cyan-300">T</span>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white">
+            <span className="font-display text-sm font-bold">T</span>
           </span>
           {!collapsed && (
-            <span className="font-display font-bold text-base tracking-tight text-ink whitespace-nowrap truncate">
-              TokenizAi
+            <span className="min-w-0">
+              <span className="block truncate font-display text-[15px] font-bold tracking-tight text-ink">TokenizAi</span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-ink-subtle">Company OS</span>
             </span>
           )}
         </button>
-
         {!collapsed && (
           <button
             type="button"
             onClick={() => setSidebarCollapsed(true)}
-            className="hidden lg:inline-flex p-1.5 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface-subtle transition-colors cursor-pointer"
+            className="hidden rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-surface-subtle hover:text-ink lg:inline-flex"
             aria-label="Recolher menu lateral"
             title="Recolher menu"
           >
-            <PanelLeftClose className="w-4 h-4" />
+            <PanelLeftClose className="h-4 w-4" />
           </button>
         )}
-
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-1.5 rounded-lg text-ink-subtle hover:text-ink cursor-pointer"
+          className="rounded-md p-1.5 text-ink-subtle hover:bg-surface-subtle lg:hidden"
           aria-label="Fechar navegação"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Navigation Groups */}
-      <nav aria-label="Navegação principal" className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
+      <nav aria-label="Navegação principal" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {GROUPS.map((group) => {
-          const items = NAV_ITEMS.filter((i) => i.group === group);
+          const items = NAV_ITEMS.filter((item) => item.group === group);
           return (
-            <div key={group} className="space-y-1">
+            <section key={group} className="space-y-1">
               {!collapsed && (
-                <div className="px-2.5 pb-1 text-[11px] font-semibold text-ink-subtle tracking-wide truncate">
-                  {group}
-                </div>
+                <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle">
+                  {GROUP_LABELS[group]}
+                </h2>
               )}
               {items.map((item) => {
                 const Icon = item.icon;
@@ -167,121 +172,106 @@ export const AppShell: React.FC<AppShellProps> = ({
                     key={item.id}
                     type="button"
                     aria-current={active ? 'page' : undefined}
+                    aria-label={collapsed ? item.label : undefined}
                     title={collapsed ? item.label : undefined}
-                    onClick={() => {
-                      onSelectSection(item.id);
-                      setMobileOpen(false);
-                    }}
-                    className={`nc-nav-item w-full flex items-center ${
-                      collapsed ? 'justify-center px-2' : 'gap-2.5 px-3'
-                    } py-2 rounded-xl text-sm cursor-pointer ${
-                      active ? 'nc-nav-active font-semibold' : 'font-medium'
-                    }`}
+                    onClick={() => selectSection(item.id)}
+                    className={`nc-nav-item flex w-full items-center rounded-lg py-2 text-[13px] ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'nc-nav-active' : 'font-medium'}`}
                   >
-                    <Icon
-                      className={`w-4 h-4 shrink-0 ${
-                        active ? 'text-accent dark:text-cyan-300' : 'text-ink-subtle'
-                      }`}
-                    />
+                    <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
                   </button>
                 );
               })}
-            </div>
+            </section>
           );
         })}
       </nav>
 
-      {/* Expand toggle when collapsed */}
       {collapsed && (
-        <div className="p-3 border-t border-line hidden lg:flex justify-center">
+        <div className="hidden justify-center border-t border-line p-3 lg:flex">
           <button
             type="button"
             onClick={() => setSidebarCollapsed(false)}
-            className="p-2 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface-subtle transition-colors cursor-pointer"
+            className="rounded-md p-2 text-ink-subtle hover:bg-surface-subtle hover:text-ink"
             aria-label="Expandir menu lateral"
             title="Expandir menu"
           >
-            <PanelLeftOpen className="w-4 h-4" />
+            <PanelLeftOpen className="h-4 w-4" />
           </button>
+        </div>
+      )}
+      {!collapsed && (
+        <div className="border-t border-line px-4 py-3">
+          <p className="text-[11px] font-medium text-ink-muted">Uma empresa. Um fundador. Uma força de trabalho de IA.</p>
+          <p className="mt-1 text-[10px] text-ink-subtle">Gestão integrada · TokenizAi</p>
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-canvas text-ink">
-      {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:block shrink-0 transition-[width] duration-200 ${
-          sidebarCollapsed ? 'w-[72px]' : 'w-[252px]'
-        }`}
-      >
+    <div className="flex min-h-screen bg-canvas text-ink">
+      <aside className={`hidden shrink-0 transition-[width] duration-150 lg:block ${sidebarCollapsed ? 'w-[68px]' : 'w-[248px]'}`}>
         <div className="sticky top-0 h-screen">{renderSidebarBody(sidebarCollapsed)}</div>
       </aside>
 
-      {/* Mobile Drawer Sidebar */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <button
+            type="button"
+            className="fixed inset-0 bg-slate-950/40"
             onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
+            aria-label="Fechar menu"
           />
-          <aside className="relative z-10 w-[264px] max-w-[85vw] h-full">
+          <aside className="relative z-10 h-full w-[280px] max-w-[86vw]">
             {renderSidebarBody(false)}
           </aside>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Clean Minimalist Header */}
-        <header className="sticky top-0 z-30 h-16 bg-surface/85 backdrop-blur-md border-b border-line px-4 sm:px-8 flex items-center justify-between gap-4">
-          {/* Left: Mobile Trigger + Breadcrumb */}
-          <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:px-7">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg border border-line-strong text-ink-muted hover:text-ink cursor-pointer"
+              className="rounded-lg border border-line p-2 text-ink-muted hover:bg-surface-subtle lg:hidden"
               aria-label="Abrir navegação"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2 text-sm min-w-0">
-              <span className="text-ink-subtle hidden sm:inline truncate">{currentItem.group}</span>
-              <span className="text-ink-subtle hidden sm:inline" aria-hidden="true">/</span>
-              <span className="font-display font-semibold text-ink truncate">{currentItem.label}</span>
+            <div className="min-w-0">
+              <p className="hidden truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle sm:block">
+                {GROUP_LABELS[currentItem.group]}
+              </p>
+              <h1 className="truncate font-display text-sm font-semibold text-ink">{currentItem.label}</h1>
             </div>
           </div>
 
-          {/* Right: Contextual Search, Theme Toggle & 1 Primary Action */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onOpenSearch}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line-strong bg-surface-subtle/70 hover:bg-surface-subtle text-xs text-ink-muted hover:text-ink transition-colors cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
               aria-label="Pesquisar na plataforma"
             >
-              <Search className="w-3.5 h-3.5 text-accent dark:text-cyan-300" />
+              <Search className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Buscar</span>
-              <kbd className="hidden md:inline font-mono text-[10px] text-ink-subtle">⌘K</kbd>
+              <kbd className="hidden rounded border border-line bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-ink-subtle md:inline">⌘K</kbd>
             </button>
-
             <button
               type="button"
               onClick={onToggleTheme}
               aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
               title={isDark ? 'Modo claro' : 'Modo escuro'}
-              className="p-2 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-subtle transition-colors cursor-pointer"
+              className="rounded-lg border border-line p-2 text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
             >
-              {isDark ? <Sun className="w-4 h-4 text-highlight" /> : <Moon className="w-4 h-4" />}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-
             <button
               type="button"
               onClick={onPrimaryAction}
-              className="nc-primary-btn nc-border-run px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+              className="nc-primary-btn rounded-lg px-3 py-2 text-xs font-semibold sm:px-4"
             >
               {primaryActionLabel}
             </button>
@@ -301,8 +291,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           </div>
         </header>
 
-        {/* Viewport Workspace */}
-        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-8 py-7 sm:py-8">
+        <main className="mx-auto w-full max-w-[1480px] flex-1 px-4 py-6 sm:px-7 sm:py-7">
           {children}
         </main>
       </div>

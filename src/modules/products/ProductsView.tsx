@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Edit3, Package, Plus, Power } from 'lucide-react';
+import { ArrowUpRight, Edit3, Package, Plus, Power } from 'lucide-react';
 import {
   PageHeader,
   SegmentedTabs,
@@ -7,18 +7,20 @@ import {
   StatusText,
 } from '../../components/ui/Primitives';
 import { formatBRL, PlatformApi } from '../../services/api';
-import type { ProductCategory, ProductRecord } from '../../types/platform';
+import type { NavSectionId, ProductCategory, ProductRecord } from '../../types/platform';
 
 interface ProductsViewProps {
   products: ProductRecord[];
   onRefresh: () => Promise<void>;
   onToast: (msg: string) => void;
+  onNavigate: (section: NavSectionId) => void;
 }
 
 export const ProductsView: React.FC<ProductsViewProps> = ({
   products,
   onRefresh,
   onToast,
+  onNavigate,
 }) => {
   const [viewMode, setViewMode] = useState<'cartoes' | 'tabela'>('cartoes');
   const [category, setCategory] = useState<'Todos' | ProductCategory>('Todos');
@@ -135,8 +137,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Produtos & Serviços"
-        subtitle="Catálogo comercial editável com precificação, modelo de cobrança, clientes ativos e margem operacional."
+        title="Portfólio de produtos"
+        subtitle="Acompanhe os produtos próprios da TokenizAi e administre o catálogo de ofertas comerciais."
         actions={
           <>
             <SegmentedTabs
@@ -159,8 +161,58 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
         }
       />
 
-      <SegmentedTabs
-        active={category}
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-display text-sm font-semibold text-ink">Produtos próprios da TokenizAi</h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            Prioridade da operação atual: desenvolver, operar e ampliar os produtos da casa antes de expandir a oferta de serviços para terceiros.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {[
+            {
+              name: 'AdeusMultas',
+              description: 'Defesa de multas, recursos administrativos e serviços relacionados à CNH.',
+            },
+            {
+              name: 'DefesaI Saúde',
+              description: 'Jornada digital de defesa dos beneficiários diante de negativas de planos de saúde.',
+            },
+            {
+              name: 'Beleza Digital',
+              description: 'Soluções digitais para salões, barbearias e negócios do setor de beleza.',
+            },
+          ].map((product) => (
+            <button
+              key={product.name}
+              type="button"
+              onClick={() => onNavigate('projetos')}
+              className="nc-card flex items-start gap-3 rounded-xl p-4 text-left"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-ink-muted">
+                <Package className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-display text-sm font-semibold text-ink">{product.name}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-muted">{product.description}</span>
+                <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-accent">
+                  Acompanhar projetos <ArrowUpRight className="h-3 w-3" />
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-display text-sm font-semibold text-ink">Catálogo de ofertas comerciais</h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            Cadastros de produtos, serviços, modelos de cobrança e precificação mantidos pela gestão empresarial.
+          </p>
+        </div>
+        <SegmentedTabs
+          active={category}
         onChange={setCategory}
         tabs={[
           { id: 'Todos', label: 'Todos', count: products.length },
@@ -169,7 +221,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
           { id: 'Consultoria', label: 'Consultoria' },
           { id: 'Suporte Gerenciado', label: 'Suporte' },
         ]}
-      />
+        />
+      </section>
 
       {viewMode === 'cartoes' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
