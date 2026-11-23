@@ -1,0 +1,1020 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  Bot,
+  CheckCircle2,
+  FolderGit2,
+  GitBranch,
+  Layers,
+  MessageSquare,
+  Pause,
+  Play,
+  RefreshCw,
+  Search,
+  Shield,
+  Sparkles,
+  Target,
+  Zap,
+} from 'lucide-react';
+import {
+  PageHeader,
+  SegmentedTabs,
+  SlideDrawer,
+  StatusText,
+  UserAvatar,
+} from '../../components/ui/Primitives';
+import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
+import type {
+  NavSectionId,
+  PaperclipAgentDto,
+  PaperclipOrgNodeDto,
+  PaperclipOverviewBundle,
+} from '../../types/platform';
+import { PaperclipChatPanel } from './PaperclipChatPanel';
+import {
+  PaperclipApprovalsPanel,
+  PaperclipCostsAuditPanel,
+  PaperclipRoutinesPanel,
+} from './PaperclipGovernancePanels';
+import { PaperclipRunsPanel } from './PaperclipRunsPanel';
+import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { PaperclipTasksPanel } from './PaperclipTasksPanel';
+
+export type AiOpsSectionId =
+  | 'ia-visao'
+  | 'ia-chat'
+  | 'ia-agentes'
+  | 'ia-equipes'
+  | 'ia-tarefas'
+  | 'ia-execucoes'
+  | 'ia-rotinas'
+  | 'ia-aprovacoes'
+  | 'ia-custos';
+
+interface AiOpsViewProps {
+  section: AiOpsSectionId;
+  bundle: PaperclipOverviewBundle;
+  onRefresh: () => Promise<void>;
+  onNavigate: (sec: NavSectionId) => void;
+  onToast: (msg: string) => void;
+}
+
+type AgentDrawerTab =
+  | 'geral'
+  | 'competencias'
+  | 'hierarquia'
+  | 'tarefas'
+  | 'execucoes'
+  | 'runtime'
+  | 'permissoes';
+
+export const AiOpsView: React.FC<AiOpsViewProps> = ({
+  section,
+  bundle,
+  onRefresh,
+  onNavigate,
+  onToast,
+}) => {
+  const { status, agents, issues, runs, projects, goals, approvals, routines, costs } = bundle;
+  const isConnected =
+    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+
+  const [agentSearch, setAgentSearch] = useState('');
+  const [agentStatusFilter, setAgentStatusFilter] = useState('all');
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [agentDetail, setAgentDetail] = useState<PaperclipAgentDto | null>(null);
+  const [agentRuntimeState, setAgentRuntimeState] = useState<Record<string, unknown> | null>(null);
+  const [agentDrawerTab, setAgentDrawerTab] = useState<AgentDrawerTab>('geral');
+
+  const [orgTree, setOrgTree] = useState<PaperclipOrgNodeDto[]>([]);
+  const [loadingOrg, setLoadingOrg] = useState(false);
+
+  const [chatInitialRef, setChatInitialRef] = useState<string | null>(null);
+  const [taskInitialId, setTaskInitialId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const loadOrg = useCallback(async () => {
+    if (!isConnected) {
+      setOrgTree([]);
+      return;
+    }
+    setLoadingOrg(true);
+    try {
+      const res = await PaperclipApi.getOrganization();
+      setOrgTree(res.tree || []);
+    } catch {
+      setOrgTree([]);
+    } finally {
+      setLoadingOrg(false);
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (section === 'ia-equipes') {
+      loadOrg();
+    }
+  }, [section, loadOrg]);
+
+  const openAgentProfile = useCallback(
+    async (agent: PaperclipAgentDto, initialTab: AgentDrawerTab = 'geral') => {
+      setSelectedAgentId(agent.id);
+      setAgentDetail(agent);
+      setAgentDrawerTab(initialTab);
+      setAgentRuntimeState(agent.runtimeState || null);
+
+      if (!isConnected) return;
+      const [detRes, rtRes] = await Promise.allSettled([
+        PaperclipApi.getAgent(agent.id),
+        PaperclipApi.getAgentRuntimeState(agent.id),
+      ]);
+      if (detRes.status === 'fulfilled') setAgentDetail(detRes.value.agent);
+      if (rtRes.status === 'fulfilled') setAgentRuntimeState(rtRes.value.runtimeState);
+    },
+    [isConnected],
+  );
+
+  const filteredAgents = useMemo(() => {
+    const q = agentSearch.trim().toLowerCase();
+    return agents.filter((ag) => {
+      if (agentStatusFilter !== 'all' && ag.status.toLowerCase() !== agentStatusFilter) return false;
+      if (!q) return true;
+      return (
+        ag.name.toLowerCase().includes(q) ||
+        ag.role.toLowerCase().includes(q) ||
+        (ag.title || '').toLowerCase().includes(q) ||
+        (ag.capabilities || []).some((c) => c.toLowerCase().includes(q))
+      );
+    });
+  }, [agents, agentSearch, agentStatusFilter]);
+
+  const agentStatusTone = (st: string) => {
+    const s = st.toLowerCase();
+    if (s === 'active' || s === 'idle' || s === 'ready' || s === 'running') return 'nominal' as const;
+    if (s === 'error' || s === 'failed' || s === 'terminated') return 'critical' as const;
+    return 'attention' as const;
+  };
+
+  const handleAgentAction = async (
+    agentId: string,
+    action: 'wakeup' | 'heartbeat' | 'pause' | 'resume',
+  ) => {
+    setBusyId(`${agentId}-${action}`);
+    try {
+      if (action === 'wakeup') await PaperclipApi.wakeupAgent(agentId);
+      else if (action === 'heartbeat') await PaperclipApi.invokeHeartbeat(agentId);
+      else if (action === 'pause') await PaperclipApi.pauseAgent(agentId);
+      else await PaperclipApi.resumeAgent(agentId);
+
+      await onRefresh();
+      onToast(
+        action === 'wakeup'
+          ? 'Wakeup enviado ao Paperclip.'
+          : action === 'heartbeat'
+            ? 'Heartbeat acionado no Paperclip.'
+            : action === 'pause'
+              ? 'Agente pausado no Paperclip.'
+              : 'Agente retomado no Paperclip.',
+      );
+    } catch (err) {
+      onToast(err instanceof Error ? err.message : 'Paperclip recusou a operação no agente.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const openChatWithAgent = (agentRef: string) => {
+    setSelectedAgentId(null);
+    setChatInitialRef(agentRef);
+    onNavigate('ia-chat');
+  };
+
+  const openTaskDetail = (issueId: string) => {
+    setSelectedAgentId(null);
+    setTaskInitialId(issueId);
+    onNavigate('ia-tarefas');
+  };
+
+  const renderOrgBranch = (node: PaperclipOrgNodeDto, depth = 0): React.ReactNode => {
+    const matchedAgent = agents.find((a) => a.id === node.id);
+    return (
+      <div key={node.id} className="space-y-2.5">
+        <div
+          role={matchedAgent ? 'button' : undefined}
+          tabIndex={matchedAgent ? 0 : undefined}
+          onClick={() => matchedAgent && openAgentProfile(matchedAgent, 'hierarquia')}
+          onKeyDown={(e) => {
+            if (matchedAgent && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              openAgentProfile(matchedAgent, 'hierarquia');
+            }
+          }}
+          className={`nc-card rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            matchedAgent ? 'cursor-pointer' : ''
+          }`}
+          style={{ marginLeft: `${Math.min(depth * 24, 96)}px` }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <UserAvatar name={node.name} src={node.avatarUrl || undefined} size="md" />
+            <div className="min-w-0">
+              <div className="font-display text-sm font-semibold text-ink truncate">
+                {node.title || node.name}
+              </div>
+              <div className="text-xs text-ink-subtle truncate">
+                {node.role || 'Membro Paperclip'}
+                {node.team ? ` · ${node.team}` : ''}
+                {node.children.length > 0 ? ` · ${node.children.length} subordinado(s)` : ''}
+              </div>
+            </div>
+          </div>
+          {node.status && <StatusText label={node.status} tone={agentStatusTone(node.status)} />}
+        </div>
+        {node.children.map((child) => renderOrgBranch(child, depth + 1))}
+      </div>
+    );
+  };
+
+  const headers: Record<AiOpsSectionId, { title: string; subtitle: string }> = {
+    'ia-visao': {
+      title: 'Operações de IA — Visão Geral (Paperclip)',
+      subtitle:
+        'Estado da integração oficial, capacidades OpenAPI detectadas, projetos operacionais e metas do Paperclip.',
+    },
+    'ia-chat': {
+      title: 'Chat com Agentes (Agent Chat)',
+      subtitle:
+        'Conversas reais por agente e usuário diretamente na estrutura oficial do Paperclip.',
+    },
+    'ia-agentes': {
+      title: 'Agentes Operacionais (Paperclip)',
+      subtitle:
+        'Instâncias ativas governadas pelo Paperclip, separadas do catálogo consultivo Agency Agents.',
+    },
+    'ia-equipes': {
+      title: 'Equipes & Organograma Oficial',
+      subtitle:
+        'Hierarquia construída dinamicamente a partir dos vínculos reportsTo e endpoint /org do Paperclip.',
+    },
+    'ia-tarefas': {
+      title: 'Tasks & Delegações (Issues)',
+      subtitle:
+        'Central oficial de issues, dependências, comentários, documentos, anexos e interações estruturadas.',
+    },
+    'ia-execucoes': {
+      title: 'Execuções & Heartbeats',
+      subtitle:
+        'Monitoramento de execuções, logs, eventos, tokens, modelos e cancelamentos suportados.',
+    },
+    'ia-rotinas': {
+      title: 'Automações & Rotinas (Paperclip)',
+      subtitle:
+        'Rotinas agendadas, gatilhos webhook/api e histórico de execuções diretamente no Paperclip.',
+    },
+    'ia-aprovacoes': {
+      title: 'Aprovações & Governança',
+      subtitle:
+        'Solicitações pendentes de autorização humana e revisões de decisões operacionais.',
+    },
+    'ia-custos': {
+      title: 'Custos, Atividade & Auditoria',
+      subtitle:
+        'Consumo oficial por agente/projeto, cobertura de apuração e trilha de auditoria de ações.',
+    },
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={headers[section].title}
+        subtitle={headers[section].subtitle}
+        actions={
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Sincronizar Paperclip</span>
+          </button>
+        }
+      />
+
+      {/* ======================================================================== */}
+      {/* 1. VISÃO GERAL IA + PROJETOS/METAS OPERACIONAIS + CAPACIDADES OPENAPI    */}
+      {/* ======================================================================== */}
+      {section === 'ia-visao' && (
+        <div className="space-y-6">
+          <PaperclipStatusPanel
+            status={status}
+            title="Conexão & Matriz de Capacidades Paperclip"
+            onRefresh={onRefresh}
+            onNavigate={onNavigate}
+          />
+
+          {isConnected && (
+            <>
+              <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ia-agentes')}
+                  className="nc-card rounded-2xl p-5 text-left cursor-pointer"
+                >
+                  <div className="text-xs text-ink-subtle">Agentes no Paperclip</div>
+                  <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-ink">
+                    {agents.length}
+                  </div>
+                  <div className="text-xs text-ink-muted mt-1">
+                    {agents.filter((a) => a.status === 'running').length} em execução
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ia-tarefas')}
+                  className="nc-card rounded-2xl p-5 text-left cursor-pointer"
+                >
+                  <div className="text-xs text-ink-subtle">Issues Abertas</div>
+                  <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-ink">
+                    {issues.filter((i) => i.status !== 'done' && i.status !== 'cancelled').length}
+                  </div>
+                  <div className="text-xs text-highlight mt-1">
+                    {issues.filter((i) => i.status === 'blocked').length} bloqueada(s)
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ia-aprovacoes')}
+                  className="nc-card rounded-2xl p-5 text-left cursor-pointer"
+                >
+                  <div className="text-xs text-ink-subtle">Aprovações Pendentes</div>
+                  <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-highlight">
+                    {approvals.filter((a) => a.status === 'pending').length}
+                  </div>
+                  <div className="text-xs text-ink-muted mt-1">{routines.length} rotina(s) ativa(s)</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate('ia-custos')}
+                  className="nc-card rounded-2xl p-5 text-left cursor-pointer"
+                >
+                  <div className="text-xs text-ink-subtle">Custo Apurado ({costs?.currency || 'USD'})</div>
+                  <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-accent dark:text-cyan-300">
+                    {formatCents(costs?.totalCostCents, costs?.currency)}
+                  </div>
+                  <div className="text-xs text-ink-subtle mt-1">{runs.length} execução(ões) recente(s)</div>
+                </button>
+              </section>
+
+              {/* Separate Paperclip Operational Projects & Goals */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <section className="nc-card rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-line pb-3">
+                    <div className="flex items-center gap-2">
+                      <FolderGit2 className="w-4 h-4 text-accent dark:text-cyan-300" />
+                      <h2 className="font-display text-sm font-semibold text-ink">
+                        Projetos Operacionais (Paperclip)
+                      </h2>
+                    </div>
+                    <span className="font-mono text-xs text-ink-subtle">{projects.length}</span>
+                  </div>
+                  <p className="text-[11px] text-ink-subtle">
+                    Domínio operacional exclusivo do Paperclip (independente dos projetos empresariais da TokenizAi).
+                  </p>
+                  <div className="divide-y divide-line">
+                    {projects.map((p) => (
+                      <div key={p.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-ink truncate">{p.name}</div>
+                          {p.description && <div className="text-ink-subtle truncate">{p.description}</div>}
+                        </div>
+                        {p.status && <StatusText label={p.status} tone="nominal" />}
+                      </div>
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="py-4 text-xs text-ink-subtle text-center">
+                        Nenhum projeto operacional cadastrado no Paperclip.
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <section className="nc-card rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-line pb-3">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-accent dark:text-cyan-300" />
+                      <h2 className="font-display text-sm font-semibold text-ink">
+                        Metas & Objetivos (Goals)
+                      </h2>
+                    </div>
+                    <span className="font-mono text-xs text-ink-subtle">{goals.length}</span>
+                  </div>
+                  <div className="divide-y divide-line">
+                    {goals.map((g) => (
+                      <div key={g.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-ink truncate">{g.title}</div>
+                          {g.level && <div className="text-ink-subtle">Nível: {g.level}</div>}
+                        </div>
+                        {typeof g.progressPercent === 'number' && (
+                          <span className="font-mono font-semibold text-highlight tabular-nums">
+                            {g.progressPercent}%
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {goals.length === 0 && (
+                      <div className="py-4 text-xs text-ink-subtle text-center">
+                        Nenhuma meta operacional cadastrada no Paperclip.
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
+          {/* OpenAPI Capability Matrix Table */}
+          <section className="nc-card rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-line bg-surface-subtle/35 flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  Matriz de Capacidades Descobertas via OpenAPI
+                </h2>
+                <p className="text-xs text-ink-subtle mt-0.5">
+                  Compatibilidade automática conforme rotas e permissões da instância conectada
+                </p>
+              </div>
+              <span className="font-mono text-xs text-ink-subtle">
+                {status.availableCapabilities.filter((c) => c.availableInVersion === true).length} /{' '}
+                {status.availableCapabilities.length} ativas
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-line text-[11px] font-semibold text-ink-subtle">
+                    <th className="py-2.5 px-6">Capacidade</th>
+                    <th className="py-2.5 px-4">Rota Externa</th>
+                    <th className="py-2.5 px-4">Método</th>
+                    <th className="py-2.5 px-4">Disponibilidade na Versão</th>
+                    <th className="py-2.5 px-6 text-right">Autenticação / Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line text-xs">
+                  {status.availableCapabilities.map((cap) => (
+                    <tr key={cap.key}>
+                      <td className="py-3 px-6">
+                        <div className="font-mono font-semibold text-ink">{cap.key}</div>
+                        <div className="text-ink-subtle">{cap.label}</div>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-ink-muted">{cap.route}</td>
+                      <td className="py-3 px-4 font-mono text-highlight">{cap.method}</td>
+                      <td className="py-3 px-4">
+                        <StatusText
+                          label={
+                            cap.availableInVersion === true
+                              ? 'Disponível'
+                              : cap.availableInVersion === false
+                                ? 'Indisponível nesta versão'
+                                : 'Aguardando OpenAPI'
+                          }
+                          tone={
+                            cap.availableInVersion === true
+                              ? 'nominal'
+                              : cap.availableInVersion === false
+                                ? 'attention'
+                                : 'neutral'
+                          }
+                        />
+                      </td>
+                      <td className="py-3 px-6 text-right">
+                        <span className="font-mono text-ink-muted">
+                          {cap.authState} · {cap.implementationState}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* ======================================================================== */}
+      {/* 2. CHAT COM AGENTES                                                      */}
+      {/* ======================================================================== */}
+      {section === 'ia-chat' && (
+        <PaperclipChatPanel
+          status={status}
+          agents={agents}
+          initialAgentRef={chatInitialRef}
+          onNavigate={onNavigate}
+          onOpenIssue={openTaskDetail}
+          onToast={onToast}
+        />
+      )}
+
+      {/* ======================================================================== */}
+      {/* 3. AGENTES                                                               */}
+      {/* ======================================================================== */}
+      {section === 'ia-agentes' && (
+        <>
+          {!isConnected ? (
+            <PaperclipStatusPanel
+              status={status}
+              title="Agentes Paperclip"
+              requiredCapabilities={['agents:read', 'agents:manage']}
+              onRefresh={onRefresh}
+              onNavigate={onNavigate}
+            />
+          ) : (
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="w-4 h-4 text-ink-subtle absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={agentSearch}
+                      onChange={(e) => setAgentSearch(e.target.value)}
+                      placeholder="Buscar agente por nome, cargo ou competência..."
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-line-strong bg-surface text-xs text-ink"
+                    />
+                  </div>
+                  <select
+                    value={agentStatusFilter}
+                    onChange={(e) => setAgentStatusFilter(e.target.value)}
+                    aria-label="Filtrar status dos agentes"
+                    className="px-3 py-2 rounded-xl border border-line-strong bg-surface text-xs text-ink"
+                  >
+                    <option value="all">Todos status ({agents.length})</option>
+                    <option value="active">active</option>
+                    <option value="idle">idle</option>
+                    <option value="running">running</option>
+                    <option value="paused">paused</option>
+                    <option value="error">error</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigate('biblioteca')}
+                  className="px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer"
+                >
+                  Ver Catálogo Agency Agents
+                </button>
+              </div>
+
+              {filteredAgents.length === 0 ? (
+                <div className="nc-card rounded-2xl p-10 text-center space-y-2">
+                  <Bot className="w-6 h-6 text-accent dark:text-cyan-300 mx-auto" />
+                  <div className="font-display text-base font-semibold text-ink">
+                    Nenhum agente encontrado nesta empresa Paperclip
+                  </div>
+                  <p className="text-xs text-ink-subtle">
+                    Ajuste os filtros ou cadastre/aloque agentes na instância Paperclip conectada.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredAgents.map((ag) => {
+                    const isPaused = ag.status.toLowerCase() === 'paused';
+                    return (
+                      <div
+                        key={ag.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openAgentProfile(ag, 'geral')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openAgentProfile(ag, 'geral');
+                          }
+                        }}
+                        className={`nc-card rounded-2xl p-5 text-left cursor-pointer flex flex-col justify-between gap-4 ${
+                          selectedAgentId === ag.id ? 'nc-card-active' : ''
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <UserAvatar name={ag.title || ag.name} src={ag.avatarUrl || undefined} size="md" />
+                              <div className="min-w-0">
+                                <h3 className="font-display text-base font-semibold text-ink truncate">
+                                  {ag.title || ag.name}
+                                </h3>
+                                <p className="text-xs text-ink-subtle truncate">{ag.role || 'Agente Paperclip'}</p>
+                              </div>
+                            </div>
+                            <StatusText label={ag.status} tone={agentStatusTone(ag.status)} />
+                          </div>
+
+                          {ag.capabilities && ag.capabilities.length > 0 && (
+                            <div className="text-xs text-ink-muted line-clamp-2">
+                              {ag.capabilities.slice(0, 4).join(' · ')}
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-line">
+                            <div>
+                              <span className="text-ink-subtle block">Adapter</span>
+                              <span className="font-mono text-ink">{ag.adapterType || '—'}</span>
+                            </div>
+                            <div>
+                              <span className="text-ink-subtle block">Consumo / Teto</span>
+                              <span className="font-mono text-ink tabular-nums">
+                                {formatCents(ag.spentMonthlyCents)} / {formatCents(ag.budgetMonthlyCents)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          className="pt-3 border-t border-line flex items-center justify-between gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openChatWithAgent(ag.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-accent dark:text-cyan-300 hover:bg-surface-blue cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Conversar</span>
+                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={busyId === `${ag.id}-wakeup`}
+                              onClick={() => handleAgentAction(ag.id, 'wakeup')}
+                              title="Wakeup"
+                              className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === `${ag.id}-heartbeat`}
+                              onClick={() => handleAgentAction(ag.id, 'heartbeat')}
+                              title="Invocar Heartbeat"
+                              className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busyId === `${ag.id}-${isPaused ? 'resume' : 'pause'}`}
+                              onClick={() => handleAgentAction(ag.id, isPaused ? 'resume' : 'pause')}
+                              title={isPaused ? 'Retomar agente' : 'Pausar agente'}
+                              className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
+                            >
+                              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ======================================================================== */}
+      {/* 4. EQUIPES & DIRETORIA (ORGANOGRAMA REAL VIA /org + reportsTo)           */}
+      {/* ======================================================================== */}
+      {section === 'ia-equipes' && (
+        <>
+          {!isConnected ? (
+            <PaperclipStatusPanel
+              status={status}
+              title="Equipes & Organograma (Paperclip)"
+              requiredCapabilities={['org:read', 'agents:read']}
+              onRefresh={onRefresh}
+              onNavigate={onNavigate}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-ink-subtle inline-flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5 text-accent dark:text-cyan-300" />
+                  <span>Estrutura hierárquica construída diretamente de /org e dos campos reportsTo do Paperclip</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadOrg}
+                  disabled={loadingOrg}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingOrg ? 'animate-spin' : ''}`} />
+                  <span>Atualizar organograma</span>
+                </button>
+              </div>
+
+              {orgTree.length === 0 ? (
+                <div className="nc-card rounded-2xl p-8 text-center text-xs text-ink-subtle">
+                  Nenhum vínculo hierárquico retornado pela instância Paperclip até o momento.
+                </div>
+              ) : (
+                <div className="space-y-3">{orgTree.map((root) => renderOrgBranch(root, 0))}</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ======================================================================== */}
+      {/* 5..9 DOMAIN PANELS                                                       */}
+      {/* ======================================================================== */}
+      {section === 'ia-tarefas' && (
+        <PaperclipTasksPanel
+          status={status}
+          agents={agents}
+          projects={projects}
+          goals={goals}
+          initialIssueId={taskInitialId}
+          onNavigate={onNavigate}
+          onRefreshAll={onRefresh}
+          onToast={onToast}
+        />
+      )}
+
+      {section === 'ia-execucoes' && (
+        <PaperclipRunsPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+      )}
+
+      {section === 'ia-rotinas' && (
+        <PaperclipRoutinesPanel
+          status={status}
+          agents={agents}
+          onNavigate={onNavigate}
+          onToast={onToast}
+        />
+      )}
+
+      {section === 'ia-aprovacoes' && (
+        <PaperclipApprovalsPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+      )}
+
+      {section === 'ia-custos' && (
+        <PaperclipCostsAuditPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+      )}
+
+      {/* ======================================================================== */}
+      {/* AGENT DETAIL DRAWER (REAL PAPERCLIP AGENT PROFILE)                       */}
+      {/* ======================================================================== */}
+      <SlideDrawer
+        open={Boolean(selectedAgentId && agentDetail)}
+        onClose={() => setSelectedAgentId(null)}
+        wide
+        title={agentDetail?.title || agentDetail?.name || ''}
+        subtitle={agentDetail ? `${agentDetail.role || 'Agente Paperclip'} · ID ${agentDetail.id}` : undefined}
+      >
+        {agentDetail && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line">
+              <StatusText label={agentDetail.status} tone={agentStatusTone(agentDetail.status)} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => openChatWithAgent(agentDetail.id)}
+                  className="nc-primary-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Abrir chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAgentAction(agentDetail.id, 'wakeup')}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Wakeup</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAgentAction(agentDetail.id, 'heartbeat')}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Heartbeat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleAgentAction(
+                      agentDetail.id,
+                      agentDetail.status.toLowerCase() === 'paused' ? 'resume' : 'pause',
+                    )
+                  }
+                  className="px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
+                >
+                  {agentDetail.status.toLowerCase() === 'paused' ? 'Retomar' : 'Pausar'}
+                </button>
+              </div>
+            </div>
+
+            <SegmentedTabs
+              active={agentDrawerTab}
+              onChange={setAgentDrawerTab}
+              tabs={[
+                { id: 'geral', label: 'Visão geral' },
+                { id: 'competencias', label: 'Competências' },
+                { id: 'hierarquia', label: 'Hierarquia' },
+                {
+                  id: 'tarefas',
+                  label: 'Tarefas',
+                  count: issues.filter((i) => i.assigneeAgentId === agentDetail.id).length,
+                },
+                {
+                  id: 'execucoes',
+                  label: 'Execuções',
+                  count: runs.filter((r) => r.agentId === agentDetail.id).length,
+                },
+                { id: 'runtime', label: 'Runtime State' },
+                { id: 'permissoes', label: 'Permissões & Acesso' },
+              ]}
+            />
+
+            {agentDrawerTab === 'geral' && (
+              <div className="grid grid-cols-2 gap-4 py-3 text-xs">
+                <div>
+                  <div className="text-ink-subtle">Status / Lifecycle</div>
+                  <div className="font-mono text-ink mt-0.5">
+                    {agentDetail.status} {agentDetail.lifecycleState ? `(${agentDetail.lifecycleState})` : ''}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-ink-subtle">Adapter</div>
+                  <div className="font-mono text-ink mt-0.5">{agentDetail.adapterType || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-ink-subtle">Consumo mensal</div>
+                  <div className="font-mono font-semibold text-ink mt-0.5">
+                    {formatCents(agentDetail.spentMonthlyCents)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-ink-subtle">Orçamento mensal</div>
+                  <div className="font-mono font-semibold text-highlight mt-0.5">
+                    {formatCents(agentDetail.budgetMonthlyCents)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-ink-subtle">Último heartbeat</div>
+                  <div className="font-mono text-ink mt-0.5">{formatDateTimeBR(agentDetail.lastHeartbeatAt || agentDetail.updatedAt)}</div>
+                </div>
+                <div>
+                  <div className="text-ink-subtle">Versão de Lifecycle</div>
+                  <div className="font-mono text-ink mt-0.5">{String(agentDetail.lifecycleVersion ?? '—')}</div>
+                </div>
+                {agentDetail.lifecycleError && (
+                  <div className="col-span-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300">
+                    <strong>Erro de lifecycle:</strong> {agentDetail.lifecycleError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agentDrawerTab === 'competencias' && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Capabilities registradas no Paperclip</span>
+                </h4>
+                {agentDetail.capabilities && agentDetail.capabilities.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {agentDetail.capabilities.map((cap, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 rounded-lg border border-line-strong bg-surface-subtle/50 text-xs text-ink"
+                      >
+                        {cap}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-ink-subtle">Nenhuma competência listada neste registro.</div>
+                )}
+              </div>
+            )}
+
+            {agentDrawerTab === 'hierarquia' && (
+              <div className="space-y-3 text-xs">
+                <div className="p-4 rounded-xl border border-line bg-surface-subtle/40 space-y-1">
+                  <div className="text-ink-subtle">Reporta diretamente para (reportsTo)</div>
+                  <div className="font-mono font-semibold text-ink">
+                    {agentDetail.reportsTo || 'Topo da cadeia / Sem superior direto'}
+                  </div>
+                </div>
+                {agentDetail.chainOfCommand && agentDetail.chainOfCommand.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-ink-subtle font-semibold inline-flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Cadeia de comando</span>
+                    </div>
+                    <pre className="p-3 rounded-xl border border-line bg-surface-subtle/40 font-mono text-[11px] overflow-x-auto">
+                      {JSON.stringify(agentDetail.chainOfCommand, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agentDrawerTab === 'tarefas' && (
+              <div className="space-y-2.5">
+                {issues
+                  .filter((i) => i.assigneeAgentId === agentDetail.id)
+                  .map((i) => (
+                    <button
+                      key={i.id}
+                      type="button"
+                      onClick={() => openTaskDetail(i.id)}
+                      className="w-full p-3.5 rounded-xl border border-line hover:bg-surface-blue/40 text-left space-y-1 cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono text-accent dark:text-cyan-300">
+                          {i.identifier || i.id}
+                        </span>
+                        <StatusText label={i.status} tone="attention" />
+                      </div>
+                      <div className="text-sm font-medium text-ink">{i.title}</div>
+                    </button>
+                  ))}
+                {issues.filter((i) => i.assigneeAgentId === agentDetail.id).length === 0 && (
+                  <div className="p-4 text-xs text-ink-subtle text-center border border-line rounded-xl">
+                    Nenhuma issue atribuída a este agente.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agentDrawerTab === 'execucoes' && (
+              <div className="divide-y divide-line border border-line rounded-xl">
+                {runs
+                  .filter((r) => r.agentId === agentDetail.id)
+                  .map((r) => (
+                    <div key={r.id} className="p-3.5 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-ink-subtle">{formatDateTimeBR(r.startedAt)}</span>
+                        <StatusText label={r.status} tone="attention" />
+                      </div>
+                      <div className="font-mono text-ink">
+                        {r.model || '—'} · {formatCents(r.costCents, r.currency)}
+                      </div>
+                    </div>
+                  ))}
+                {runs.filter((r) => r.agentId === agentDetail.id).length === 0 && (
+                  <div className="p-4 text-xs text-ink-subtle text-center">
+                    Nenhuma execução registrada para este agente.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {agentDrawerTab === 'runtime' && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5" />
+                  <span>Runtime State & Configuração</span>
+                </h4>
+                <pre className="p-4 rounded-xl border border-line bg-surface-subtle/40 font-mono text-[11px] overflow-x-auto max-h-72">
+                  {JSON.stringify(
+                    {
+                      runtimeState: agentRuntimeState,
+                      runtimeConfig: agentDetail.runtimeConfig || null,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </div>
+            )}
+
+            {agentDrawerTab === 'permissoes' && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-accent dark:text-cyan-300" />
+                  <span>Permissões & Acesso</span>
+                </h4>
+                <pre className="p-4 rounded-xl border border-line bg-surface-subtle/40 font-mono text-[11px] overflow-x-auto max-h-72">
+                  {JSON.stringify(
+                    {
+                      permissions: agentDetail.permissions || null,
+                      access: agentDetail.access || null,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideDrawer>
+    </div>
+  );
+};

@@ -1,0 +1,454 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@property --nc-beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes nc-border-run {
+  0% {
+    --nc-beam-angle: 0deg;
+  }
+  100% {
+    --nc-beam-angle: 360deg;
+  }
+}
+
+:root {
+  --nc-canvas: #f5f8fd;
+  --nc-surface: #ffffff;
+  --nc-surface-subtle: #edf3fb;
+  --nc-surface-blue: #eaf2ff;
+  --nc-border: rgba(15, 23, 42, 0.08);
+  --nc-border-strong: rgba(37, 99, 235, 0.22);
+  --nc-ink: #0a1628;
+  --nc-ink-muted: #334155;
+  --nc-ink-subtle: #475569;
+
+  /* TokenizAi Cobalt, Cyan & Strategic Amber Palette */
+  --nc-accent: #2563eb;
+  --nc-accent-hover: #1d4ed8;
+  --nc-accent-soft: #e0edff;
+  --nc-accent-ink: #1e3a8a;
+  --nc-highlight: #b45309;
+  --nc-highlight-soft: rgba(245, 158, 11, 0.12);
+
+  /* Dynamic Luminous Border Tokens */
+  --nc-beam-primary: #2563eb;
+  --nc-beam-secondary: #06b6d4;
+  --nc-beam-halo: rgba(37, 99, 235, 0.26);
+  --nc-rim: rgba(255, 255, 255, 0.92);
+  --nc-beam-thickness: 1.5px;
+  --nc-beam-speed: 6s;
+}
+
+.dark {
+  --nc-canvas: #060b16;
+  --nc-surface: #0b1426;
+  --nc-surface-subtle: #101c33;
+  --nc-surface-blue: #0e2040;
+  --nc-border: rgba(148, 163, 184, 0.12);
+  --nc-border-strong: rgba(56, 189, 248, 0.28);
+  --nc-ink: #f8fafc;
+  --nc-ink-muted: #cbd5e1;
+  --nc-ink-subtle: #94a3b8;
+
+  --nc-accent: #4f86f7;
+  --nc-accent-hover: #6ea0ff;
+  --nc-accent-soft: rgba(59, 130, 246, 0.18);
+  --nc-accent-ink: #e0f2fe;
+  --nc-highlight: #fbbf24;
+  --nc-highlight-soft: rgba(251, 191, 36, 0.14);
+
+  --nc-beam-primary: #3b82f6;
+  --nc-beam-secondary: #22d3ee;
+  --nc-beam-halo: rgba(34, 211, 238, 0.34);
+  --nc-rim: rgba(186, 230, 253, 0.1);
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--nc-canvas);
+    background-image:
+      radial-gradient(
+        ellipse 80% 42% at 50% -10%,
+        color-mix(in srgb, var(--nc-beam-primary) 8%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 45% 32% at 92% 4%,
+        color-mix(in srgb, var(--nc-beam-secondary) 6%, transparent),
+        transparent 65%
+      );
+    background-attachment: fixed;
+    color: var(--nc-ink);
+    letter-spacing: -0.005em;
+  }
+
+  .dark body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(
+        ellipse 82% 44% at 50% -12%,
+        color-mix(in srgb, var(--nc-beam-primary) 16%, transparent),
+        transparent 72%
+      ),
+      radial-gradient(
+        ellipse 48% 34% at 92% 4%,
+        color-mix(in srgb, var(--nc-beam-secondary) 11%, transparent),
+        transparent 68%
+      );
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.018em;
+  }
+
+  .font-mono, code, pre {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--nc-beam-primary) 35%, transparent) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--nc-beam-primary) 38%, transparent);
+    border-radius: 9999px;
+  }
+}
+
+/* Semantic Utility Classes */
+.bg-canvas { background-color: var(--nc-canvas); }
+.bg-surface { background-color: var(--nc-surface); }
+.bg-surface-subtle { background-color: var(--nc-surface-subtle); }
+.bg-surface-blue { background-color: var(--nc-surface-blue); }
+.border-line { border-color: var(--nc-border); }
+.border-line-strong { border-color: var(--nc-border-strong); }
+.divide-line > :not(:first-child) { border-color: var(--nc-border); }
+.text-ink { color: var(--nc-ink); }
+.text-ink-muted { color: var(--nc-ink-muted); }
+.text-ink-subtle { color: var(--nc-ink-subtle); }
+.text-accent { color: var(--nc-accent); }
+.text-accent-ink { color: var(--nc-accent-ink); }
+.text-highlight { color: var(--nc-highlight); }
+.bg-highlight-soft { background-color: var(--nc-highlight-soft); }
+.bg-accent { background-color: var(--nc-accent); }
+.hover\:bg-accent-hover:hover { background-color: var(--nc-accent-hover); }
+.bg-accent-soft { background-color: var(--nc-accent-soft); }
+.border-accent { border-color: var(--nc-accent); }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Interactive Luminous Card (.nc-card) — Signature TokenizAi clickable card surface */
+.nc-card {
+  position: relative;
+  background-color: var(--nc-surface);
+  border: 1px solid color-mix(in srgb, var(--nc-beam-primary) 26%, var(--nc-border));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 6px 20px -12px color-mix(in srgb, var(--nc-beam-primary) 24%, transparent),
+    0 1px 4px -2px rgba(15, 23, 42, 0.05);
+  transition:
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease,
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .nc-card {
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 24%, var(--nc-border));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 10px 26px -14px rgba(34, 211, 238, 0.2),
+    0 2px 10px -4px rgba(0, 0, 0, 0.55);
+}
+
+.nc-card:hover {
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 68%, var(--nc-beam-primary));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 0 22px -6px var(--nc-beam-halo),
+    0 10px 26px -12px rgba(37, 99, 235, 0.22);
+  transform: translateY(-1px);
+}
+
+.dark .nc-card:hover {
+  background-color: color-mix(in srgb, var(--nc-surface-blue) 42%, var(--nc-surface));
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 75%, var(--nc-beam-primary));
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.16),
+    0 0 26px -5px var(--nc-beam-halo),
+    0 12px 28px -10px rgba(0, 0, 0, 0.65);
+}
+
+.nc-card-active {
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 82%, var(--nc-beam-primary));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 0 28px -5px var(--nc-beam-halo);
+}
+
+.nc-card-active::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--nc-beam-angle),
+    transparent 0deg,
+    var(--nc-beam-primary) 55deg,
+    var(--nc-beam-secondary) 100deg,
+    transparent 155deg,
+    transparent 235deg,
+    var(--nc-beam-primary) 285deg,
+    var(--nc-beam-secondary) 330deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.92;
+  animation: nc-border-run 4.6s linear infinite;
+}
+
+/* Signature TokenizAi Luminous Panel (.nc-glow-panel) — Drawers, focal charts, active workspaces */
+.nc-glow-panel {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--nc-beam-primary) 42%, var(--nc-border-strong));
+  background-color: var(--nc-surface);
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 12px 34px -14px var(--nc-beam-halo),
+    0 2px 10px -4px rgba(15, 23, 42, 0.06);
+}
+
+.nc-glow-panel::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: var(--nc-beam-thickness);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--nc-beam-angle),
+    transparent 0deg,
+    transparent 205deg,
+    color-mix(in srgb, var(--nc-beam-primary) 65%, transparent) 260deg,
+    var(--nc-beam-primary) 305deg,
+    var(--nc-beam-secondary) 340deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.88;
+  animation: nc-border-run var(--nc-beam-speed) linear infinite;
+}
+
+.dark .nc-glow-panel {
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 44%, var(--nc-border-strong));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 18px 44px -14px var(--nc-beam-halo),
+    0 6px 22px -8px rgba(0, 0, 0, 0.65);
+}
+
+/* Subtle Running-Light Border Utility (.nc-border-run) for primary actions or active highlights */
+.nc-border-run {
+  position: relative;
+}
+
+.nc-border-run::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--nc-beam-angle),
+    transparent 0deg,
+    transparent 220deg,
+    var(--nc-beam-primary) 280deg,
+    var(--nc-beam-secondary) 335deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.72;
+  animation: nc-border-run 5s linear infinite;
+  transition: opacity 180ms ease;
+}
+
+.nc-border-run:hover::before {
+  opacity: 1;
+}
+
+/* Segmented Tabs with Luminous Active Border */
+.nc-tab-active {
+  background-color: var(--nc-surface);
+  color: var(--nc-ink);
+  border: 1px solid color-mix(in srgb, var(--nc-beam-primary) 55%, var(--nc-beam-secondary));
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 0 14px -5px var(--nc-beam-halo);
+}
+
+.dark .nc-tab-active {
+  background-color: var(--nc-surface-blue);
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 68%, var(--nc-beam-primary));
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.16),
+    0 0 18px -5px var(--nc-beam-halo);
+}
+
+/* Sidebar Navigation (.nc-nav-item / .nc-nav-active) */
+.nc-nav-item {
+  position: relative;
+  border: 1px solid transparent;
+  color: var(--nc-ink-muted);
+  transition:
+    border-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease,
+    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 160ms ease;
+}
+
+.nc-nav-item:hover:not(.nc-nav-active) {
+  border-color: color-mix(in srgb, var(--nc-beam-secondary) 38%, var(--nc-border));
+  background-color: color-mix(in srgb, var(--nc-accent-soft) 50%, var(--nc-surface-subtle));
+  color: var(--nc-ink);
+  box-shadow: 0 0 16px -6px var(--nc-beam-halo);
+}
+
+.nc-nav-item.nc-nav-active {
+  border: 1px solid color-mix(in srgb, var(--nc-beam-primary) 65%, var(--nc-beam-secondary));
+  background: linear-gradient(
+    96deg,
+    color-mix(in srgb, var(--nc-accent-soft) 95%, transparent),
+    color-mix(in srgb, var(--nc-beam-secondary) 14%, var(--nc-accent-soft))
+  );
+  color: var(--nc-accent-ink);
+  box-shadow:
+    inset 0 1px 0 var(--nc-rim),
+    0 0 20px -5px var(--nc-beam-halo);
+}
+
+.dark .nc-nav-item.nc-nav-active {
+  color: #ffffff;
+  background: linear-gradient(
+    96deg,
+    color-mix(in srgb, var(--nc-beam-primary) 26%, var(--nc-surface-blue)),
+    color-mix(in srgb, var(--nc-beam-secondary) 16%, var(--nc-surface))
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(186, 230, 253, 0.16),
+    0 0 24px -5px var(--nc-beam-halo);
+}
+
+.nc-nav-item.nc-nav-active::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--nc-beam-angle),
+    transparent 0deg,
+    var(--nc-beam-primary) 55deg,
+    var(--nc-beam-secondary) 95deg,
+    transparent 150deg,
+    transparent 230deg,
+    var(--nc-beam-primary) 285deg,
+    var(--nc-beam-secondary) 325deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.94;
+  animation: nc-border-run 4.2s linear infinite;
+}
+
+/* Primary Action Button Accent Glow */
+.nc-primary-btn {
+  background-color: var(--nc-accent);
+  color: #ffffff;
+  border: 1px solid color-mix(in srgb, #ffffff 35%, var(--nc-beam-secondary));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 4px 16px -4px var(--nc-beam-halo);
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+}
+
+.nc-primary-btn:hover:not(:disabled) {
+  background-color: var(--nc-accent-hover);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 6px 24px -3px var(--nc-beam-halo);
+}
+
+.nc-primary-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Accessible Focus Rings */
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--nc-beam-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc-beam-secondary) 24%, transparent);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--nc-beam-secondary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    --nc-beam-angle: 45deg;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  --nc-beam-angle: 45deg;
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
