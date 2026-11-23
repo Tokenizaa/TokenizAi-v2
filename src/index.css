@@ -93,7 +93,7 @@
 .text-highlight { color: var(--nc-highlight); }
 .bg-highlight-soft { background-color: var(--nc-highlight-soft); }
 .bg-accent { background-color: var(--nc-accent); }
-.hover\\:bg-accent-hover:hover { background-color: var(--nc-accent-hover); }
+.hover\:bg-accent-hover:hover { background-color: var(--nc-accent-hover); }
 .bg-accent-soft { background-color: var(--nc-accent-soft); }
 .border-accent { border-color: var(--nc-accent); }
 .tabular-nums { font-variant-numeric: tabular-nums; }
