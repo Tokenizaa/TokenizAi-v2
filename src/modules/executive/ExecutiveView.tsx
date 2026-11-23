@@ -9,14 +9,9 @@ import {
   Workflow,
 } from 'lucide-react';
 import { PageHeader, StatusText } from '../../components/ui/Primitives';
-import type {
-  EnterpriseDataState,
-  NavSectionId,
-  PaperclipOverviewBundle,
-} from '../../types/platform';
+import type { NavSectionId, PaperclipOverviewBundle } from '../../types/platform';
 
 interface ExecutiveViewProps {
-  enterprise: EnterpriseDataState;
   paperclip: PaperclipOverviewBundle;
   onNavigate: (section: NavSectionId) => void;
 }
@@ -50,7 +45,6 @@ const OWNED_PRODUCTS = [
 ];
 
 export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
-  enterprise,
   paperclip,
   onNavigate,
 }) => {
