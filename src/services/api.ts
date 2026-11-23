@@ -92,7 +92,6 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(await adminAuthHeaders()),
       ...(options.headers || {}),
     },
   });
@@ -640,8 +639,11 @@ export interface BootstrapAdminResult {
 }
 
 export const AuthApi = {
-  bootstrapAdmin: () =>
-    request<BootstrapAdminResult>('/api/auth/bootstrap-admin', {
+  bootstrapAdmin: async () => {
+    const token = await getAccessToken();
+    return request<BootstrapAdminResult>('/api/auth/bootstrap-admin', {
       method: 'POST',
-    }),
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 };
