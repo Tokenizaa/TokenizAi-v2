@@ -292,3 +292,148 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 640px) {
   html { font-size: 16px; }
 }
+
+
+/* --------------------------------------------------------------------------
+   Accessibility pass — readable typography, spacing and contrast
+   Applies to both themes without changing the TokenizAi visual identity.
+   -------------------------------------------------------------------------- */
+:root {
+  --nc-border: rgba(15, 23, 42, 0.18);
+  --nc-border-strong: rgba(37, 99, 235, 0.42);
+  --nc-ink-subtle: #475569;
+}
+
+.dark {
+  --nc-border: rgba(203, 213, 225, 0.28);
+  --nc-border-strong: rgba(125, 211, 252, 0.52);
+  --nc-ink-subtle: #b8c5d8;
+}
+
+@layer base {
+  html {
+    font-size: 16px;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 1.5rem;
+  }
+
+  body {
+    font-size: 17px;
+    line-height: 1.58;
+    letter-spacing: 0;
+    -webkit-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.28;
+    letter-spacing: -0.01em;
+  }
+
+  p, li, dd, dt, label, legend {
+    line-height: 1.55;
+  }
+
+  p + p { margin-top: 0.8em; }
+
+  small, figcaption, caption {
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  input, select, textarea, button {
+    font: inherit;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 1rem;
+    line-height: 1.45;
+    min-height: 44px;
+  }
+
+  textarea { min-height: 112px; }
+
+  button, [role="button"], input, select, textarea, a {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--nc-beam-secondary);
+    outline-offset: 3px;
+  }
+
+  table {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  th, td {
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+}
+
+/* Tailwind's smallest text utilities were too compact for comfortable reading. */
+.text-xs {
+  font-size: 0.875rem !important;
+  line-height: 1.45 !important;
+}
+.text-sm {
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+.text-base {
+  font-size: 1.0625rem !important;
+  line-height: 1.55 !important;
+}
+.text-lg {
+  font-size: 1.1875rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Frequently used muted palette utilities must remain readable in both themes. */
+.text-slate-400, .text-gray-400, .text-zinc-400, .text-neutral-400,
+.text-slate-500, .text-gray-500, .text-zinc-500, .text-neutral-500 {
+  color: var(--nc-ink-subtle) !important;
+}
+.dark .text-slate-400, .dark .text-gray-400, .dark .text-zinc-400,
+.dark .text-neutral-400, .dark .text-slate-500, .dark .text-gray-500,
+.dark .text-zinc-500, .dark .text-neutral-500 {
+  color: #cbd5e1 !important;
+}
+
+/* Improve separation of dense data without flattening the luminous surfaces. */
+.nc-card, .nc-glow-panel {
+  border-width: 1.5px;
+}
+.nc-nav-item {
+  line-height: 1.45;
+}
+::placeholder {
+  color: var(--nc-ink-subtle) !important;
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  table { font-size: 0.875rem; }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --nc-border: rgba(15, 23, 42, 0.34);
+    --nc-ink-muted: #1e293b;
+    --nc-ink-subtle: #334155;
+  }
+  .dark {
+    --nc-border: rgba(226, 232, 240, 0.46);
+    --nc-ink-muted: #e2e8f0;
+    --nc-ink-subtle: #cbd5e1;
+  }
+  .nc-card, .nc-glow-panel, .nc-nav-item {
+    border-width: 2px;
+  }
+}
