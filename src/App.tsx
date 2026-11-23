@@ -47,6 +47,12 @@ export default function App() {
     return localStorage.getItem('tokenizai-reduced-motion') === 'true';
   });
 
+  // Aplica o tema ao documento e persiste a escolha no localStorage.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('tokenizai-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
   const [user, setUser] = useState<AppUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
