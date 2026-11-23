@@ -36,14 +36,14 @@ export interface NavItemConfig {
 }
 
 export const NAV_ITEMS: NavItemConfig[] = [
-  { id: 'executivo', label: 'Cockpit executivo', group: 'Gestão Empresarial', icon: LayoutDashboard },
-  { id: 'produtos', label: 'Produtos', group: 'Gestão Empresarial', icon: Package },
-  { id: 'projetos', label: 'Projetos e entregas', group: 'Gestão Empresarial', icon: FolderKanban },
-  { id: 'clientes', label: 'Clientes e CRM', group: 'Gestão Empresarial', icon: Building2 },
-  { id: 'comercial', label: 'Comercial e vendas', group: 'Gestão Empresarial', icon: Briefcase },
-  { id: 'assinaturas', label: 'Assinaturas', group: 'Gestão Empresarial', icon: CreditCard },
-  { id: 'financeiro', label: 'Financeiro', group: 'Gestão Empresarial', icon: Wallet },
-  { id: 'relatorios', label: 'Indicadores e relatórios', group: 'Gestão Empresarial', icon: BarChart3 },
+  { id: 'executivo', label: 'Cockpit executivo', group: 'Empresa', icon: LayoutDashboard },
+  { id: 'produtos', label: 'Produtos', group: 'Portfólio', icon: Package },
+  { id: 'projetos', label: 'Projetos e entregas', group: 'Portfólio', icon: FolderKanban },
+  { id: 'clientes', label: 'Clientes e CRM', group: 'Mercado', icon: Building2 },
+  { id: 'comercial', label: 'Comercial e vendas', group: 'Mercado', icon: Briefcase },
+  { id: 'assinaturas', label: 'Assinaturas', group: 'Mercado', icon: CreditCard },
+  { id: 'financeiro', label: 'Financeiro', group: 'Gestão', icon: Wallet },
+  { id: 'relatorios', label: 'Indicadores e relatórios', group: 'Gestão', icon: BarChart3 },
 
   { id: 'ia-visao', label: 'Visão geral', group: 'Operações de IA', icon: LayoutDashboard },
   { id: 'ia-chat', label: 'Central de comunicação', group: 'Operações de IA', icon: MessageSquare },
@@ -55,22 +55,28 @@ export const NAV_ITEMS: NavItemConfig[] = [
   { id: 'ia-aprovacoes', label: 'Aprovações', group: 'Operações de IA', icon: CheckCircle2 },
   { id: 'ia-custos', label: 'Custos e atividade', group: 'Operações de IA', icon: Coins },
 
-  { id: 'biblioteca', label: 'Biblioteca de especialistas', group: 'Biblioteca', icon: BookOpen },
-  { id: 'admin', label: 'Configurações', group: 'Administração', icon: Settings },
+  { id: 'biblioteca', label: 'Biblioteca de especialistas', group: 'Conhecimento', icon: BookOpen },
+  { id: 'admin', label: 'Configurações', group: 'Sistema', icon: Settings },
 ];
 
 const GROUPS: NavGroup[] = [
-  'Gestão Empresarial',
+  'Empresa',
+  'Portfólio',
+  'Mercado',
+  'Gestão',
   'Operações de IA',
-  'Biblioteca',
-  'Administração',
+  'Conhecimento',
+  'Sistema',
 ];
 
 const GROUP_LABELS: Record<NavGroup, string> = {
-  'Gestão Empresarial': 'Empresa e portfólio',
+  Empresa: 'Empresa',
+  Portfólio: 'Portfólio',
+  Mercado: 'Mercado e relacionamento',
+  Gestão: 'Gestão corporativa',
   'Operações de IA': 'Força de trabalho IA',
-  Biblioteca: 'Conhecimento',
-  Administração: 'Sistema',
+  Conhecimento: 'Conhecimento',
+  Sistema: 'Sistema',
 };
 
 interface AppShellProps {
