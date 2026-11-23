@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -7,6 +7,8 @@ import {
   Briefcase,
   Building2,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Coins,
   CreditCard,
@@ -123,7 +125,24 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([]);
   const currentItem = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
+
+  useEffect(() => {
+    setExpandedGroups((current) =>
+      current.includes(currentItem.group)
+        ? current
+        : [...current, currentItem.group],
+    );
+  }, [activeSection, currentItem.group]);
+
+  const toggleGroup = (group: NavGroup) => {
+    setExpandedGroups((current) =>
+      current.includes(group)
+        ? current.filter((item) => item !== group)
+        : [...current, group],
+    );
+  };
 
   const selectSection = (id: NavSectionId) => {
     onSelectSection(id);
@@ -173,14 +192,25 @@ export const AppShell: React.FC<AppShellProps> = ({
       <nav aria-label="Navegação principal" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {GROUPS.map((group) => {
           const items = NAV_ITEMS.filter((item) => item.group === group);
+          const expanded = expandedGroups.includes(group);
           return (
             <section key={group} className="space-y-1">
               {!collapsed && (
-                <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle">
-                  {GROUP_LABELS[group]}
-                </h2>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group)}
+                  aria-expanded={expanded}
+                  className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold uppercase tracking-[0.08em] text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
+                >
+                  <span>{GROUP_LABELS[group]}</span>
+                  {expanded ? (
+                    <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  )}
+                </button>
               )}
-              {items.map((item) => {
+              {(collapsed || expanded) && items.map((item) => {
                 const Icon = item.icon;
                 const active = item.id === activeSection;
                 return (
@@ -191,7 +221,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                     aria-label={collapsed ? item.label : undefined}
                     title={collapsed ? item.label : undefined}
                     onClick={() => selectSection(item.id)}
-                    className={`nc-nav-item flex w-full items-center rounded-lg py-2 text-[13px] ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'nc-nav-active' : 'font-medium'}`}
+                    className={`nc-nav-item flex w-full items-center rounded-lg py-2.5 text-sm ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'nc-nav-active' : 'font-medium'}`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && <span className="truncate">{item.label}</span>}
@@ -218,7 +248,9 @@ export const AppShell: React.FC<AppShellProps> = ({
       )}
       {!collapsed && (
         <div className="border-t border-line px-4 py-3">
-          <p className="text-[11px] font-medium text-ink-muted">Uma empresa. Um fundador. Uma força de trabalho de IA.</p>
+          <p className="text-[11px] font-medium text-ink-muted">
+            Uma empresa. Um fundador. Uma força de trabalho de IA.
+          </p>
           <p className="mt-1 text-[10px] text-ink-subtle">Gestão integrada · TokenizAi</p>
         </div>
       )}
@@ -257,8 +289,8 @@ export const AppShell: React.FC<AppShellProps> = ({
               <Menu className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <p className="hidden truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle sm:block">
-                {currentItem ? GROUP_LABELS[currentItem.group] : 'Força de trabalho IA'}
+              <p className="hidden truncate text-xs font-semibold uppercase tracking-[0.1em] text-ink-subtle sm:block">
+                {GROUP_LABELS[currentItem.group]}
               </p>
               <h1 className="truncate font-display text-sm font-semibold text-ink">
                 {currentItem?.label ?? DETAIL_LABELS[activeSection] ?? 'Detalhe'}
