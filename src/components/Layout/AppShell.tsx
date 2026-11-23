@@ -10,8 +10,10 @@ import {
   Clock,
   Coins,
   CreditCard,
+  FileText,
   FolderKanban,
   GitBranch,
+  Inbox,
   LayoutDashboard,
   ListTodo,
   LogOut,
@@ -21,9 +23,12 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  Plug,
   Search,
   Settings,
+  Sparkles,
   Sun,
+  Target,
   Wallet,
   X,
 } from 'lucide-react';
@@ -54,12 +59,23 @@ export const NAV_ITEMS: NavItemConfig[] = [
   { id: 'ia-execucoes', label: 'Execuções', group: 'Operações de IA', icon: Activity },
   { id: 'ia-rotinas', label: 'Rotinas e automações', group: 'Operações de IA', icon: Clock },
   { id: 'ia-aprovacoes', label: 'Aprovações', group: 'Operações de IA', icon: CheckCircle2 },
-  { id: 'ia-custos', label: 'Custos e atividade', group: 'Operações de IA', icon: Coins },
+  { id: 'ia-custos', label: 'Custos e orçamentos', group: 'Operações de IA', icon: Coins },
+  { id: 'ia-inbox', label: 'Inbox / Decisões', group: 'Operações de IA', icon: Inbox },
+  { id: 'ia-metas', label: 'Metas', group: 'Operações de IA', icon: Target },
+  { id: 'ia-skills', label: 'Skills', group: 'Operações de IA', icon: Sparkles },
+  { id: 'ia-conectores', label: 'Conectores', group: 'Operações de IA', icon: Plug },
+  { id: 'ia-atividade', label: 'Atividade e auditoria', group: 'Operações de IA', icon: Activity },
+  { id: 'ia-artefatos', label: 'Artefatos', group: 'Operações de IA', icon: FileText },
 
   { id: 'biblioteca', label: 'Biblioteca de especialistas', group: 'Conhecimento', icon: BookOpen },
   { id: 'admin', label: 'Configurações', group: 'Sistema', icon: Settings },
 ];
 
+const DETAIL_LABELS: Record<string, string> = {
+  'ia-agente-detalhe': 'Agente',
+  'ia-tarefa-detalhe': 'Tarefa',
+  'ia-aprovacao-detalhe': 'Aprovação',
+};
 const GROUPS: NavGroup[] = [
   'Empresa',
   'Portfólio',
@@ -242,9 +258,11 @@ export const AppShell: React.FC<AppShellProps> = ({
             </button>
             <div className="min-w-0">
               <p className="hidden truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle sm:block">
-                {GROUP_LABELS[currentItem.group]}
+                {currentItem ? GROUP_LABELS[currentItem.group] : 'Força de trabalho IA'}
               </p>
-              <h1 className="truncate font-display text-sm font-semibold text-ink">{currentItem.label}</h1>
+              <h1 className="truncate font-display text-sm font-semibold text-ink">
+                {currentItem?.label ?? DETAIL_LABELS[activeSection] ?? 'Detalhe'}
+              </h1>
             </div>
           </div>
 

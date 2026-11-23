@@ -551,15 +551,37 @@ export const PaperclipApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  getProject: (projectId: string) =>
+    request<{ ok: boolean; project: PaperclipProjectDto }>(
+      `/api/paperclip/projects/${encodeURIComponent(projectId)}`,
+    ),
+  updateProject: (projectId: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; project: PaperclipProjectDto }>(
+      `/api/paperclip/projects/${encodeURIComponent(projectId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    ),
   listGoals: () => request<{ ok: boolean; goals: PaperclipGoalDto[] }>('/api/paperclip/goals'),
   createGoal: (payload: Record<string, unknown>) =>
     request<{ ok: boolean; goal: PaperclipGoalDto }>('/api/paperclip/goals', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  getGoal: (goalId: string) =>
+    request<{ ok: boolean; goal: PaperclipGoalDto }>(
+      `/api/paperclip/goals/${encodeURIComponent(goalId)}`,
+    ),
+  updateGoal: (goalId: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; goal: PaperclipGoalDto }>(
+      `/api/paperclip/goals/${encodeURIComponent(goalId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    ),
 
   // Routines
   listRoutines: () => request<{ ok: boolean; routines: PaperclipRoutineDto[] }>('/api/paperclip/routines'),
+  getRoutine: (routineId: string) =>
+    request<{ ok: boolean; routine: PaperclipRoutineDto }>(
+      `/api/paperclip/routines/${encodeURIComponent(routineId)}`,
+    ),
   createRoutine: (payload: Record<string, unknown>) =>
     request<{ ok: boolean; routine: PaperclipRoutineDto }>('/api/paperclip/routines', {
       method: 'POST',
@@ -595,6 +617,15 @@ export const PaperclipApi = {
 
   // Approvals
   listApprovals: () => request<{ ok: boolean; approvals: PaperclipApprovalDto[] }>('/api/paperclip/approvals'),
+  getApproval: (approvalId: string) =>
+    request<{ ok: boolean; approval: PaperclipApprovalDto }>(
+      `/api/paperclip/approvals/${encodeURIComponent(approvalId)}`,
+    ),
+  createApproval: (payload: Record<string, unknown>) =>
+    request<{ ok: boolean; approval: PaperclipApprovalDto }>('/api/paperclip/approvals', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   approveApproval: (approvalId: string, note?: string) =>
     request(`/api/paperclip/approvals/${encodeURIComponent(approvalId)}/approve`, {
       method: 'POST',

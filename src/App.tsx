@@ -3,7 +3,6 @@ import { LogOut } from 'lucide-react';
 import { CommandPalette } from './components/Common/CommandPalette';
 import { AppShell } from './components/Layout/AppShell';
 import { AdminView } from './modules/admin/AdminView';
-import { AiOpsView, type AiOpsSectionId } from './modules/ai-ops/AiOpsView';
 import { CommercialView } from './modules/commercial/CommercialView';
 import { CustomersView } from './modules/customers/CustomersView';
 import { ExecutiveView } from './modules/executive/ExecutiveView';
@@ -22,6 +21,27 @@ import type {
   NavSectionId,
   PaperclipOverviewBundle,
 } from './types/platform.ts';
+
+// --- Força de trabalho IA (integração definitiva com o Paperclip) ---
+import { DashboardPage } from './modules/ai-workforce/pages/DashboardPage';
+import { InboxPage } from './modules/ai-workforce/pages/InboxPage';
+import { ChatPage } from './modules/ai-workforce/pages/ChatPage';
+import { AgentsPage } from './modules/ai-workforce/pages/AgentsPage';
+import { AgentDetailPage } from './modules/ai-workforce/pages/AgentDetailPage';
+import { OrganizationPage } from './modules/ai-workforce/pages/OrganizationPage';
+import { TasksPage } from './modules/ai-workforce/pages/TasksPage';
+import { TaskDetailPage } from './modules/ai-workforce/pages/TaskDetailPage';
+import { ProjectsPage as WorkforceProjectsPage } from './modules/ai-workforce/pages/ProjectsPage';
+import { GoalsPage } from './modules/ai-workforce/pages/GoalsPage';
+import { RunsPage } from './modules/ai-workforce/pages/RunsPage';
+import { RoutinesPage } from './modules/ai-workforce/pages/RoutinesPage';
+import { ApprovalsPage } from './modules/ai-workforce/pages/ApprovalsPage';
+import { ApprovalDetailPage } from './modules/ai-workforce/pages/ApprovalDetailPage';
+import { CostsPage } from './modules/ai-workforce/pages/CostsPage';
+import { ActivityPage } from './modules/ai-workforce/pages/ActivityPage';
+import { SkillsPage } from './modules/ai-workforce/pages/SkillsPage';
+import { ConnectorsPage } from './modules/ai-workforce/pages/ConnectorsPage';
+import { ArtifactsPage } from './modules/ai-workforce/pages/ArtifactsPage';
 
 type AppUser = {
   id: string;
@@ -47,7 +67,6 @@ export default function App() {
     return localStorage.getItem('tokenizai-reduced-motion') === 'true';
   });
 
-  // Aplica o tema ao documento e persiste a escolha no localStorage.
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
     localStorage.setItem('tokenizai-theme', isDark ? 'dark' : 'light');
@@ -61,6 +80,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Detalhes de recursos (navegação contextual a partir das listagens da força de trabalho)
+  const [detailAgentId, setDetailAgentId] = useState<string | null>(null);
+  const [detailIssueId, setDetailIssueId] = useState<string | null>(null);
+  const [detailApprovalId, setDetailApprovalId] = useState<string | null>(null);
 
   // Recupera a sessao persistida do Supabase ao carregar a aplicacao.
   useEffect(() => {
@@ -85,7 +109,6 @@ export default function App() {
       if (session?.user) {
         const appUser = mapSupabaseUser(session.user);
         setUser(appUser);
-        // Executa o bootstrap do primeiro administrador quando for a identidade elegível.
         if (appUser.email === 'olfnetto@gmail.com' && !appUser.isPlatformAdmin) {
           try {
             const res = await AuthApi.bootstrapAdmin();
@@ -93,7 +116,7 @@ export default function App() {
               setUser({ ...appUser, isPlatformAdmin: true, platformRole: 'platform_admin' });
             }
           } catch {
-            // Erro tratado na propria tela de login via AuthApi; aqui apenas evitamos quebrar o fluxo.
+            // Erro tratado na propria tela de login via AuthApi.
           }
         }
       } else {
@@ -148,14 +171,23 @@ export default function App() {
 
   const isAiOpsSection =
     activeSection === 'ia-visao' ||
+    activeSection === 'ia-inbox' ||
     activeSection === 'ia-chat' ||
     activeSection === 'ia-agentes' ||
+    activeSection === 'ia-agente-detalhe' ||
     activeSection === 'ia-equipes' ||
     activeSection === 'ia-tarefas' ||
+    activeSection === 'ia-tarefa-detalhe' ||
     activeSection === 'ia-execucoes' ||
     activeSection === 'ia-rotinas' ||
     activeSection === 'ia-aprovacoes' ||
-    activeSection === 'ia-custos';
+    activeSection === 'ia-aprovacao-detalhe' ||
+    activeSection === 'ia-custos' ||
+    activeSection === 'ia-metas' ||
+    activeSection === 'ia-skills' ||
+    activeSection === 'ia-conectores' ||
+    activeSection === 'ia-atividade' ||
+    activeSection === 'ia-artefatos';
 
   const isEnterpriseSection = [
     'executivo',
@@ -187,6 +219,32 @@ export default function App() {
       ? 'Ver Operação Paperclip'
       : 'Novo Projeto';
 
+  // Navegação contextual: suporta detalhes de recursos (agente, tarefa, aprovacao)
+  const handleNavigate = useCallback(
+    (id: string) => {
+      if (id.startsWith('ia-agente-detalhe:')) {
+        setDetailAgentId(id.slice('ia-agente-detalhe:'.length));
+        setActiveSection('ia-agente-detalhe');
+        return;
+      }
+      if (id.startsWith('ia-tarefa-detalhe:')) {
+        setDetailIssueId(id.slice('ia-tarefa-detalhe:'.length));
+        setActiveSection('ia-tarefa-detalhe');
+        return;
+      }
+      if (id.startsWith('ia-aprovacao-detalhe:')) {
+        setDetailApprovalId(id.slice('ia-aprovacao-detalhe:'.length));
+        setActiveSection('ia-aprovacao-detalhe');
+        return;
+      }
+      setDetailAgentId(null);
+      setDetailIssueId(null);
+      setDetailApprovalId(null);
+      setActiveSection(id as NavSectionId);
+    },
+    [],
+  );
+
   // Antes da autenticacao, exibe apenas a pagina de login/cadastro.
   if (!user || authLoading) {
     return (
@@ -212,7 +270,7 @@ export default function App() {
     <>
       <AppShell
         activeSection={activeSection}
-        onSelectSection={setActiveSection}
+        onSelectSection={handleNavigate}
         onOpenSearch={() => setSearchOpen(true)}
         primaryActionLabel={primaryActionLabel}
         onPrimaryAction={handlePrimaryAction}
@@ -259,7 +317,7 @@ export default function App() {
             {activeSection === 'executivo' && (
               <ExecutiveView
                 paperclip={paperclip}
-                onNavigate={setActiveSection}
+                onNavigate={handleNavigate}
               />
             )}
             {activeSection === 'projetos' && (
@@ -296,7 +354,7 @@ export default function App() {
                 products={enterprise.products}
                 onRefresh={loadAll}
                 onToast={showToast}
-                onNavigate={setActiveSection}
+                onNavigate={handleNavigate}
               />
             )}
             {activeSection === 'assinaturas' && (
@@ -320,15 +378,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-            {isAiOpsSection && (
-              <AiOpsView
-                section={activeSection as AiOpsSectionId}
-                bundle={paperclip}
-                onRefresh={loadAll}
-                onNavigate={setActiveSection}
-                onToast={showToast}
-              />
-            )}
             {activeSection === 'biblioteca' && (
               <AgencyLibraryView
                 paperclip={paperclip}
@@ -348,31 +397,105 @@ export default function App() {
                 onToast={showToast}
               />
             )}
+
+            {/* ======================================================================== */}
+            {/* FORÇA DE TRABALHO IA — páginas independentes integradas ao Paperclip     */}
+            {/* ======================================================================== */}
+            {activeSection === 'ia-visao' && (
+              <DashboardPage
+                onRefresh={loadAll}
+                onNavigate={handleNavigate}
+                onToast={showToast}
+              />
+            )}
+            {activeSection === 'ia-inbox' && (
+              <InboxPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-chat' && (
+              <ChatPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-agentes' && (
+              <AgentsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-agente-detalhe' && detailAgentId && (
+              <AgentDetailPage
+                agentId={detailAgentId}
+                onNavigate={handleNavigate}
+                onToast={showToast}
+              />
+            )}
+            {activeSection === 'ia-equipes' && (
+              <OrganizationPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-tarefas' && (
+              <TasksPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-tarefa-detalhe' && detailIssueId && (
+              <TaskDetailPage
+                issueId={detailIssueId}
+                onNavigate={handleNavigate}
+                onToast={showToast}
+              />
+            )}
+            {activeSection === 'ia-execucoes' && (
+              <RunsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-rotinas' && (
+              <RoutinesPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-aprovacoes' && (
+              <ApprovalsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-aprovacao-detalhe' && detailApprovalId && (
+              <ApprovalDetailPage
+                approvalId={detailApprovalId}
+                onNavigate={handleNavigate}
+                onToast={showToast}
+              />
+            )}
+            {activeSection === 'ia-custos' && (
+              <CostsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-metas' && (
+              <GoalsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-skills' && (
+              <SkillsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-conectores' && (
+              <ConnectorsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-atividade' && (
+              <ActivityPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
+            {activeSection === 'ia-artefatos' && (
+              <ArtifactsPage onNavigate={handleNavigate} onToast={showToast} />
+            )}
           </>
         )}
+
+        {enterprise && paperclip && (
+          <CommandPalette
+            open={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            enterprise={enterprise}
+            agents={paperclip.agents}
+            issues={paperclip.issues}
+            projects={paperclip.projects}
+            onNavigate={handleNavigate}
+          />
+        )}
+
+        {toast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl nc-glow-panel text-xs font-medium text-ink shadow-xl"
+          >
+            {toast}
+          </div>
+        )}
       </AppShell>
-
-      {enterprise && paperclip && (
-        <CommandPalette
-          open={searchOpen}
-          onClose={() => setSearchOpen(false)}
-          enterprise={enterprise}
-          agents={paperclip.agents}
-          issues={paperclip.issues}
-          projects={paperclip.projects}
-          onNavigate={setActiveSection}
-        />
-      )}
-
-      {toast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl nc-glow-panel text-xs font-medium text-ink shadow-xl"
-        >
-          {toast}
-        </div>
-      )}
     </>
   );
 }

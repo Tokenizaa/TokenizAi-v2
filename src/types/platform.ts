@@ -8,14 +8,23 @@ export type NavSectionId =
   | 'financeiro'
   | 'relatorios'
   | 'ia-visao'
+  | 'ia-inbox'
   | 'ia-chat'
   | 'ia-agentes'
+  | 'ia-agente-detalhe'
   | 'ia-equipes'
   | 'ia-tarefas'
+  | 'ia-tarefa-detalhe'
   | 'ia-execucoes'
   | 'ia-rotinas'
   | 'ia-aprovacoes'
+  | 'ia-aprovacao-detalhe'
   | 'ia-custos'
+  | 'ia-metas'
+  | 'ia-skills'
+  | 'ia-conectores'
+  | 'ia-atividade'
+  | 'ia-artefatos'
   | 'biblioteca'
   | 'admin';
 
@@ -457,6 +466,7 @@ export interface PaperclipApprovalDto {
 export interface PaperclipCostSummaryDto {
   totalCostCents: number;
   currency: string;
+  eventCount?: number;
   periodStart?: string;
   periodEnd?: string;
   budgetMonthlyCents?: number | null;

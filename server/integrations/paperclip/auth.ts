@@ -62,7 +62,11 @@ export function readPaperclipConfig(): PaperclipConfig {
   const urlInfo = normalizePaperclipBaseUrl(rawUrl);
   const apiKeyPresent = rawKey.length > 0;
   const hasUrl = Boolean(urlInfo.baseUrl);
-  const configured = hasUrl && apiKeyPresent && !urlInfo.error;
+  // Em modo local_trusted (instância Paperclip rodando localmente) as leituras de
+  // quadro são públicas; a integração está configurada assim que a URL é válida.
+  // A chave de API, quando presente, é enviada nos headers, mas não é requisito
+  // para considerar o gateway configurado.
+  const configured = hasUrl && !urlInfo.error;
   const partiallyConfigured = (Boolean(rawUrl.trim()) || apiKeyPresent) && !configured;
 
   return {
