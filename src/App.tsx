@@ -188,7 +188,6 @@ export default function App() {
             )}
             {activeSection === 'executivo' && (
               <ExecutiveView
-                enterprise={enterprise}
                 paperclip={paperclip}
                 onNavigate={setActiveSection}
               />
