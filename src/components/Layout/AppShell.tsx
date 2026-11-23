@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -8,6 +8,8 @@ import {
   Building2,
   CheckCircle2,
   Clock,
+  ChevronDown,
+  ChevronRight,
   Coins,
   CreditCard,
   FolderKanban,
@@ -103,6 +105,19 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const currentItem = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
+  const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([currentItem.group]);
+
+  useEffect(() => {
+    setExpandedGroups((current) =>
+      current.includes(currentItem.group) ? current : [...current, currentItem.group],
+    );
+  }, [currentItem.group]);
+
+  const toggleGroup = (group: NavGroup) => {
+    setExpandedGroups((current) =>
+      current.includes(group) ? current.filter((item) => item !== group) : [...current, group],
+    );
+  };
 
   const selectSection = (id: NavSectionId) => {
     onSelectSection(id);
@@ -155,11 +170,19 @@ export const AppShell: React.FC<AppShellProps> = ({
           return (
             <section key={group} className="space-y-1">
               {!collapsed && (
-                <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-subtle">
-                  {GROUP_LABELS[group]}
-                </h2>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group)}
+                  aria-expanded={expandedGroups.includes(group)}
+                  className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold uppercase tracking-[0.08em] text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
+                >
+                  <span>{GROUP_LABELS[group]}</span>
+                  {expandedGroups.includes(group)
+                    ? <ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    : <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                </button>
               )}
-              {items.map((item) => {
+              {(collapsed || expandedGroups.includes(group)) && items.map((item) => {
                 const Icon = item.icon;
                 const active = item.id === activeSection;
                 return (
