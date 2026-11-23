@@ -112,20 +112,6 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
       }
     }
 
-    for (const project of enterprise.projects) {
-      if (project.stage === 'Revisão') {
-        items.push({
-          id: `review-${project.id}`,
-          area: 'Projetos',
-          title: `${project.code} · ${project.name}`,
-          detail: `${project.clientName} · ${project.progress}% concluído`,
-          tone: 'nominal',
-          statusLabel: 'Em revisão',
-          target: 'projetos',
-        });
-      }
-    }
-
     return items.slice(0, 7);
   }, [enterprise, paperclip]);
 
@@ -335,10 +321,10 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
             </button>
           </div>
           <div className="mt-5 border-t border-line pt-4">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-ink-subtle">Projetos empresariais ativos</span>
-              <span className="font-semibold tabular-nums text-ink">{operationalMetrics.activeProjects}</span>
-            </div>
+            <p className="text-xs font-medium text-ink">Projetos e entregas</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+              Acompanhe o desenvolvimento dos produtos e os vínculos operacionais com o Paperclip.
+            </p>
             <button
               type="button"
               onClick={() => onNavigate('projetos')}
