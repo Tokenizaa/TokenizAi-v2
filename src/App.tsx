@@ -110,6 +110,17 @@ export default function App() {
     activeSection === 'ia-aprovacoes' ||
     activeSection === 'ia-custos';
 
+  const isEnterpriseSection = [
+    'executivo',
+    'projetos',
+    'clientes',
+    'comercial',
+    'produtos',
+    'assinaturas',
+    'financeiro',
+    'relatorios',
+  ].includes(activeSection);
+
   const handlePrimaryAction = () => {
     if (isAiOpsSection) {
       setActiveSection('biblioteca');
@@ -166,6 +177,15 @@ export default function App() {
 
         {!loading && !error && enterprise && paperclip && (
           <>
+            {isEnterpriseSection && (
+              <div
+                role="note"
+                className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+              >
+                <strong className="font-semibold">Base empresarial demonstrativa.</strong>{' '}
+                Os cadastros e indicadores desta área são inicializados em memória e podem ser reiniciados com o servidor. Não utilize esses valores como dados financeiros ou operacionais oficiais.
+              </div>
+            )}
             {activeSection === 'executivo' && (
               <ExecutiveView
                 enterprise={enterprise}
