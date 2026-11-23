@@ -23,6 +23,7 @@ import type {
   ProductRecord,
   ProjectStage,
 } from '../types/platform';
+import { getAccessToken } from '../lib/supabase.ts';
 
 // Strictly in-memory admin session token (never persisted to localStorage or sessionStorage)
 let adminBearerTokenMemory: string | null = null;
@@ -91,7 +92,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...adminAuthHeaders(),
+      ...(await adminAuthHeaders()),
       ...(options.headers || {}),
     },
   });
@@ -102,8 +103,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
-function adminAuthHeaders(): Record<string, string> {
-  return adminBearerTokenMemory ? { Authorization: `Bearer ${adminBearerTokenMemory}` } : {};
+async function adminAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const PlatformApi = {
@@ -405,10 +407,10 @@ export const PaperclipApi = {
   getStatus: () =>
     request<{ ok: boolean; status: PaperclipIntegrationStatus }>('/api/integrations/paperclip/status'),
 
-  refreshConnection: () =>
+  refreshConnection: async () =>
     request<{ ok: boolean; status: PaperclipIntegrationStatus }>('/api/integrations/paperclip/refresh', {
       method: 'POST',
-      headers: adminAuthHeaders(),
+      headers: await adminAuthHeaders(),
     }),
 
   getOverviewBundle: () =>
@@ -623,4 +625,23 @@ export const PaperclipApi = {
 
   getAttachmentContentUrl: (attachmentId: string) =>
     `/api/paperclip/attachments/${encodeURIComponent(attachmentId)}/content`,
+};
+
+export interface BootstrapAdminResult {
+  ok: boolean;
+  claimed: boolean;
+  user: {
+    id: string;
+    email: string | null;
+    platformRole: string | null;
+    isPlatformAdmin: boolean;
+  };
+  message?: string;
+}
+
+export const AuthApi = {
+  bootstrapAdmin: () =>
+    request<BootstrapAdminResult>('/api/auth/bootstrap-admin', {
+      method: 'POST',
+    }),
 };

@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Estado de runtime da persistência empresarial (nao versionar)
+data/

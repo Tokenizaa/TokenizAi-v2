@@ -25,6 +25,14 @@ import {
 } from './server/integrations/paperclip/adminAuth.ts';
 import { paperclipGateway } from './server/integrations/paperclip/index.ts';
 import { createPaperclipRouter } from './server/integrations/paperclip/router.ts';
+import { loadEnterpriseState, saveEnterpriseState } from './server/persistence.ts';
+import {
+  authenticate,
+  createSupabaseUserClient,
+  getSupabaseAdmin,
+  isPlatformAdmin,
+  type SupabaseUser,
+} from './server/supabase.ts';
 
 const VALID_ROLES: TokenizAiRole[] = [
   'Diretoria Executiva',
@@ -39,12 +47,25 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 
-// Server-side in-memory enterprise store (Paperclip state lives exclusively in Paperclip)
-let enterpriseState: EnterpriseDataState = structuredClone(INITIAL_ENTERPRISE_DATA);
+// Server-side enterprise store. Persistido em disco (data/enterprise-state.json)
+// para sobreviver a reinicializações. O estado operacional do Paperclip
+// permanece exclusivamente no Paperclip.
+const persisted = loadEnterpriseState();
+let enterpriseState: EnterpriseDataState = persisted
+  ? persisted
+  : structuredClone(INITIAL_ENTERPRISE_DATA);
 
-function appendAudit(actor: string, action: string, target: string, origin: 'Plataforma' | 'Paperclip Proxy' | 'Segurança' = 'Plataforma') {
+function appendAudit(
+  actor: string,
+  action: string,
+  target: string,
+  origin: 'Plataforma' | 'Paperclip Proxy' | 'Segurança' = 'Plataforma',
+) {
   const now = new Date();
-  const formatted = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  const formatted = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
   enterpriseState.auditLogs.unshift({
     id: `log-${Date.now()}`,
     timestamp: formatted,
@@ -55,12 +76,14 @@ function appendAudit(actor: string, action: string, target: string, origin: 'Pla
   });
 }
 
-async function startServer() {
+/**
+ * Constrói a aplicação Express com todas as rotas. Exportada separadamente de
+ * `startServer` para permitir testes de integração sem subir o servidor HTTP
+ * nem o Vite.
+ */
+export function buildApp(): express.Application {
   const app = express();
   app.use(express.json({ limit: '6mb' }));
-
-  // Initialize Paperclip integration (graceful awaiting_credentials if env vars unset)
-  await paperclipGateway.initialize();
 
   // ============================================================================
   // Health & Integration Diagnostics (never exposes secrets to browser)
@@ -79,20 +102,89 @@ async function startServer() {
   // ============================================================================
   // Workspace Session & Actor Identity (non-admin role switching; admin requires passcode)
   // ============================================================================
-  app.get('/api/auth/me', (req: Request, res: Response) => {
+  app.get('/api/auth/me', authenticate, (_req: Request, res: Response) => {
+    const user = (_req as Request & { user?: SupabaseUser }).user!;
+    res.json({
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        emailConfirmed: user.emailConfirmed,
+        role: user.role,
+        platformRole: user.appMetadata.platform_role ?? null,
+        isPlatformAdmin: isPlatformAdmin(user),
+        appMetadata: user.appMetadata,
+      },
+    });
+  });
+
+  // ============================================================================
+  // Primeiro administrador da plataforma (bootstrap via Supabase Auth)
+  // Chamado após o login do fundador elegível. O backend valida o JWT do
+  // Supabase e executa a funcao RPC claim_initial_platform_admin() no banco,
+  // que so aceita a primeira identidade confirmada com o e-mail autorizado.
+  // ============================================================================
+  app.post('/api/auth/bootstrap-admin', authenticate, async (req: Request, res: Response) => {
+    const user = (req as Request & { user?: SupabaseUser }).user!;
+    if (!user.email) {
+      res.status(400).json({ error: 'Identidade sem e-mail associado.', code: 'MISSING_EMAIL' });
+      return;
+    }
+    if (!user.emailConfirmed) {
+      res.status(403).json({ error: 'Confirme o seu e-mail antes de reivindicar o acesso administrativo.', code: 'EMAIL_NOT_CONFIRMED' });
+      return;
+    }
+
+    try {
+      const accessToken = req.headers.authorization?.slice('Bearer '.length).trim() || '';
+      const client = createSupabaseUserClient(accessToken);
+
+      const { data, error } = await client.rpc('claim_initial_platform_admin');
+      if (error) {
+        res.status(403).json({ error: error.message, code: 'BOOTSTRAP_REJECTED' });
+        return;
+      }
+
+      res.json({
+        ok: true,
+        claimed: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          platformRole: 'platform_admin',
+          isPlatformAdmin: true,
+        },
+        message: data ?? 'Primeiro administrador reivindicado com sucesso.',
+      });
+    } catch (err) {
+      res.status(500).json({
+        error: 'Erro ao concluir o bootstrap administrativo.',
+        code: 'BOOTSTRAP_ERROR',
+      });
+    }
+  });
+
+  app.post('/api/auth/session', (req: Request, res: Response) => {
     const { actor, invalidToken } = resolveWorkspaceActor(req);
     if (invalidToken) {
       res.status(401).json({ error: 'Token de sessão inválido ou expirado.', code: 'INVALID_SESSION_TOKEN' });
       return;
     }
-    res.json({ ok: true, actor });
-  });
-
-  app.post('/api/auth/session', (req: Request, res: Response) => {
+    if (!actor.authenticated) {
+      res.status(401).json({ error: 'Autenticação necessária para iniciar sessão.', code: 'AUTH_REQUIRED' });
+      return;
+    }
     const { userId } = req.body as { userId?: string };
     const user = enterpriseState.users.find((u) => u.id === userId);
     if (!user) {
       res.status(404).json({ error: 'Usuário corporativo não encontrado.' });
+      return;
+    }
+    if (user.id !== actor.userId && !actor.isAdmin) {
+      res.status(403).json({
+        error: 'Não é possível assumir a identidade de outro usuário.',
+        code: 'IDENTITY_ASSUMPTION_FORBIDDEN',
+      });
       return;
     }
     const result = issueNonAdminUserSession({
@@ -177,6 +269,7 @@ async function startServer() {
 
     enterpriseState.projects.unshift(newProject);
     appendAudit(actor.name, `Criou projeto ${newProject.code} (${newProject.name})`, newProject.code);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, project: newProject });
   });
 
@@ -270,6 +363,7 @@ async function startServer() {
       });
     }
 
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, project });
   });
 
@@ -314,6 +408,7 @@ async function startServer() {
     };
     enterpriseState.clients.unshift(newClient);
     appendAudit(actor.name, 'Cadastrou novo cliente', newClient.name);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, client: newClient });
   });
 
@@ -357,6 +452,7 @@ async function startServer() {
     if (typeof mrrBRL === 'number' && mrrBRL >= 0) client.mrrBRL = mrrBRL;
 
     appendAudit(actor.name, 'Atualizou cadastro do cliente', client.name);
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, client });
   });
 
@@ -383,6 +479,7 @@ async function startServer() {
       note: note.trim(),
     });
     appendAudit(actor.name, `Registrou interação (${channel || 'Reunião'})`, client.name);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, client });
   });
 
@@ -400,6 +497,7 @@ async function startServer() {
     }
     user.role = role;
     appendAudit(actor.name, `Alterou perfil de acesso para ${role}`, user.email, 'Segurança');
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, user });
   });
 
@@ -411,6 +509,7 @@ async function startServer() {
     }
     enterpriseState = structuredClone(INITIAL_ENTERPRISE_DATA);
     appendAudit(actor.name, 'Restaurou base demonstrativa empresarial padrão', 'Workspace', 'Segurança');
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true });
   });
 
@@ -454,6 +553,7 @@ async function startServer() {
 
     enterpriseState.deals.unshift(deal);
     appendAudit(actor.name, `Criou oportunidade comercial "${deal.title}"`, client.name);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, deal });
   });
 
@@ -515,6 +615,7 @@ async function startServer() {
     if (note && note.trim()) {
       deal.notes.unshift(note.trim());
     }
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, deal });
   });
 
@@ -546,6 +647,7 @@ async function startServer() {
     };
     enterpriseState.products.unshift(prod);
     appendAudit(actor.name, `Cadastrou produto ${prod.sku}`, prod.name);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, product: prod });
   });
 
@@ -575,6 +677,7 @@ async function startServer() {
     if (typeof description === 'string' && description.trim()) prod.description = description.trim();
 
     appendAudit(actor.name, `Atualizou produto ${prod.sku} (${prod.status})`, prod.name);
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, product: prod });
   });
 
@@ -619,6 +722,7 @@ async function startServer() {
     } else if (planName || cycle || typeof mrrBRL === 'number' || nextBillingDate) {
       appendAudit(actor.name, 'Editou assinatura recorrente', `${sub.clientName} — ${sub.planName}`);
     }
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, subscription: sub });
   });
 
@@ -641,6 +745,7 @@ async function startServer() {
     };
     enterpriseState.financeEntries.unshift(entry);
     appendAudit(actor.name, `Registrou lançamento ${entry.type}`, `${entry.description} (R$ ${entry.amountBRL})`);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, entry });
   });
 
@@ -661,6 +766,7 @@ async function startServer() {
     if (status) entry.status = status;
 
     appendAudit(actor.name, `Atualizou lançamento financeiro (${entry.status})`, entry.description);
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, entry });
   });
 
@@ -675,6 +781,7 @@ async function startServer() {
       flow.active = req.body.active;
       appendAudit(actor.name, `${flow.active ? 'Ativou' : 'Pausou'} fluxo automatizado`, flow.name);
     }
+    saveEnterpriseState(enterpriseState);
     res.json({ ok: true, automation: flow });
   });
 
@@ -702,6 +809,7 @@ async function startServer() {
     };
     enterpriseState.automations.unshift(flow);
     appendAudit(actor.name, 'Criou fluxo automatizado entre empresa e agentes', flow.name);
+    saveEnterpriseState(enterpriseState);
     res.status(201).json({ ok: true, automation: flow });
   });
 
@@ -710,9 +818,15 @@ async function startServer() {
   // ============================================================================
   app.use(createPaperclipRouter(appendAudit));
 
-  // ============================================================================
-  // Vite Dev Middleware or Static Production Serving
-  // ============================================================================
+  return app;
+}
+
+// Instância da aplicação (usada por startServer e por testes de integração).
+export const app = buildApp();
+
+async function startServer() {
+  await paperclipGateway.initialize();
+
   const httpServer = http.createServer(app);
 
   if (process.env.NODE_ENV !== 'production') {
@@ -740,7 +854,11 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error('[TokenizAi] Erro fatal ao iniciar servidor:', err);
-  process.exit(1);
-});
+// Inicia o servidor apenas fora do ambiente de teste (vitest importa `app` diretamente,
+// sem precisar abrir a porta HTTP).
+if (!process.env.VITEST) {
+  startServer().catch((err) => {
+    console.error('[TokenizAi] Erro fatal ao iniciar servidor:', err);
+    process.exit(1);
+  });
+}

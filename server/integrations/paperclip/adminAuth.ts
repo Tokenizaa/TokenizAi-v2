@@ -152,13 +152,14 @@ export function resolveWorkspaceActor(req: Request): {
   }
 
   return {
-    actor: DEFAULT_PREVIEW_OPERATOR,
+    actor: { ...DEFAULT_PREVIEW_OPERATOR, role: 'Auditor', name: 'Visitante não autenticado', authenticated: false },
     invalidToken: false,
   };
 }
 
 export function hasPermission(actor: WorkspaceActor, permission: PlatformPermission): boolean {
   if (permission === 'read') return true;
+  if (!actor.authenticated) return false;
   if (actor.isAdmin && actor.role === 'Diretoria Executiva') return true;
 
   switch (permission) {

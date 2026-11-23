@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { LogOut } from 'lucide-react';
 import { CommandPalette } from './components/Common/CommandPalette';
 import { AppShell } from './components/Layout/AppShell';
 import { AdminView } from './modules/admin/AdminView';
@@ -12,12 +13,24 @@ import { ProductsView } from './modules/products/ProductsView';
 import { ProjectsView } from './modules/projects/ProjectsView';
 import { ReportsView } from './modules/reports/ReportsView';
 import { SubscriptionsView } from './modules/subscriptions/SubscriptionsView';
+import { AuthPage } from './pages/AuthPage';
+import { supabase, mapSupabaseUser } from './lib/supabase.ts';
+import { AuthApi } from './services/api.ts';
 import { PaperclipApi, PlatformApi } from './services/api';
 import type {
   EnterpriseDataState,
   NavSectionId,
   PaperclipOverviewBundle,
-} from './types/platform';
+} from './types/platform.ts';
+
+type AppUser = {
+  id: string;
+  email: string | null;
+  emailConfirmed: boolean;
+  platformRole: string | null;
+  isPlatformAdmin: boolean;
+  appMetadata: Record<string, unknown>;
+};
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<NavSectionId>('executivo');
@@ -34,31 +47,59 @@ export default function App() {
     return localStorage.getItem('tokenizai-reduced-motion') === 'true';
   });
 
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [enterprise, setEnterprise] = useState<EnterpriseDataState | null>(null);
   const [paperclip, setPaperclip] = useState<PaperclipOverviewBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  // Recupera a sessao persistida do Supabase ao carregar a aplicacao.
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('tokenizai-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('reduced-motion', reducedMotion);
-    localStorage.setItem('tokenizai-reduced-motion', String(reducedMotion));
-  }, [reducedMotion]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
+    const initSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          setUser(mapSupabaseUser(data.session.user));
+        }
+      } catch {
+        // Sessao nao recuperada; usuario permanece nao autenticado.
+      } finally {
+        setAuthLoading(false);
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    initSession();
+  }, []);
+
+  // Escuta mudanças de autenticacao (login, logout, renovacao de token).
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const appUser = mapSupabaseUser(session.user);
+        setUser(appUser);
+        // Executa o bootstrap do primeiro administrador quando for a identidade elegível.
+        if (appUser.email === 'olfnetto@gmail.com' && !appUser.isPlatformAdmin) {
+          try {
+            const res = await AuthApi.bootstrapAdmin();
+            if (res.ok && res.claimed) {
+              setUser({ ...appUser, isPlatformAdmin: true, platformRole: 'platform_admin' });
+            }
+          } catch {
+            // Erro tratado na propria tela de login via AuthApi; aqui apenas evitamos quebrar o fluxo.
+          }
+        }
+      } else {
+        setUser(null);
+      }
+    });
+    return () => sub.subscription?.unsubscribe();
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   }, []);
 
   const showToast = useCallback((msg: string) => {
@@ -96,8 +137,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    if (user) loadAll();
+  }, [user, loadAll]);
 
   const isAiOpsSection =
     activeSection === 'ia-visao' ||
@@ -129,6 +170,27 @@ export default function App() {
       ? 'Ver Operação Paperclip'
       : 'Novo Projeto';
 
+  // Antes da autenticacao, exibe apenas a pagina de login/cadastro.
+  if (!user || authLoading) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <AuthPage
+          onAuthenticated={(appUser) => {
+            setUser(appUser);
+            if (
+              appUser.email === 'olfnetto@gmail.com' &&
+              !appUser.isPlatformAdmin
+            ) {
+              AuthApi.bootstrapAdmin().catch(() => {
+                // Erro tratado na UI de login.
+              });
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <AppShell
@@ -139,6 +201,8 @@ export default function App() {
         onPrimaryAction={handlePrimaryAction}
         isDark={isDark}
         onToggleTheme={() => setIsDark((d) => !d)}
+        user={user}
+        onLogout={handleLogout}
       >
         {loading && (
           <div className="space-y-6 animate-pulse">
@@ -173,7 +237,6 @@ export default function App() {
                 onNavigate={setActiveSection}
               />
             )}
-
             {activeSection === 'projetos' && (
               <ProjectsView
                 projects={enterprise.projects}
@@ -185,7 +248,6 @@ export default function App() {
                 onCloseCreateExternal={() => setCreateProjectModal(false)}
               />
             )}
-
             {activeSection === 'clientes' && (
               <CustomersView
                 clients={enterprise.clients}
@@ -196,7 +258,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'comercial' && (
               <CommercialView
                 deals={enterprise.deals}
@@ -205,7 +266,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'produtos' && (
               <ProductsView
                 products={enterprise.products}
@@ -213,7 +273,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'assinaturas' && (
               <SubscriptionsView
                 subscriptions={enterprise.subscriptions}
@@ -221,7 +280,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'financeiro' && (
               <FinanceView
                 entries={enterprise.financeEntries}
@@ -229,7 +287,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'relatorios' && (
               <ReportsView
                 enterprise={enterprise}
@@ -237,7 +294,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {isAiOpsSection && (
               <AiOpsView
                 section={activeSection as AiOpsSectionId}
@@ -247,7 +303,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'biblioteca' && (
               <AgencyLibraryView
                 paperclip={paperclip}
@@ -255,7 +310,6 @@ export default function App() {
                 onToast={showToast}
               />
             )}
-
             {activeSection === 'admin' && (
               <AdminView
                 enterprise={enterprise}

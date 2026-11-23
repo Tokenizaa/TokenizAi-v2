@@ -141,6 +141,12 @@ export function createPaperclipRouter(
   });
 
   router.post('/api/admin/auth/claim', (req: Request, res: Response) => {
+    const ip = (req.ip || '').toLowerCase();
+    const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
+    if (!isLocal) {
+      res.status(403).json({ error: 'Inicialização administrativa restrita a ambiente local.', code: 'LOCAL_ONLY' });
+      return;
+    }
     const { password } = req.body as { password?: string };
     const result = claimAdminPasscode(password || '');
     if (!result.ok) {

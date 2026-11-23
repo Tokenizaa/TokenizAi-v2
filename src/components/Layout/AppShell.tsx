@@ -15,6 +15,7 @@ import {
   GitBranch,
   LayoutDashboard,
   ListTodo,
+  LogOut,
   Menu,
   MessageSquare,
   Moon,
@@ -80,6 +81,8 @@ interface AppShellProps {
   onPrimaryAction: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  user?: { email?: string | null };
+  onLogout?: () => void;
   children: React.ReactNode;
 }
 
@@ -91,6 +94,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   onPrimaryAction,
   isDark,
   onToggleTheme,
+  user,
+  onLogout,
   children,
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -280,6 +285,19 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               {primaryActionLabel}
             </button>
+            {user && onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line-strong bg-surface-subtle/50 hover:bg-surface-subtle text-xs text-ink-muted hover:text-ink transition-colors cursor-pointer whitespace-nowrap"
+                aria-label="Sair da conta"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline truncate max-w-[140px]">
+                  Sair ({user.email || 'conta'})
+                </span>
+              </button>
+            )}
           </div>
         </header>
 
