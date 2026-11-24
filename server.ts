@@ -28,6 +28,7 @@ import {
 import { hermesGateway } from './server/integrations/hermes/index.ts';
 import { createHermesRouter } from './server/integrations/hermes/router.ts';
 import { loadEnterpriseState, saveEnterpriseState } from './server/persistence.ts';
+import { SupabaseRepository } from './server/supabase/repository.ts';
 import {
   authenticate,
   createSupabaseUserClient,
@@ -49,13 +50,68 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 
-// Server-side enterprise store. Persistido em disco (data/enterprise-state.json)
-// para sobreviver a reinicializações. O estado operacional do Paperclip
-// permanece exclusivamente no Paperclip.
+// Estado empresarial. Cache em memória (enterpriseState) usado pelas rotas síncronas;
+// SupabaseRepository espelha gravações no Supabase quando configurado (fonte de verdade durável).
+// Sem credenciais Supabase, opera com degradacao graciosa sobre o estado em memoria + JSON.
 const persisted = loadEnterpriseState();
 let enterpriseState: EnterpriseDataState = persisted
   ? persisted
   : structuredClone(INITIAL_ENTERPRISE_DATA);
+const supabaseRepo = new SupabaseRepository(enterpriseState);
+
+/**
+ * Espelha o estado empresarial no Supabase em background (nao bloqueia a resposta HTTP).
+ * Quando Supabase nao esta configurado, e um no-op silencioso.
+ */
+async function supabaseSync(state: EnterpriseDataState): Promise<void> {
+  if (!supabaseRepo.isSupabaseAvailable()) return;
+  try {
+    // Sincroniza os dominios principais de forma idempotente (upsert por id).
+    for (const project of state.projects) {
+      await supabaseRepo.createProject(project).catch(() =>
+        supabaseRepo.updateProject(project.id, project),
+      );
+    }
+    for (const client of state.clients) {
+      await supabaseRepo.createClient(client).catch(() =>
+        supabaseRepo.updateClient(client.id, client),
+      );
+    }
+    for (const deal of state.deals) {
+      await supabaseRepo.createDeal(deal).catch(() =>
+        supabaseRepo.updateDeal(deal.id, deal),
+      );
+    }
+    for (const product of state.products) {
+      await supabaseRepo.createProduct(product).catch(() =>
+        supabaseRepo.updateProduct(product.id, product),
+      );
+    }
+    for (const sub of state.subscriptions) {
+      await supabaseRepo.createSubscription(sub).catch(() =>
+        supabaseRepo.updateSubscription(sub.id, sub),
+      );
+    }
+    for (const entry of state.financeEntries) {
+      await supabaseRepo.createFinanceEntry(entry).catch(() =>
+        supabaseRepo.updateFinanceEntry(entry.id, entry),
+      );
+    }
+    for (const flow of state.automations) {
+      await supabaseRepo.createAutomation(flow).catch(() =>
+        supabaseRepo.updateAutomation(flow.id, flow),
+      );
+    }
+    for (const user of state.users) {
+      await supabaseRepo.createUser(user).catch(() =>
+        supabaseRepo.updateUser(user.id, user),
+      );
+    }
+  } catch {
+    // Falha na sincronizacao com Supabase: estado em memoria continua valido.
+    // O erro nao e lancado para nao quebrar a operacao da plataforma.
+  }
+}
 
 function appendAudit(
   actor: string,
@@ -75,6 +131,17 @@ function appendAudit(
     action,
     target,
     origin,
+  });
+}
+
+/**
+ * Persiste o estado empresarial: grava no JSON (sincrono) e espelha no Supabase
+ * em background (fire-and-forget, nao bloqueia a resposta HTTP).
+ */
+function persistState(state: EnterpriseDataState): void {
+  saveEnterpriseState(state);
+  supabaseSync(state).catch(() => {
+    // Falha na sincronizacao com Supabase: estado em memoria + JSON continua valido.
   });
 }
 
@@ -306,7 +373,7 @@ export function buildApp(): express.Application {
 
     enterpriseState.projects.unshift(newProject);
     appendAudit(actor.name, `Criou projeto ${newProject.code} (${newProject.name})`, newProject.code);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, project: newProject });
   });
 
@@ -400,7 +467,7 @@ export function buildApp(): express.Application {
       });
     }
 
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, project });
   });
 
@@ -445,7 +512,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.clients.unshift(newClient);
     appendAudit(actor.name, 'Cadastrou novo cliente', newClient.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, client: newClient });
   });
 
@@ -489,7 +556,7 @@ export function buildApp(): express.Application {
     if (typeof mrrBRL === 'number' && mrrBRL >= 0) client.mrrBRL = mrrBRL;
 
     appendAudit(actor.name, 'Atualizou cadastro do cliente', client.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, client });
   });
 
@@ -516,7 +583,7 @@ export function buildApp(): express.Application {
       note: note.trim(),
     });
     appendAudit(actor.name, `Registrou interação (${channel || 'Reunião'})`, client.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, client });
   });
 
@@ -534,7 +601,7 @@ export function buildApp(): express.Application {
     }
     user.role = role;
     appendAudit(actor.name, `Alterou perfil de acesso para ${role}`, user.email, 'Segurança');
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, user });
   });
 
@@ -546,7 +613,7 @@ export function buildApp(): express.Application {
     }
     enterpriseState = structuredClone(INITIAL_ENTERPRISE_DATA);
     appendAudit(actor.name, 'Restaurou base demonstrativa empresarial padrão', 'Workspace', 'Segurança');
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true });
   });
 
@@ -590,7 +657,7 @@ export function buildApp(): express.Application {
 
     enterpriseState.deals.unshift(deal);
     appendAudit(actor.name, `Criou oportunidade comercial "${deal.title}"`, client.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, deal });
   });
 
@@ -652,7 +719,7 @@ export function buildApp(): express.Application {
     if (note && note.trim()) {
       deal.notes.unshift(note.trim());
     }
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, deal });
   });
 
@@ -684,7 +751,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.products.unshift(prod);
     appendAudit(actor.name, `Cadastrou produto ${prod.sku}`, prod.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, product: prod });
   });
 
@@ -714,7 +781,7 @@ export function buildApp(): express.Application {
     if (typeof description === 'string' && description.trim()) prod.description = description.trim();
 
     appendAudit(actor.name, `Atualizou produto ${prod.sku} (${prod.status})`, prod.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, product: prod });
   });
 
@@ -759,7 +826,7 @@ export function buildApp(): express.Application {
     } else if (planName || cycle || typeof mrrBRL === 'number' || nextBillingDate) {
       appendAudit(actor.name, 'Editou assinatura recorrente', `${sub.clientName} — ${sub.planName}`);
     }
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, subscription: sub });
   });
 
@@ -782,7 +849,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.financeEntries.unshift(entry);
     appendAudit(actor.name, `Registrou lançamento ${entry.type}`, `${entry.description} (R$ ${entry.amountBRL})`);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, entry });
   });
 
@@ -803,7 +870,7 @@ export function buildApp(): express.Application {
     if (status) entry.status = status;
 
     appendAudit(actor.name, `Atualizou lançamento financeiro (${entry.status})`, entry.description);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, entry });
   });
 
@@ -818,7 +885,7 @@ export function buildApp(): express.Application {
       flow.active = req.body.active;
       appendAudit(actor.name, `${flow.active ? 'Ativou' : 'Pausou'} fluxo automatizado`, flow.name);
     }
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.json({ ok: true, automation: flow });
   });
 
@@ -846,7 +913,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.automations.unshift(flow);
     appendAudit(actor.name, 'Criou fluxo automatizado entre empresa e agentes', flow.name);
-    saveEnterpriseState(enterpriseState);
+    persistState(enterpriseState);
     res.status(201).json({ ok: true, automation: flow });
   });
 
