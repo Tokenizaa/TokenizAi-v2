@@ -165,14 +165,18 @@ export function hasPermission(actor: WorkspaceActor, permission: PlatformPermiss
   switch (permission) {
     case 'admin:integration':
     case 'approvals:decide':
-      return false;
+      return actor.isAdmin && actor.role === 'Diretoria Executiva';
     case 'enterprise:projects:write':
     case 'paperclip:ops:write':
-      return actor.role === 'Gestor Operacional';
+      return actor.isAdmin && actor.role === 'Diretoria Executiva'
+        || actor.role === 'Gestor Operacional';
     case 'enterprise:crm:write':
-      return actor.role === 'Gestor Operacional' || actor.role === 'Comercial & CRM';
+      return actor.isAdmin && actor.role === 'Diretoria Executiva'
+        || actor.role === 'Gestor Operacional'
+        || actor.role === 'Comercial & CRM';
     case 'enterprise:finance:write':
-      return actor.role === 'Financeiro';
+      return actor.isAdmin && actor.role === 'Diretoria Executiva'
+        || actor.role === 'Financeiro';
     default:
       return false;
   }
