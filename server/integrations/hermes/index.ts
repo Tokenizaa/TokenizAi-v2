@@ -26,16 +26,17 @@ export class HermesGateway {
   }
 
   async initialize(): Promise<void> {
+    const HERMES_CLI = '/home/lg/.local/bin/hermes';
     try {
       // Verificar se o Hermes CLI está disponível
       const { execSync } = await import('node:child_process');
       try {
-        execSync('hermes --version', { stdio: 'pipe' });
+        execSync(`${HERMES_CLI} --version`, { stdio: 'pipe' });
         this.connected = true;
         this.lastError = null;
       } catch {
         this.connected = false;
-        this.lastError = 'Hermes CLI não encontrado no PATH.';
+        this.lastError = 'Hermes CLI não encontrado.';
       }
     } catch (err) {
       this.connected = false;
@@ -55,12 +56,12 @@ export class HermesGateway {
       { key: 'agents:read', label: 'Consultar agentes (Bots)', domain: 'agents', route: '/api/hermes/agents', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
       { key: 'agents:manage', label: 'Gerenciar agentes (criar/atualizar/remover)', domain: 'agents', route: '/api/hermes/agents', method: 'POST', available: this.connected, requiredPermission: 'admin:integration', errorMessage: null },
       { key: 'chats:read', label: 'Ler conversas de chat', domain: 'chats', route: '/api/hermes/chats', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
-      { key: 'chats:write', label: 'Enviar mensagens no chat', domain: 'chats', route: '/api/hermes/chats/:agentRef', method: 'POST', available: this.connected, requiredPermission: 'paperclip:ops:write', errorMessage: null },
+      { key: 'chats:write', label: 'Enviar mensagens no chat', domain: 'chats', route: '/api/hermes/chats/:agentRef', method: 'POST', available: this.connected, requiredPermission: 'hermes:ops:write', errorMessage: null },
       { key: 'tasks:read', label: 'Consultar tarefas (kanban)', domain: 'tasks', route: '/api/hermes/tasks', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
-      { key: 'tasks:write', label: 'Criar e atualizar tarefas', domain: 'tasks', route: '/api/hermes/tasks', method: 'POST', available: this.connected, requiredPermission: 'paperclip:ops:write', errorMessage: null },
+      { key: 'tasks:write', label: 'Criar e atualizar tarefas', domain: 'tasks', route: '/api/hermes/tasks', method: 'POST', available: this.connected, requiredPermission: 'hermes:ops:write', errorMessage: null },
       { key: 'runs:read', label: 'Consultar execuções de subagentes', domain: 'runs', route: '/api/hermes/runs', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
       { key: 'routines:read', label: 'Consultar rotinas (cron)', domain: 'routines', route: '/api/hermes/routines', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
-      { key: 'routines:manage', label: 'Criar e gerenciar rotinas', domain: 'routines', route: '/api/hermes/routines', method: 'POST', available: this.connected, requiredPermission: 'paperclip:ops:write', errorMessage: null },
+      { key: 'routines:manage', label: 'Criar e gerenciar rotinas', domain: 'routines', route: '/api/hermes/routines', method: 'POST', available: this.connected, requiredPermission: 'hermes:ops:write', errorMessage: null },
       { key: 'approvals:read', label: 'Consultar aprovações', domain: 'approvals', route: '/api/hermes/approvals', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },
       { key: 'approvals:manage', label: 'Aprovar/rejeitar/solicitar revisão', domain: 'approvals', route: '/api/hermes/approvals/:id', method: 'POST', available: this.connected, requiredPermission: 'approvals:decide', errorMessage: null },
       { key: 'costs:read', label: 'Consultar custos e orçamentos', domain: 'costs', route: '/api/hermes/costs', method: 'GET', available: this.connected, requiredPermission: 'read', errorMessage: null },

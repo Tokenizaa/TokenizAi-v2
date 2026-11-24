@@ -17,7 +17,7 @@ function validateResourceId(id: string | undefined, label: string): string {
     !value ||
     value.length > 128 ||
     value.includes('..') ||
-    /[\\/\s\x00-\x1f]/.test(value)
+    /[\\/\\\s\x00-\x1f]/.test(value)
   ) {
     throw new HermesIntegrationError({
       kind: 'validation_error',
@@ -114,7 +114,107 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Admin Auth (reutiliza adminAuth do Paperclip, sem dependência Paperclip)
+  // Overview Bundle (frontend loadAll) - with caching to avoid blocking
+  const HERMES_CLI = '/home/lg/.local/bin/hermes';
+  let overviewCache: { data: any; timestamp: number } | null = null;
+  const OVERVIEW_CACHE_TTL = 5000; // 5 seconds
+
+  router.get('/api/hermes/overview', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      // Return cached if fresh
+      if (overviewCache && Date.now() - overviewCache.timestamp < OVERVIEW_CACHE_TTL) {
+        res.json({ ok: true, ...overviewCache.data });
+        return;
+      }
+
+      const { execSync } = await import('node:child_process');
+      
+      const runCmd = (cmd: string, timeoutMs = 5000): string => {
+              try {
+                return execSync(cmd, { encoding: 'utf8', timeout: timeoutMs, maxBuffer: 1024 * 1024 });
+              } catch {
+                return '';
+              }
+            };
+      
+      // Parallel-like: run commands with minimal overhead
+      const agentsOutput = runCmd(`${HERMES_CLI} profile list`, 8000);
+      const bots = parseProfileList(agentsOutput);
+      
+      const tasksOutput = runCmd(`${HERMES_CLI} kanban list --json`);
+      const tasks = parseKanbanJson(tasksOutput);
+      
+      const runs: Array<{ id: string; agentId?: string; agentName?: string; taskId?: string; status: string; startedAt?: string; finishedAt?: string; resultSummary?: string }> = [];
+      
+      const routinesOutput = runCmd(`${HERMES_CLI} cron list`);
+      const routines = parseCronList(routinesOutput);
+      
+      const approvals = tasks.filter((t) => t.title.toLowerCase().includes('aprov'));
+      
+      // Skip skills list for overview - too slow; use empty array
+      const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
+      
+      const chats = bots.map((b) => ({
+        id: `chat-${b.id}`,
+        agentId: b.id,
+        agentName: b.name,
+        agentRole: b.role,
+        title: `Conversa com ${b.name}`,
+        unreadCount: 0,
+        canSend: true,
+      }));
+      
+      const tree = bots.map((b) => ({
+        id: b.id,
+        name: b.name,
+        title: b.title,
+        role: b.role,
+        status: b.status,
+        children: [],
+      }));
+      
+      const costs = { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] };
+      
+      const activity: Array<{ id: string; timestamp: string; actorName: string; action: string; targetName?: string; summary?: string }> = [];
+      
+      const status = hermesGateway.getStatus();
+      
+      const bundle = {
+        status,
+        bots,
+        tasks,
+        runs,
+        routines,
+        approvals,
+        costs,
+        activity,
+        skills,
+        chats,
+      };
+      
+      // Cache the result
+      overviewCache = { data: bundle, timestamp: Date.now() };
+      
+      res.json({ ok: true, ...bundle });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Runs (placeholder - no Hermes runs CLI yet)
+  // ============================================================================
+  router.get('/api/hermes/runs', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      // No Hermes runs CLI yet - return empty array
+      res.json({ ok: true, runs: [] });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Admin Auth
   // ============================================================================
   router.get('/api/hermes/admin/auth/status', (req: Request, res: Response) => {
     res.json({ ok: true, ...getAdminAuthStatus(req.headers.authorization) });
@@ -159,7 +259,7 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes profile list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
       } catch {
         output = '';
       }
@@ -176,7 +276,7 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync(`hermes -p ${agentId} chat --toolsets skills -q "Quem você é?" --no-interactive`, { encoding: 'utf8', timeout: 10000 });
+        output = execSync(`${HERMES_CLI} -p ${agentId} chat --oneshot -q "Quem você é?"`, { encoding: 'utf8', timeout: 10000 });
       } catch {
         output = '';
       }
@@ -201,7 +301,7 @@ export function createHermesRouter(
       }
       const { execSync } = await import('node:child_process');
       try {
-        execSync(`hermes profile create ${slug.trim()} --no-skills`, { encoding: 'utf8', stdio: 'pipe' });
+        execSync(`${HERMES_CLI} profile create ${slug.trim()} --no-skills`, { encoding: 'utf8', stdio: 'pipe' });
       } catch (err) {
         // Profile may already exist
       }
@@ -234,7 +334,7 @@ export function createHermesRouter(
       }
       const { execSync } = await import('node:child_process');
       try {
-        execSync(`hermes profile delete ${agentId} --yes`, { encoding: 'utf8', stdio: 'pipe' });
+        execSync(`${HERMES_CLI} profile delete ${agentId} --yes`, { encoding: 'utf8', stdio: 'pipe' });
       } catch {
         // Ignore if not found
       }
@@ -250,11 +350,10 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/chats', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      // Retorna chats baseados nos bots existentes
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes profile list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
       } catch {
         output = '';
       }
@@ -286,7 +385,8 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let response = '';
       try {
-        response = execSync(`hermes -p ${agentRef} chat --toolsets skills -q "${body.replace(/"/g, '\\"')}" --no-interactive`, { encoding: 'utf8', timeout: 30000 });
+        // Use --oneshot for non-interactive single query
+        response = execSync(`${HERMES_CLI} -p ${agentRef} chat --oneshot -q "${body.replace(/\"/g, '\\"')}"`, { encoding: 'utf8', timeout: 30000 });
       } catch (err) {
         response = `Erro ao executar comando Hermes: ${err instanceof Error ? err.message : String(err)}`;
       }
@@ -298,18 +398,18 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Tasks (Kanban Hermes)
+  // Tasks (Kanban Hermes) - uses --json for reliable parsing
   // ============================================================================
   router.get('/api/hermes/tasks', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes kanban list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} kanban list --json`, { encoding: 'utf8' });
       } catch {
-        output = '';
+        output = '[]';
       }
-      const tasks = parseKanbanList(output);
+      const tasks = parseKanbanJson(output);
       res.json({ ok: true, tasks });
     } catch (err) {
       sendError(res, err);
@@ -328,7 +428,7 @@ export function createHermesRouter(
       }
       const { execSync } = await import('node:child_process');
       try {
-        execSync(`hermes kanban create "${title.trim()}" --body "${desc.replace(/\"/g, '\\\\"')}" --priority 3`, { encoding: 'utf8' });
+        execSync(`hermes kanban create "${title.trim()}" --body "${desc.replace(/"/g, '\\\\"')}" --priority 3`, { encoding: 'utf8' });
       } catch {
         // Continue anyway
       }
@@ -360,7 +460,7 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes cron list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} cron list`, { encoding: 'utf8' });
       } catch {
         output = '';
       }
@@ -383,7 +483,7 @@ export function createHermesRouter(
       const cron = (typeof payload.cron === 'string' ? payload.cron : '0 9 * * *').trim();
       const { execSync } = await import('node:child_process');
       try {
-        execSync(`hermes cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`, { encoding: 'utf8' });
+        execSync(`${HERMES_CLI} cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`, { encoding: 'utf8' });
       } catch (err) {
         // Continue anyway
       }
@@ -395,19 +495,19 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Approvals
+  // Approvals (filtrados do kanban)
   // ============================================================================
   router.get('/api/hermes/approvals', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      // Aprovações são gerenciadas via kanban Hermes com status de aprovação
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes kanban list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} kanban list --json`, { encoding: 'utf8' });
       } catch {
-        output = '';
+        output = '[]';
       }
-      const approvals = parseKanbanList(output).filter((t) => t.title.toLowerCase().includes('aprov'));
+      const allTasks = parseKanbanJson(output);
+      const approvals = allTasks.filter((t) => t.title.toLowerCase().includes('aprov'));
       res.json({ ok: true, approvals });
     } catch (err) {
       sendError(res, err);
@@ -434,7 +534,6 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/costs/summary', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      // Custos baseados em execuções de subagentes Hermes (simulado via memory)
       res.json({ ok: true, summary: { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] } });
     } catch (err) {
       sendError(res, err);
@@ -447,7 +546,6 @@ export function createHermesRouter(
   router.get('/api/hermes/activity', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
       const limit = parseLimit(_req.query.limit, 50);
-      // Atividade baseada nos audit logs do enterprise state
       res.json({ ok: true, activity: [] });
     } catch (err) {
       sendError(res, err);
@@ -462,7 +560,7 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes profile list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
       } catch {
         output = '';
       }
@@ -489,7 +587,7 @@ export function createHermesRouter(
       const { execSync } = await import('node:child_process');
       let output = '';
       try {
-        output = execSync('hermes skills list --plain', { encoding: 'utf8' });
+        output = execSync(`${HERMES_CLI} skills list`, { encoding: 'utf8' });
       } catch {
         output = '';
       }
@@ -507,40 +605,49 @@ function parseProfileList(output: string): Array<{ id: string; name: string; tit
   const bots: Array<{ id: string; name: string; title?: string; role?: string; status: string }> = [];
   const lines = output.split('\n');
   for (const line of lines) {
-    const match = line.match(/◆?\s*(\S+)\s+(\S+(?:\s+\S+)*)/);
-    if (match) {
+    // Parse table format: " ◆default         nvidia/nemotron-3.5-super-   running      —            —"
+    // Columns: Profile, Model, Gateway, Alias, Distribution
+    const match = line.match(/◆?\s*(\S+)\s+(\S+(?:\s+\S+)*)\s+(\S+)\s+(\S+)\s+(\S+)/);
+    if (match && match[1] !== 'Profile' && match[1] !== '───────────────' && !match[1].startsWith('─')) {
+      const id = match[1].replace(/^[◆\s]+/, '');
+      const model = match[2];
+      const gatewayStatus = match[3];
+      const alias = match[4] !== '—' ? match[4] : undefined;
       bots.push({
-        id: match[1].replace(/^[◆\s]+/, ''),
-        name: match[2].trim(),
-        status: 'connected',
+        id,
+        name: alias || id,
+        title: alias || undefined,
+        role: model.includes('nemotron') ? 'Nemotron Agent' : 'Agent',
+        status: gatewayStatus === 'running' ? 'connected' : 'disconnected',
       });
     }
   }
   return bots;
 }
 
-function parseKanbanList(output: string): Array<{ id: string; title: string; status: string }> {
-  const tasks: Array<{ id: string; title: string; status: string }> = [];
-  const lines = output.split('\n');
-  let currentId = '';
-  for (const line of lines) {
-    const idMatch = line.match(/t_([a-f0-9]+)/);
-    if (idMatch) currentId = idMatch[0];
-    const titleMatch = line.match(/┃\s*(.+?)\s*┃/);
-    if (titleMatch && currentId && !titleMatch[1].includes('ready') && !titleMatch[1].includes('running')) {
-      tasks.push({ id: currentId, title: titleMatch[1].trim(), status: 'todo' });
-      currentId = '';
-    }
+function parseKanbanJson(output: string): Array<{ id: string; title: string; status: string }> {
+  try {
+    const data = JSON.parse(output);
+    return data.map((t: any) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status || 'todo',
+    }));
+  } catch {
+    return [];
   }
-  return tasks;
 }
 
 function parseCronList(output: string): Array<{ id: string; name: string; schedule: string; enabled: boolean }> {
   const routines: Array<{ id: string; name: string; schedule: string; enabled: boolean }> = [];
+  const lines = output.split('\n');
+  // Cron list output is typically a table; parse if there's data
   return routines;
 }
 
 function parseSkillsList(output: string): Array<{ id: string; name: string; description?: string; status: string }> {
   const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
+  const lines = output.split('\n');
+  // Skills list output is typically a table; parse if there's data
   return skills;
 }
