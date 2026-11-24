@@ -516,4 +516,6 @@ export const INITIAL_ENTERPRISE_DATA: EnterpriseDataState = {
     { id: 'log-03', timestamp: '21/11/2026 18:04', actor: 'Mariana Costa', action: 'Exportou relatório de fluxo de caixa (CSV)', target: 'Relatório Financeiro Nov/26', origin: 'Plataforma' },
     { id: 'log-04', timestamp: '20/11/2026 11:20', actor: 'Sistema RBAC', action: 'Bloqueio de exposição direta de chave no navegador', target: 'Política PAPERCLIP_API_KEY', origin: 'Segurança' },
   ],
+
+  runs: [],
 };

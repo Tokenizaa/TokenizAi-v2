@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { EnterpriseDataState } from '../src/types/platform.ts';
+import type { EnterpriseDataState, RunRecord } from '../src/types/platform.ts';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STATE_FILE = path.join(DATA_DIR, 'enterprise-state.json');
@@ -45,3 +45,43 @@ export function appendAudit(
   });
   saveEnterpriseState(state);
 }
+
+// ============================================================================
+// Run persistence (execuções de agentes)
+// ============================================================================
+
+export function listRuns(): RunRecord[] {
+  const state = loadEnterpriseState();
+  if (!state) return [];
+  return state.runs || [];
+}
+
+export function createRun(run: Omit<RunRecord, 'id'>): RunRecord {
+  const state = loadEnterpriseState();
+  if (!state) {
+    throw new Error('Enterprise state not initialized');
+  }
+  if (!state.runs) {
+    state.runs = [];
+  }
+  const id = `run-${Date.now()}`;
+  const newRun: RunRecord = { ...run, id };
+  state.runs.unshift(newRun);
+  saveEnterpriseState(state);
+  return newRun;
+}
+
+export function updateRun(
+  runId: string,
+  updates: Partial<Pick<RunRecord, 'status' | 'finishedAt' | 'durationMs' | 'resultSummary' | 'errorMessage' | 'logs' | 'costCents' | 'currency'>>,
+): RunRecord | null {
+  const state = loadEnterpriseState();
+  if (!state) return null;
+  const idx = state.runs.findIndex((r) => r.id === runId);
+  if (idx === -1) return null;
+  state.runs[idx] = { ...state.runs[idx], ...updates };
+  saveEnterpriseState(state);
+  return state.runs[idx];
+}
+
+export type { RunRecord };

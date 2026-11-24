@@ -211,6 +211,24 @@ export interface EnterpriseDataState {
   automations: AutomationWorkflow[];
   users: AdminUserRecord[];
   auditLogs: AuditLogEntry[];
+  runs: RunRecord[];
+}
+
+export interface RunRecord {
+  id: string;
+  agentId?: string;
+  agentName?: string;
+  taskId?: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  triggerSource?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  durationMs?: number | null;
+  resultSummary?: string;
+  errorMessage?: string | null;
+  logs?: string[];
+  costCents?: number | null;
+  currency?: string;
 }
 
 /* Paperclip Native Integration Types */

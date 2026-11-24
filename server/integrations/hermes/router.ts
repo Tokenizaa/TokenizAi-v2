@@ -24,7 +24,7 @@ import {
   parseCronList,
   parseSkillsList,
 } from './domainParsers.ts';
-import { appendAudit } from '../../persistence.ts';
+import { appendAudit, createRun, listRuns, updateRun } from '../../persistence.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -175,16 +175,7 @@ export function createHermesRouter(
         []
       );
 
-      const runs: Array<{
-        id: string;
-        agentId?: string;
-        agentName?: string;
-        taskId?: string;
-        status: string;
-        startedAt?: string;
-        finishedAt?: string;
-        resultSummary?: string;
-      }> = [];
+      const runs = listRuns();
 
       const approvals = tasks.filter((t) => t.title.toLowerCase().includes('aprov'));
 
@@ -240,11 +231,36 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Runs
+  // Runs (histórico real de execuções)
   // ============================================================================
   router.get('/api/hermes/runs', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      res.json({ ok: true, runs: [] });
+      const runs = listRuns();
+      res.json({ ok: true, runs });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/hermes/runs', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = resolveWorkspaceActor(req);
+      const { agentId, agentName, taskId, triggerSource } = req.body as {
+        agentId?: string;
+        agentName?: string;
+        taskId?: string;
+        triggerSource?: string;
+      };
+      const run = createRun({
+        agentId,
+        agentName,
+        taskId,
+        status: 'queued',
+        triggerSource: triggerSource || 'manual',
+        startedAt: new Date().toISOString(),
+      });
+      appendAuditFn(actor.name, `Criou run de execução ${run.id}`, run.id, 'Hermes Adapter');
+      res.status(201).json({ ok: true, run });
     } catch (err) {
       sendError(res, err);
     }
@@ -419,6 +435,19 @@ export function createHermesRouter(
         { timeoutMs: 30000 }
       );
       appendAuditFn(actor.name, `Enviou mensagem no chat Hermes (${agentRef})`, agentRef, 'Hermes Adapter');
+
+      // Criar run de execução associado ao chat
+      const chatRun = createRun({
+        agentId: agentRef,
+        agentName: agentRef,
+        status: 'completed',
+        triggerSource: 'chat',
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        resultSummary: stdout?.slice(0, 500) || 'Execução via chat',
+        logs: [stdout || 'Sem resposta'],
+      });
+
       res.status(201).json({
         ok: true,
         message: {
@@ -428,6 +457,7 @@ export function createHermesRouter(
           body: stdout || `Erro ao executar comando Hermes`,
           createdAt: new Date().toISOString(),
         },
+        run: chatRun,
       });
     } catch (err) {
       sendError(res, err);
@@ -470,9 +500,19 @@ export function createHermesRouter(
       invalidateDomainCache('tasks');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Criou tarefa no kanban Hermes', title.trim(), 'Hermes Adapter');
+
+      // Criar run de execução associado à tarefa
+      const taskRun = createRun({
+        taskId: `task-${Date.now()}`,
+        status: 'queued',
+        triggerSource: 'task_create',
+        startedAt: new Date().toISOString(),
+      });
+
       res.status(201).json({
         ok: true,
         task: { id: `task-${Date.now()}`, title, description: desc, status: 'todo', createdAt: new Date().toISOString() },
+        run: taskRun,
       });
     } catch (err) {
       sendError(res, err);
