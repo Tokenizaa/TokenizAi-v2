@@ -8,7 +8,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipIssueDto, PaperclipCommentDto, PaperclipRunDto, PaperclipAttachmentDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
 
@@ -52,10 +52,10 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
     setError(null);
     try {
       const [iRes, cRes, rRes, aRes] = await Promise.allSettled([
-        paperclipService.getIssue(issueId),
-        paperclipService.getIssueComments(issueId),
-        paperclipService.getIssueRuns(issueId),
-        paperclipService.getIssueAttachments(issueId),
+        hermesService.getIssue(issueId),
+        hermesService.getIssueComments(issueId),
+        hermesService.getIssueRuns(issueId),
+        hermesService.getIssueAttachments(issueId),
       ]);
       if (iRes.status === 'fulfilled') setIssue(iRes.value.issue);
       if (cRes.status === 'fulfilled') setComments(cRes.value.comments || []);
@@ -76,7 +76,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      await paperclipService.addIssueComment(issueId, newComment.trim());
+      await hermesService.addIssueComment(issueId, newComment.trim());
       setNewComment('');
       await load();
     } catch (err) {
@@ -86,7 +86,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
 
   const updateStatus = async (status: string) => {
     try {
-      await paperclipService.updateIssue(issueId, { status });
+      await hermesService.updateIssue(issueId, { status });
       onToast(`Status da tarefa atualizado para ${status}.`);
       await load();
     } catch (err) {
@@ -286,7 +286,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
                       <div className="text-[10px] text-ink-muted">{a.contentType || '—'} · {a.sizeBytes != null ? a.sizeBytes + ' bytes' : '—'}</div>
                     </div>
                     <a
-                      href={paperclipService.getAttachmentContentUrl(a.id)}
+                      href={hermesService.getAttachmentContentUrl(a.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"

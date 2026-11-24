@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipProjectDto, PaperclipGoalDto } from '../../../types/platform';
 
 interface ProjectsPageProps {
@@ -28,8 +28,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigate, onToast 
     setError(null);
     try {
       const [pRes, gRes] = await Promise.all([
-        paperclipService.listProjects(),
-        paperclipService.listGoals(),
+        hermesService.listProjects(),
+        hermesService.listGoals(),
       ]);
       setProjects(pRes.projects || []);
       setGoals(gRes.goals || []);

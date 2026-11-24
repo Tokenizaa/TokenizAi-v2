@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipInboxItemDto, PaperclipAttentionDto } from '../../../types/platform';
 
 interface InboxPageProps {
@@ -28,8 +28,8 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
     setError(null);
     try {
       const [iRes, aRes] = await Promise.allSettled([
-        paperclipService.getInbox(),
-        paperclipService.getAttention(),
+        hermesService.getInbox(),
+        hermesService.getAttention(),
       ]);
       if (iRes.status === 'fulfilled') setInbox(iRes.value.inbox || []);
       if (aRes.status === 'fulfilled') setAttention(aRes.value.attention || null);

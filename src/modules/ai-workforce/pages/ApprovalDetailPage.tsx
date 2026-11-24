@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw } from 'lucide-react';
 import { PageHeader, StatusText } from '../../../components/ui/Primitives';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipApprovalDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
 
@@ -36,7 +36,7 @@ export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getApproval(approvalId);
+      const res = await hermesService.getApproval(approvalId);
       setApproval(res.approval || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar os detalhes da aprovação.');
@@ -52,9 +52,9 @@ export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
   const decide = async (action: 'approve' | 'reject' | 'revision', note?: string) => {
     if (!approval) return;
     try {
-      if (action === 'approve') await paperclipService.approveApproval(approvalId, note);
-      else if (action === 'reject') await paperclipService.rejectApproval(approvalId, note);
-      else await paperclipService.requestApprovalRevision(approvalId, note || '');
+      if (action === 'approve') await hermesService.approveApproval(approvalId, note);
+      else if (action === 'reject') await hermesService.rejectApproval(approvalId, note);
+      else await hermesService.requestApprovalRevision(approvalId, note || '');
       onToast(`Aprovação ${action === 'revision' ? 'enviada para revisão' : action === 'approve' ? 'aprovada' : 'rejeitada'} no Paperclip.`);
       await load();
     } catch (err) {

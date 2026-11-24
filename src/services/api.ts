@@ -4,25 +4,6 @@ import type {
   DirectorateCode,
   EnterpriseDataState,
   FinanceEntry,
-  PaperclipActivityDto,
-  PaperclipAgentDto,
-  PaperclipApprovalDto,
-  PaperclipAttachmentDto,
-  PaperclipArtifactDto,
-  PaperclipChatThreadDto,
-  PaperclipCommentDto,
-  PaperclipCompanySkillDto,
-  PaperclipCostSummaryDto,
-  PaperclipGoalDto,
-  PaperclipInboxItemDto,
-  PaperclipAttentionDto,
-  PaperclipIntegrationStatus,
-  PaperclipIssueDto,
-  PaperclipOrgNodeDto,
-  PaperclipOverviewBundle,
-  PaperclipProjectDto,
-  PaperclipRoutineDto,
-  PaperclipRunDto,
   HermesActivityDto,
   HermesApprovalDto,
   HermesBotDto,
@@ -71,10 +52,10 @@ export function formatBRLDetailed(value: number): string {
 }
 
 /**
- * Preserves the exact currency unit returned by Paperclip (usually USD cents) without fake conversion.
+ * Preserves the exact currency unit returned by the runtime (usually USD cents) without fake conversion.
  */
 export function formatCents(cents: number | null | undefined, currency = 'USD'): string {
-  if (cents === null || cents === undefined || !Number.isFinite(cents)) return 'Não apurado';
+  if (cents === null || cents === undefined || !Number.isFinite(cents)) return 'N\u00e3o apurado';
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: currency || 'USD',
@@ -84,7 +65,7 @@ export function formatCents(cents: number | null | undefined, currency = 'USD'):
 }
 
 export function formatDateBR(isoDate: string): string {
-  if (!isoDate) return '—';
+  if (!isoDate) return '\u2014';
   const dayPart = isoDate.includes('T') ? isoDate.slice(0, 10) : isoDate;
   if (!dayPart.includes('-')) return isoDate;
   const [y, m, d] = dayPart.split('-');
@@ -93,7 +74,7 @@ export function formatDateBR(isoDate: string): string {
 }
 
 export function formatDateTimeBR(isoDate?: string | null): string {
-  if (!isoDate) return '—';
+  if (!isoDate) return '\u2014';
   const parsed = Date.parse(isoDate);
   if (!Number.isFinite(parsed)) return isoDate;
   return new Date(parsed).toLocaleString('pt-BR', {
@@ -130,7 +111,7 @@ export const PlatformApi = {
       status: string;
       timestamp: string;
       integrations: {
-        paperclip: PaperclipIntegrationStatus;
+        hermes: HermesIntegrationStatus;
       };
     }>('/api/health'),
 
@@ -162,8 +143,6 @@ export const PlatformApi = {
       deliverableId?: string;
       deliverableDone?: boolean;
       activityNote?: string;
-      paperclipProjectId?: string | null;
-      paperclipProjectName?: string | null;
       hermesProjectId?: string | null;
     },
   ) =>
@@ -207,7 +186,7 @@ export const PlatformApi = {
 
   addClientInteraction: (
     clientId: string,
-    payload: { channel: 'Reunião' | 'E-mail' | 'Proposta' | 'Suporte'; note: string },
+    payload: { channel: 'Reuni\u00e3o' | 'E-mail' | 'Proposta' | 'Suporte'; note: string },
   ) =>
     request(`/api/enterprise/clients/${clientId}/interactions`, {
       method: 'POST',
@@ -420,274 +399,6 @@ export const AdminAuthApi = {
   },
 };
 
-export const PaperclipApi = {
-  getStatus: () =>
-    request<{ ok: boolean; status: PaperclipIntegrationStatus }>('/api/integrations/paperclip/status'),
-
-  refreshConnection: async () =>
-    request<{ ok: boolean; status: PaperclipIntegrationStatus }>('/api/integrations/paperclip/refresh', {
-      method: 'POST',
-      headers: await adminAuthHeaders(),
-    }),
-
-  getOverviewBundle: () =>
-    request<{ ok: boolean } & PaperclipOverviewBundle>('/api/integrations/paperclip/overview'),
-
-  // Agents
-  listAgents: () => request<{ ok: boolean; agents: PaperclipAgentDto[] }>('/api/paperclip/agents'),
-  getAgent: (agentId: string) => request<{ ok: boolean; agent: PaperclipAgentDto }>(`/api/paperclip/agents/${encodeURIComponent(agentId)}`),
-  getAgentRuntimeState: (agentId: string) =>
-    request<{ ok: boolean; runtimeState: Record<string, unknown> }>(
-      `/api/paperclip/agents/${encodeURIComponent(agentId)}/runtime-state`,
-    ),
-  wakeupAgent: (agentId: string) =>
-    request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/wakeup`, { method: 'POST' }),
-  invokeHeartbeat: (agentId: string) =>
-    request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/heartbeat`, { method: 'POST' }),
-  pauseAgent: (agentId: string) =>
-    request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/pause`, { method: 'POST' }),
-  resumeAgent: (agentId: string) =>
-    request(`/api/paperclip/agents/${encodeURIComponent(agentId)}/resume`, { method: 'POST' }),
-  updateAgent: (agentId: string, payload: Record<string, unknown>) =>
-    request<{ ok: boolean; agent: PaperclipAgentDto }>(
-      `/api/paperclip/agents/${encodeURIComponent(agentId)}`,
-      { method: 'PATCH', body: JSON.stringify(payload) },
-    ),
-
-  hireSpecialist: (payload: {
-    specialistId: string;
-    slug: string;
-    name: string;
-    division: string;
-    adapter: string;
-    monthlyBudgetBRL: number;
-    team: string;
-    directorate?: DirectorateCode;
-  }) =>
-    request<{ ok: boolean; agent: PaperclipAgentDto }>('/api/paperclip/agents/hire', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  // Org
-  getOrganization: () =>
-    request<{ ok: boolean; tree: PaperclipOrgNodeDto[]; agents: PaperclipAgentDto[] }>('/api/paperclip/org'),
-
-  // Agent Chat
-  listChats: () => request<{ ok: boolean; chats: PaperclipChatThreadDto[] }>('/api/paperclip/chats'),
-  getChat: (agentRef: string) =>
-    request<{ ok: boolean; thread: PaperclipChatThreadDto; messages: PaperclipCommentDto[] }>(
-      `/api/paperclip/chats/${encodeURIComponent(agentRef)}`,
-    ),
-  sendChatMessage: (agentRef: string, payload: { body: string; issueId?: string }) =>
-    request<{ ok: boolean; thread?: PaperclipChatThreadDto; message?: PaperclipCommentDto }>(
-      `/api/paperclip/chats/${encodeURIComponent(agentRef)}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      },
-    ),
-
-  // Issues / Tasks
-  listIssues: (filters: Record<string, string | number | undefined> = {}) => {
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(filters)) {
-      if (v !== undefined && v !== '') qs.set(k, String(v));
-    }
-    const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    return request<{ ok: boolean; issues: PaperclipIssueDto[] }>(`/api/paperclip/issues${suffix}`);
-  },
-  getIssue: (issueId: string) =>
-    request<{ ok: boolean; issue: PaperclipIssueDto }>(`/api/paperclip/issues/${encodeURIComponent(issueId)}`),
-  createIssue: (payload: Record<string, unknown>) =>
-    request<{ ok: boolean; issue: PaperclipIssueDto }>('/api/paperclip/issues', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updateIssue: (issueId: string, payload: Record<string, unknown>) =>
-    request<{ ok: boolean; issue: PaperclipIssueDto }>(`/api/paperclip/issues/${encodeURIComponent(issueId)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    }),
-  getIssueComments: (issueId: string) =>
-    request<{ ok: boolean; comments: PaperclipCommentDto[] }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/comments`,
-    ),
-  addIssueComment: (issueId: string, body: string) =>
-    request<{ ok: boolean; comment: PaperclipCommentDto }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/comments`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ body }),
-      },
-    ),
-  getIssueRuns: (issueId: string) =>
-    request<{ ok: boolean; runs: PaperclipRunDto[] }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/runs`,
-    ),
-  getIssueDocuments: (issueId: string) =>
-    request<{ ok: boolean; documents: Array<Record<string, unknown>> }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/documents`,
-    ),
-  getIssueAttachments: (issueId: string) =>
-    request<{ ok: boolean; attachments: PaperclipAttachmentDto[] }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/attachments`,
-    ),
-  uploadIssueAttachment: (
-    issueId: string,
-    payload: { filename: string; contentType: string; base64Content: string },
-  ) =>
-    request<{ ok: boolean; attachment: PaperclipAttachmentDto }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/attachments`,
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      },
-    ),
-  getIssueInteractions: (issueId: string) =>
-    request<{ ok: boolean; interactions: Array<Record<string, unknown>> }>(
-      `/api/paperclip/issues/${encodeURIComponent(issueId)}/interactions`,
-    ),
-
-  // Runs
-  listRuns: (filters: Record<string, string | number | undefined> = {}) => {
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(filters)) {
-      if (v !== undefined && v !== '') qs.set(k, String(v));
-    }
-    const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    return request<{ ok: boolean; runs: PaperclipRunDto[] }>(`/api/paperclip/runs${suffix}`);
-  },
-  getRun: (runId: string) =>
-    request<{ ok: boolean; run: PaperclipRunDto }>(`/api/paperclip/runs/${encodeURIComponent(runId)}`),
-  getRunEvents: (runId: string) =>
-    request<{ ok: boolean; events: Array<Record<string, unknown>>; logs: string[] }>(
-      `/api/paperclip/runs/${encodeURIComponent(runId)}/events`,
-    ),
-  cancelRun: (runId: string) =>
-    request(`/api/paperclip/runs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' }),
-
-  // Operational Projects & Goals
-  listProjects: () => request<{ ok: boolean; projects: PaperclipProjectDto[] }>('/api/paperclip/projects'),
-  createProject: (payload: Record<string, unknown>) =>
-    request<{ ok: boolean; project: PaperclipProjectDto }>('/api/paperclip/projects', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  getProject: (projectId: string) =>
-    request<{ ok: boolean; project: PaperclipProjectDto }>(
-      `/api/paperclip/projects/${encodeURIComponent(projectId)}`,
-    ),
-  updateProject: (projectId: string, payload: Record<string, unknown>) =>
-    request<{ ok: boolean; project: PaperclipProjectDto }>(
-      `/api/paperclip/projects/${encodeURIComponent(projectId)}`,
-      { method: 'PATCH', body: JSON.stringify(payload) },
-    ),
-  listGoals: () => request<{ ok: boolean; goals: PaperclipGoalDto[] }>('/api/paperclip/goals'),
-  createGoal: (payload: Record<string, unknown>) =>
-    request<{ ok: boolean; goal: PaperclipGoalDto }>('/api/paperclip/goals', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  getGoal: (goalId: string) =>
-    request<{ ok: boolean; goal: PaperclipGoalDto }>(
-      `/api/paperclip/goals/${encodeURIComponent(goalId)}`,
-    ),
-  updateGoal: (goalId: string, payload: Record<string, unknown>) =>
-    request<{ ok: boolean; goal: PaperclipGoalDto }>(
-      `/api/paperclip/goals/${encodeURIComponent(goalId)}`,
-      { method: 'PATCH', body: JSON.stringify(payload) },
-    ),
-
-  // Routines
-  listRoutines: () => request<{ ok: boolean; routines: PaperclipRoutineDto[] }>('/api/paperclip/routines'),
-  getRoutine: (routineId: string) =>
-    request<{ ok: boolean; routine: PaperclipRoutineDto }>(
-      `/api/paperclip/routines/${encodeURIComponent(routineId)}`,
-    ),
-  createRoutine: (payload: Record<string, unknown>) =>
-    request<{ ok: boolean; routine: PaperclipRoutineDto }>('/api/paperclip/routines', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updateRoutine: (routineId: string, payload: Record<string, unknown>) =>
-    request<{ ok: boolean; routine: PaperclipRoutineDto }>(
-      `/api/paperclip/routines/${encodeURIComponent(routineId)}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      },
-    ),
-  getRoutineRuns: (routineId: string) =>
-    request<{ ok: boolean; runs: Array<Record<string, unknown>> }>(
-      `/api/paperclip/routines/${encodeURIComponent(routineId)}/runs`,
-    ),
-  runRoutine: (routineId: string) =>
-    request(`/api/paperclip/routines/${encodeURIComponent(routineId)}/run`, { method: 'POST' }),
-  createRoutineTrigger: (routineId: string, payload: Record<string, unknown>) =>
-    request(`/api/paperclip/routines/${encodeURIComponent(routineId)}/triggers`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updateRoutineTrigger: (routineId: string, triggerId: string, payload: Record<string, unknown>) =>
-    request(
-      `/api/paperclip/routines/${encodeURIComponent(routineId)}/triggers/${encodeURIComponent(triggerId)}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      },
-    ),
-
-  // Approvals
-  listApprovals: () => request<{ ok: boolean; approvals: PaperclipApprovalDto[] }>('/api/paperclip/approvals'),
-  getApproval: (approvalId: string) =>
-    request<{ ok: boolean; approval: PaperclipApprovalDto }>(
-      `/api/paperclip/approvals/${encodeURIComponent(approvalId)}`,
-    ),
-  createApproval: (payload: Record<string, unknown>) =>
-    request<{ ok: boolean; approval: PaperclipApprovalDto }>('/api/paperclip/approvals', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  approveApproval: (approvalId: string, note?: string) =>
-    request(`/api/paperclip/approvals/${encodeURIComponent(approvalId)}/approve`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-  rejectApproval: (approvalId: string, note?: string) =>
-    request(`/api/paperclip/approvals/${encodeURIComponent(approvalId)}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-  requestApprovalRevision: (approvalId: string, note: string) =>
-    request(`/api/paperclip/approvals/${encodeURIComponent(approvalId)}/request-revision`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-
-  // Costs, Dashboard & Activity
-  getCostsSummary: () =>
-    request<{ ok: boolean; summary: PaperclipCostSummaryDto }>('/api/paperclip/costs/summary'),
-  getDashboard: () => request<{ ok: boolean; dashboard: Record<string, unknown> }>('/api/paperclip/dashboard'),
-  listActivity: (limit = 50) =>
-    request<{ ok: boolean; activity: PaperclipActivityDto[] }>(`/api/paperclip/activity?limit=${limit}`),
-  listAgentActionsAudit: (limit = 50) =>
-    request<{ ok: boolean; actions: PaperclipActivityDto[] }>(
-      `/api/paperclip/activity/agent-actions?limit=${limit}`,
-    ),
-
-  getAttachmentContentUrl: (attachmentId: string) =>
-    `/api/paperclip/attachments/${encodeURIComponent(attachmentId)}/content`,
-  getArtifacts: () =>
-    request<{ ok: boolean; artifacts: PaperclipArtifactDto[] }>('/api/paperclip/artifacts'),
-  getSkills: () =>
-    request<{ ok: boolean; skills: PaperclipCompanySkillDto[] }>('/api/paperclip/skills'),
-  getInbox: () =>
-    request<{ ok: boolean; inbox: PaperclipInboxItemDto[] }>('/api/paperclip/inbox'),
-  getAttention: () =>
-    request<{ ok: boolean; attention: PaperclipAttentionDto }>('/api/paperclip/attention'),
-};
-
 export const HermesApi = {
   getStatus: () =>
     request<{ ok: boolean; status: HermesIntegrationStatus }>('/api/hermes/status'),
@@ -725,10 +436,27 @@ export const HermesApi = {
       method: 'DELETE',
       headers: { 'X-Confirm-Destructive': 'TERMINATE_AGENT' },
     }),
+  // Agentes: comandos de ciclo de vida (runtime Hermes)
+  wakeupAgent: (agentId: string) =>
+    request(`/api/hermes/agents/${encodeURIComponent(agentId)}/wakeup`, { method: 'POST' }),
+  invokeHeartbeat: (agentId: string) =>
+    request(`/api/hermes/agents/${encodeURIComponent(agentId)}/heartbeat`, { method: 'POST' }),
+  pauseAgent: (agentId: string) =>
+    request(`/api/hermes/agents/${encodeURIComponent(agentId)}/pause`, { method: 'POST' }),
+  resumeAgent: (agentId: string) =>
+    request(`/api/hermes/agents/${encodeURIComponent(agentId)}/resume`, { method: 'POST' }),
+  getAgentRuntimeState: (agentId: string) =>
+    request<{ ok: boolean; runtimeState: Record<string, unknown> }>(
+      `/api/hermes/agents/${encodeURIComponent(agentId)}/runtime-state`,
+    ),
 
   // Chats
   listChats: () =>
     request<{ ok: boolean; chats: HermesChatThreadDto[] }>('/api/hermes/chats'),
+  getChat: (agentRef: string) =>
+    request<{ ok: boolean; thread: HermesChatThreadDto; messages: HermesChatMessageDto[] }>(
+      `/api/hermes/chats/${encodeURIComponent(agentRef)}`,
+    ),
   sendChatMessage: (agentRef: string, payload: { body: string }) =>
     request<{ ok: boolean; message: HermesChatMessageDto }>(
       `/api/hermes/chats/${encodeURIComponent(agentRef)}`,
@@ -815,6 +543,56 @@ export const HermesApi = {
   // Skills
   getSkills: () =>
     request<{ ok: boolean; skills: HermesSkillDto[] }>('/api/hermes/skills'),
+
+  // Routines (comandos adicionais)
+  getRoutineRuns: (routineId: string) =>
+    request<{ ok: boolean; runs: Array<Record<string, unknown>> }>(
+      `/api/hermes/routines/${encodeURIComponent(routineId)}/runs`,
+    ),
+  runRoutine: (routineId: string) =>
+    request(`/api/hermes/routines/${encodeURIComponent(routineId)}/run`, {
+      method: 'POST',
+    }),
+  createRoutineTrigger: (routineId: string, payload: Record<string, unknown>) =>
+    request(`/api/hermes/routines/${encodeURIComponent(routineId)}/triggers`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateRoutineTrigger: (
+    routineId: string,
+    triggerId: string,
+    payload: Record<string, unknown>,
+  ) =>
+    request(
+      `/api/hermes/routines/${encodeURIComponent(routineId)}/triggers/${encodeURIComponent(triggerId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      },
+    ),
+
+  // Approvals (acoes de decisao)
+  approveApproval: (approvalId: string, note?: string) =>
+    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  rejectApproval: (approvalId: string, note?: string) =>
+    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  requestApprovalRevision: (approvalId: string, note: string) =>
+    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/request-revision`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+
+  // Activity (audit)
+  listAgentActionsAudit: (limit = 50) =>
+    request<{ ok: boolean; actions: HermesActivityDto[] }>(
+      `/api/hermes/activity/agent-actions?limit=${limit}`,
+    ),
 };
 
 export interface HermesSkillDto {
@@ -847,3 +625,13 @@ export const AuthApi = {
     });
   },
 };
+
+/**
+ * Compatibilidade temporaria: PaperclipApi e um alias para HermesApi.
+ * Todos os componentes que ainda importam PaperclipApi continuam
+ * funcionando, mas apontam para o runtime Hermes (sem acoplamento ao
+ * servidor Paperclip). Remover quando todos os consumidores forem
+ * migrados para HermesApi.
+ */
+export const PaperclipApi = HermesApi;
+

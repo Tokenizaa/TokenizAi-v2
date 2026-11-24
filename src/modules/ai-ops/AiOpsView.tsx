@@ -23,15 +23,14 @@ import {
   StatusText,
   UserAvatar,
 } from '../../components/ui/Primitives';
-import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
+import { formatCents, formatDateTimeBR, HermesApi } from '../../services/api';
 import type {
   HermesIntegrationStatus,
   NavSectionId,
-  PaperclipAgentDto,
-  PaperclipOrgNodeDto,
-  PaperclipOverviewBundle,
+  HermesBotDto,
+  HermesOverviewBundle,
 } from '../../types/platform';
-import { PaperclipChatPanel } from './PaperclipChatPanel';
+import { HermesChatPanel } from './HermesChatPanel';
 import {
   PaperclipApprovalsPanel,
   PaperclipCostsAuditPanel,
@@ -54,7 +53,7 @@ export type AiOpsSectionId =
 
 interface AiOpsViewProps {
   section: AiOpsSectionId;
-  bundle: PaperclipOverviewBundle;
+  bundle: HermesOverviewBundle;
   onRefresh: () => Promise<void>;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
@@ -76,7 +75,17 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
   onNavigate,
   onToast,
 }) => {
-  const { status, agents, issues, runs, projects, goals, approvals, routines, costs } = bundle;
+  const {
+    status,
+    agents = bundle.bots,
+    issues,
+    runs,
+    projects,
+    goals,
+    approvals,
+    routines,
+    costs,
+  } = bundle;
   const hermesStatus = status as unknown as HermesIntegrationStatus;
   const isConnected =
     hermesStatus.configured && hermesStatus.connected;
@@ -84,11 +93,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
   const [agentSearch, setAgentSearch] = useState('');
   const [agentStatusFilter, setAgentStatusFilter] = useState('all');
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
-  const [agentDetail, setAgentDetail] = useState<PaperclipAgentDto | null>(null);
+  const [agentDetail, setAgentDetail] = useState<HermesBotDto | null>(null);
   const [agentRuntimeState, setAgentRuntimeState] = useState<Record<string, unknown> | null>(null);
   const [agentDrawerTab, setAgentDrawerTab] = useState<AgentDrawerTab>('geral');
 
-  const [orgTree, setOrgTree] = useState<PaperclipOrgNodeDto[]>([]);
+  const [orgTree, setOrgTree] = useState<HermesBotDto[]>([]);
   const [loadingOrg, setLoadingOrg] = useState(false);
 
   const [chatInitialRef, setChatInitialRef] = useState<string | null>(null);
@@ -102,7 +111,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
     }
     setLoadingOrg(true);
     try {
-      const res = await PaperclipApi.getOrganization();
+      const res = await HermesApi.getOrganization();
       setOrgTree(res.tree || []);
     } catch {
       setOrgTree([]);
@@ -118,7 +127,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
   }, [section, loadOrg]);
 
   const openAgentProfile = useCallback(
-    async (agent: PaperclipAgentDto, initialTab: AgentDrawerTab = 'geral') => {
+    async (agent: HermesBotDto, initialTab: AgentDrawerTab = 'geral') => {
       setSelectedAgentId(agent.id);
       setAgentDetail(agent);
       setAgentDrawerTab(initialTab);
@@ -126,8 +135,8 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
 
       if (!isConnected) return;
       const [detRes, rtRes] = await Promise.allSettled([
-        PaperclipApi.getAgent(agent.id),
-        PaperclipApi.getAgentRuntimeState(agent.id),
+        HermesApi.getAgent(agent.id),
+        HermesApi.getAgentRuntimeState(agent.id),
       ]);
       if (detRes.status === 'fulfilled') setAgentDetail(detRes.value.agent);
       if (rtRes.status === 'fulfilled') setAgentRuntimeState(rtRes.value.runtimeState);
@@ -162,10 +171,10 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
   ) => {
     setBusyId(`${agentId}-${action}`);
     try {
-      if (action === 'wakeup') await PaperclipApi.wakeupAgent(agentId);
-      else if (action === 'heartbeat') await PaperclipApi.invokeHeartbeat(agentId);
-      else if (action === 'pause') await PaperclipApi.pauseAgent(agentId);
-      else await PaperclipApi.resumeAgent(agentId);
+      if (action === 'wakeup') await HermesApi.wakeupAgent(agentId);
+      else if (action === 'heartbeat') await HermesApi.invokeHeartbeat(agentId);
+      else if (action === 'pause') await HermesApi.pauseAgent(agentId);
+      else await HermesApi.resumeAgent(agentId);
 
       await onRefresh();
       onToast(
@@ -196,7 +205,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
     onNavigate('ia-tarefas');
   };
 
-  const renderOrgBranch = (node: PaperclipOrgNodeDto, depth = 0): React.ReactNode => {
+  const renderOrgBranch = (node: HermesBotDto, depth = 0): React.ReactNode => {
     const matchedAgent = agents.find((a) => a.id === node.id);
     return (
       <div key={node.id} className="space-y-2.5">
@@ -224,7 +233,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
               <div className="text-xs text-ink-subtle truncate">
                 {node.role || 'Membro Paperclip'}
                 {node.team ? ` · ${node.team}` : ''}
-                {node.children.length > 0 ? ` · ${node.children.length} subordinado(s)` : ''}
+                {node.children ? node.children.length > 0 ? ` · ${node.children.length} subordinado(s)` : '' : ''}
               </div>
             </div>
           </div>
@@ -508,7 +517,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {/* 2. CHAT COM AGENTES                                                      */}
       {/* ======================================================================== */}
       {section === 'ia-chat' && (
-        <PaperclipChatPanel
+        <HermesChatPanel
           status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           initialAgentRef={chatInitialRef}

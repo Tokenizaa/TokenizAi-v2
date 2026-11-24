@@ -8,7 +8,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipActivityDto } from '../../../types/platform';
 
 interface ActivityPageProps {
@@ -25,7 +25,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listActivity(100);
+      const res = await hermesService.listActivity(100);
       setActivity(res.activity || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar a atividade do Paperclip.');

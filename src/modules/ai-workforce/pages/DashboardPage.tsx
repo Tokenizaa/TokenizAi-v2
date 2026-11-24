@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService, isPaperclipConnected } from '../services/paperclip';
+import { hermesService, isPaperclipConnected } from '../services/hermes';
 import type { PaperclipAgentDto, PaperclipIntegrationStatus, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
 
 interface DashboardPageProps {
@@ -51,8 +51,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setError(null);
     try {
       const [bundleRes, dashRes] = await Promise.allSettled([
-        paperclipService.getOverviewBundle(),
-        paperclipService.getDashboard(),
+        hermesService.getOverviewBundle(),
+        hermesService.getDashboard(),
       ]);
       if (bundleRes.status === 'fulfilled') {
         setBundle({

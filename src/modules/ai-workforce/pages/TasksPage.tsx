@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipIssueDto } from '../../../types/platform';
 
 interface TasksPageProps {
@@ -40,7 +40,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onToast }) => 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listIssues({
+      const res = await hermesService.listIssues({
         q: filters.q || undefined,
         status: filters.status === 'all' ? undefined : filters.status,
         projectId: filters.projectId || undefined,

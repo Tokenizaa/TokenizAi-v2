@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipCompanySkillDto } from '../../../types/platform';
 
 interface SkillsPageProps {
@@ -27,7 +27,7 @@ export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) =
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getSkills();
+      const res = await hermesService.getSkills();
       setSkills(res.skills || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as skills da empresa no Paperclip.');

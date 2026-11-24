@@ -8,7 +8,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipArtifactDto } from '../../../types/platform';
 
 interface ArtifactsPageProps {
@@ -25,7 +25,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getArtifacts();
+      const res = await hermesService.getArtifacts();
       setArtifacts(res.artifacts || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar os artefatos do Paperclip.');
@@ -95,7 +95,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
                 <div className="font-mono text-ink-muted">—</div>
               )}
               <a
-                href={a.url || paperclipService.getAttachmentContentUrl(a.id)}
+                href={a.url || hermesService.getAttachmentContentUrl(a.id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 text-[11px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"

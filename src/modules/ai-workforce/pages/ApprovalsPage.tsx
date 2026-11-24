@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipApprovalDto } from '../../../types/platform';
 
 interface ApprovalsPageProps {
@@ -34,7 +34,7 @@ export const ApprovalsPage: React.FC<ApprovalsPageProps> = ({ onNavigate, onToas
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listApprovals();
+      const res = await hermesService.listApprovals();
       setApprovals(res.approvals || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as aprovações do Paperclip.');
@@ -54,9 +54,9 @@ export const ApprovalsPage: React.FC<ApprovalsPageProps> = ({ onNavigate, onToas
 
   const decide = async (approvalId: string, action: 'approve' | 'reject' | 'revision', note?: string) => {
     try {
-      if (action === 'approve') await paperclipService.approveApproval(approvalId, note);
-      else if (action === 'reject') await paperclipService.rejectApproval(approvalId, note);
-      else await paperclipService.requestApprovalRevision(approvalId, note || '');
+      if (action === 'approve') await hermesService.approveApproval(approvalId, note);
+      else if (action === 'reject') await hermesService.rejectApproval(approvalId, note);
+      else await hermesService.requestApprovalRevision(approvalId, note || '');
       onToast(`Aprovação ${action === 'revision' ? 'enviada para revisão' : action === 'approve' ? 'aprovada' : 'rejeitada'} no Paperclip.`);
       await load();
     } catch (err) {

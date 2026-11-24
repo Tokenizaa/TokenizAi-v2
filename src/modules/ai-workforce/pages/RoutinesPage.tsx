@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipRoutineDto } from '../../../types/platform';
 
 interface RoutinesPageProps {
@@ -26,7 +26,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listRoutines();
+      const res = await hermesService.listRoutines();
       setRoutines(res.routines || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as rotinas do Paperclip.');
@@ -41,7 +41,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
 
   const runManually = async (routineId: string) => {
     try {
-      await paperclipService.runRoutine(routineId);
+      await hermesService.runRoutine(routineId);
       onToast('Rotina executada manualmente no Paperclip.');
       await load();
     } catch (err) {

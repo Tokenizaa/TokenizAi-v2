@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipRunDto } from '../../../types/platform';
 
 interface RunsPageProps {
@@ -39,7 +39,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
       const filters: Record<string, string | number | undefined> = {};
       if (agentFilter !== 'all') filters.agentId = agentFilter;
       if (statusFilter !== 'all') filters.status = statusFilter;
-      const res = await paperclipService.listRuns(filters);
+      const res = await hermesService.listRuns(filters);
       setRuns(res.runs || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as execuções do Paperclip.');

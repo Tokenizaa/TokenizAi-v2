@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipOrgNodeDto } from '../../../types/platform';
 
 interface OrganizationPageProps {
@@ -33,7 +33,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getOrganization();
+      const res = await hermesService.getOrganization();
       setTree(Array.isArray(res.tree) ? res.tree : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar o organograma do Paperclip.');

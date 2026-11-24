@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipCostSummaryDto } from '../../../types/platform';
 
 interface CostsPageProps {
@@ -26,7 +26,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.getCostsSummary();
+      const res = await hermesService.getCostsSummary();
       setCosts(res.summary || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar os custos do Paperclip.');

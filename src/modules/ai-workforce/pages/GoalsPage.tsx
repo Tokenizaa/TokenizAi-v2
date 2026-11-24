@@ -9,7 +9,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipGoalDto } from '../../../types/platform';
 
 interface GoalsPageProps {
@@ -26,7 +26,7 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => 
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listGoals();
+      const res = await hermesService.listGoals();
       setGoals(res.goals || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as metas do Paperclip.');

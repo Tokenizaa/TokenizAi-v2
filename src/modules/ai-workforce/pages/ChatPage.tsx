@@ -8,7 +8,7 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
+import { hermesService } from '../services/hermes';
 import type { PaperclipChatThreadDto } from '../../../types/platform';
 
 interface ChatPageProps {
@@ -29,7 +29,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     setError(null);
     setAgent(null);
     try {
-      const res = await paperclipService.listChats();
+      const res = await hermesService.listChats();
       setChats(res.chats || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar as conversas do Paperclip.');
@@ -48,7 +48,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     try {
       const agentId = conversation.conversationAgentId || conversation.agentRef;
       if (agentId) {
-        const res = await paperclipService.getAgent(agentId);
+        const res = await hermesService.getAgent(agentId);
         setAgent(res.agent || null);
       }
     } catch {

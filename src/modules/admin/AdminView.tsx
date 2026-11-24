@@ -7,7 +7,7 @@ import {
   StatusText,
   UserAvatar,
 } from '../../components/ui/Primitives';
-import { AdminAuthApi, formatDateTimeBR, PaperclipApi, PlatformApi, type WorkspaceActorDto } from '../../services/api';
+import { AdminAuthApi, formatDateTimeBR, HermesApi, PlatformApi, type WorkspaceActorDto } from '../../services/api';
 import type {
   AuditLogEntry,
   EnterpriseDataState,
@@ -50,11 +50,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const loadDiagnostics = useCallback(async () => {
     try {
-      const [pcRes, authRes] = await Promise.all([
-        PaperclipApi.getStatus(),
+      const [hRes, authRes] = await Promise.all([
+        HermesApi.getStatus(),
         AdminAuthApi.getStatus(),
       ]);
-      setStatus(pcRes.status as unknown as HermesIntegrationStatus);
+      setStatus(hRes.status);
       setAdminAuth({
         envConfigured: authRes.envConfigured,
         claimed: authRes.claimed,
@@ -104,15 +104,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const handleRefreshConnection = async () => {
     setChecking(true);
     try {
-      const res = await PaperclipApi.refreshConnection();
-      setStatus(res.status as unknown as HermesIntegrationStatus);
+      const res = await HermesApi.refreshConnection();
+      setStatus(res.status);
       await onRefresh();
-      onToast(`Diagnóstico Paperclip atualizado (${res.status.connectionLabel}).`);
+      onToast(`Diagnóstico Hermes atualizado (${res.status.connectionLabel}).`);
     } catch (err) {
       onToast(
         err instanceof Error
           ? err.message
-          : 'Falha ao atualizar conexão Paperclip. Verifique a autenticação administrativa.',
+          : 'Falha ao atualizar conexão Hermes. Verifique a autenticação administrativa.',
       );
     } finally {
       setChecking(false);
@@ -218,7 +218,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-line">
               <div>
                 <h2 className="font-display text-base font-semibold text-ink">
-                  Integração Nativa Paperclip (Backend Proxy & OpenAPI Discovery)
+                  Integração Nativa Hermes (Backend Proxy & OpenAPI Discovery)
                 </h2>
                 <p className="text-xs text-ink-subtle mt-1">
                   Credenciais isoladas exclusivamente no servidor. Nenhuma chave ou token é enviado ou armazenado no navegador.
@@ -232,7 +232,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   disabled={checking || !adminAuth.authenticated}
                   title={
                     adminAuth.authenticated
-                      ? 'Executar nova sonda OpenAPI / saúde no Paperclip'
+                      ? 'Executar nova sonda OpenAPI / saúde no Hermes'
                       : 'Autentique a sessão administrativa abaixo para disparar refresh'
                   }
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
@@ -302,10 +302,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
                 <p className="text-[11px] text-ink-subtle">
                   {adminAuth.authenticated
-                    ? 'Sessão administrativa ativa em memória JS. Você pode testar/atualizar a conexão Paperclip e gerir governança.'
+                    ? 'Sessão administrativa ativa em memória JS. Você pode testar/atualizar a conexão Hermes e gerir governança.'
                     : !adminAuth.envConfigured && !adminAuth.claimed
                       ? 'Primeiro uso: defina um código administrativo (mín. 8 caracteres) ou configure TOKENIZAI_ADMIN_PASSCODE no servidor.'
-                      : 'Informe o código administrativo do servidor para liberar ações de Diretoria Executiva e POST /api/integrations/paperclip/refresh.'}
+                      : 'Informe o código administrativo do servidor para liberar ações de Diretoria Executiva e POST /api/integrations/hermes/refresh.'}
                 </p>
               </div>
 
