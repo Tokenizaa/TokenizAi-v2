@@ -10,6 +10,8 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  ChevronDown,
+  ChevronRight,
   Coins,
   CreditCard,
   FileText,
@@ -127,6 +129,19 @@ export const AppShell: React.FC<AppShellProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([]);
   const currentItem = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
+  const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([currentItem.group]);
+
+  useEffect(() => {
+    setExpandedGroups((current) =>
+      current.includes(currentItem.group) ? current : [...current, currentItem.group],
+    );
+  }, [activeSection, currentItem.group]);
+
+  const toggleGroup = (group: NavGroup) => {
+    setExpandedGroups((current) =>
+      current.includes(group) ? current.filter((item) => item !== group) : [...current, group],
+    );
+  };
 
   useEffect(() => {
     setExpandedGroups((current) =>
@@ -307,7 +322,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             >
               <Search className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Buscar</span>
-              <kbd className="hidden rounded border border-line bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-ink-subtle md:inline">⌘K</kbd>
+              <kbd className="hidden rounded border border-line bg-surface-subtle px-1 py-0.5 font-mono text-xs text-ink-subtle md:inline">⌘K</kbd>
             </button>
             <button
               type="button"
