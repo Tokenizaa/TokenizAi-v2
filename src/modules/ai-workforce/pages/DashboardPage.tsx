@@ -9,8 +9,8 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { hermesService, isPaperclipConnected } from '../services/hermes';
-import type { PaperclipAgentDto, PaperclipIntegrationStatus, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
+import { hermesService, isHermesConnected } from '../services/hermes';
+import type { HermesBotDto, HermesIntegrationStatus, HermesIssueDto, HermesRunDto } from '../../../types/platform';
 
 interface DashboardPageProps {
   onRefresh: () => Promise<void>;
@@ -33,10 +33,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bundle, setBundle] = useState<{
-    status: PaperclipIntegrationStatus | null;
-    agents: PaperclipAgentDto[];
-    issues: PaperclipIssueDto[];
-    runs: PaperclipRunDto[];
+    status: HermesIntegrationStatus | null;
+    agents: HermesBotDto[];
+    issues: HermesIssueDto[];
+    runs: HermesRunDto[];
     projects: any[];
     goals: any[];
     approvals: any[];
@@ -240,10 +240,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </button>
       </section>
 
-      {!isPaperclipConnected(bundle?.status) && (
+      {!isHermesConnected(bundle?.status) && (
         <EmptyState
-          title="Sem conexão com o Paperclip"
-          description="Configure PAPERCLIP_API_URL no backend para exibir os dados operacionais da instância."
+          title="Sem conexão com o Hermes"
+          description="Configure TOKENIZAI_HERMES_URL no backend para exibir os dados operacionais da instância."
         />
       )}
     </div>

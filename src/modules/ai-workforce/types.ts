@@ -1,25 +1,24 @@
 import type {
-  PaperclipAgentDto,
-  PaperclipOrgNodeDto,
-  PaperclipIssueDto,
-  PaperclipRunDto,
-  PaperclipProjectDto,
-  PaperclipGoalDto,
-  PaperclipRoutineDto,
-  PaperclipApprovalDto,
-  PaperclipActivityDto,
-  PaperclipCostSummaryDto,
-  PaperclipChatThreadDto,
-  PaperclipCommentDto,
-  PaperclipAttachmentDto,
-  PaperclipIntegrationStatus,
+  HermesBotDto,
+  HermesIssueDto,
+  HermesRunDto,
+  HermesProjectDto,
+  HermesGoalDto,
+  HermesRoutineDto,
+  HermesApprovalDto,
+  HermesActivityDto,
+  HermesCostSummaryDto,
+  HermesChatThreadDto,
+  HermesChatMessageDto,
+  HermesAttachmentDto,
+  HermesIntegrationStatus,
 } from '../../types/platform';
 
 export type AIDomain = 'work' | 'org' | 'governance';
 
 export interface WorkforceStatus {
   connected: boolean;
-  status: PaperclipIntegrationStatus | null;
+  status: HermesIntegrationStatus | null;
   error: string | null;
 }
 

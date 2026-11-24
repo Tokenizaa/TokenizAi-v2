@@ -12,7 +12,10 @@ import type {
   HermesChatThreadDto,
   HermesConnectionStatus,
   HermesCostSummaryDto,
+  HermesGoalDto,
+  HermesAttachmentDto,
   HermesIntegrationStatus,
+  HermesIssueDto,
   HermesOverviewBundle,
   HermesRoutineDto,
   HermesRunDto,
@@ -486,8 +489,16 @@ export const HermesApi = {
     ),
 
   // Runs
-  listRuns: () =>
-    request<{ ok: boolean; runs: HermesRunDto[] }>('/api/hermes/runs'),
+  listRuns: (filters?: Record<string, string | number | undefined>) => {
+    const qs = new URLSearchParams();
+    if (filters) {
+      for (const [k, v] of Object.entries(filters)) {
+        if (v !== undefined && v !== '') qs.set(k, String(v));
+      }
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<{ ok: boolean; runs: HermesRunDto[] }>(`/api/hermes/runs${suffix}`);
+  },
 
   // Routines
   listRoutines: () =>
@@ -593,6 +604,108 @@ export const HermesApi = {
     request<{ ok: boolean; actions: HermesActivityDto[] }>(
       `/api/hermes/activity/agent-actions?limit=${limit}`,
     ),
+
+  // Dashboard — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  getDashboard: () =>
+    Promise.resolve<{ ok: boolean; dashboard: Record<string, unknown> }>({
+      ok: true,
+      dashboard: {},
+    }),
+
+  // Artifacts — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  getArtifacts: () =>
+    Promise.resolve<{ ok: boolean; artifacts: HermesSkillDto[] }>({
+      ok: true,
+      artifacts: [],
+    }),
+
+  // Approval por ID — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  getApproval: (approvalId: string) =>
+    Promise.resolve<{ ok: boolean; approval: HermesApprovalDto | null }>({
+      ok: true,
+      approval: null,
+    }),
+
+  // URL de conteúdo de anexo — não exposto pelo contrato Hermes atual.
+  getAttachmentContentUrl: (attachmentId: string) =>
+    Promise.resolve(`/api/hermes/attachments/${encodeURIComponent(attachmentId)}/content`),
+
+  // Metas — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  listGoals: () =>
+    Promise.resolve<{ ok: boolean; goals: HermesGoalDto[] }>({
+      ok: true,
+      goals: [],
+    }),
+
+  // Inbox — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  getInbox: () =>
+    Promise.resolve<{ ok: boolean; inbox: HermesActivityDto[] }>({
+      ok: true,
+      inbox: [],
+    }),
+
+  // Atenção — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+  getAttention: () =>
+    Promise.resolve<{ ok: boolean; attention: HermesActivityDto }>({
+      ok: true,
+      attention: {
+        id: '',
+        timestamp: '',
+        actorName: '',
+        action: '',
+      },
+    }),
+
+  // Rotina: executar — não exposto pelo contrato Hermes atual; retorna ausência declarada.
+
+  // Issues (tarefas) — não expostas pelo contrato Hermes atual; retornam ausência declarada.
+  getIssue: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; issue: HermesIssueDto | null }>({
+      ok: true,
+      issue: null,
+    }),
+  getIssueComments: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; comments: HermesChatMessageDto[] }>({
+      ok: true,
+      comments: [],
+    }),
+  getIssueRuns: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; runs: HermesRunDto[] }>({
+      ok: true,
+      runs: [],
+    }),
+  getIssueDocuments: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; documents: Array<Record<string, unknown>> }>({
+      ok: true,
+      documents: [],
+    }),
+  getIssueAttachments: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; attachments: HermesAttachmentDto[] }>({
+      ok: true,
+      attachments: [],
+    }),
+  getIssueInteractions: (issueId: string) =>
+    Promise.resolve<{ ok: boolean; interactions: Array<Record<string, unknown>> }>({
+      ok: true,
+      interactions: [],
+    }),
+  addIssueComment: (issueId: string, body: string) =>
+    Promise.resolve<{ ok: boolean; comment: HermesChatMessageDto }>({
+      ok: true,
+      comment: {
+        id: '',
+        threadId: issueId,
+        authorType: 'user',
+        authorName: '',
+        body,
+        createdAt: new Date().toISOString(),
+      },
+    }),
+  updateIssue: (issueId: string, payload: Record<string, unknown>) =>
+    Promise.resolve<{ ok: boolean; issue: HermesIssueDto | null }>({
+      ok: true,
+      issue: null,
+    }),
 };
 
 export interface HermesSkillDto {
@@ -625,13 +738,4 @@ export const AuthApi = {
     });
   },
 };
-
-/**
- * Compatibilidade temporaria: PaperclipApi e um alias para HermesApi.
- * Todos os componentes que ainda importam PaperclipApi continuam
- * funcionando, mas apontam para o runtime Hermes (sem acoplamento ao
- * servidor Paperclip). Remover quando todos os consumidores forem
- * migrados para HermesApi.
- */
-export const PaperclipApi = HermesApi;
 

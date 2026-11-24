@@ -10,52 +10,53 @@ import {
   XCircle,
 } from 'lucide-react';
 import { SegmentedTabs, SlideDrawer, StatusText } from '../../components/ui/Primitives';
-import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
+import {
+  formatCents,
+  formatDateTimeBR,
+  HermesApi,
+} from '../../services/api';
 import type {
+  HermesApprovalDto,
+  HermesBotDto,
   HermesIntegrationStatus,
+  HermesCostSummaryDto,
+  HermesRoutineDto,
   NavSectionId,
-  PaperclipActivityDto,
-  PaperclipAgentDto,
-  PaperclipApprovalDto,
-  PaperclipCostSummaryDto,
-  PaperclipIntegrationStatus,
-  PaperclipRoutineDto,
 } from '../../types/platform';
 import { HermesStatusPanel } from './HermesStatusPanel';
 
 /* ============================================================================
  * 1. ROUTINES & TRIGGERS (schedule, webhook, api)
  * ========================================================================== */
-export const PaperclipRoutinesPanel: React.FC<{
+export const HermesRoutinesPanel: React.FC<{
   status: HermesIntegrationStatus;
-  agents: PaperclipAgentDto[];
+  agents: HermesBotDto[];
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }> = ({ status, agents, onNavigate, onToast }) => {
-  const [routines, setRoutines] = useState<PaperclipRoutineDto[]>([]);
+  const [routines, setRoutines] = useState<HermesRoutineDto[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedRoutine, setSelectedRoutine] = useState<PaperclipRoutineDto | null>(null);
+  const [selectedRoutine, setSelectedRoutine] = useState<HermesRoutineDto | null>(null);
   const [routineRuns, setRoutineRuns] = useState<Array<Record<string, unknown>>>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [newRoutine, setNewRoutine] = useState({
     name: '',
     description: '',
-    assigneeAgentId: '',
+    agentId: '',
     triggerType: 'schedule',
     cronExpression: '0 9 * * 1-5',
   });
 
-  const isConnected =
-    status.configured && status.connected;
+  const isConnected = status.configured && status.connected;
 
   const loadRoutines = useCallback(async () => {
     if (!isConnected) return;
     setLoading(true);
     try {
-      const res = await PaperclipApi.listRoutines();
+      const res = await HermesApi.listRoutines();
       setRoutines(res.routines || []);
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao consultar rotinas do Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Erro ao consultar rotinas no Hermes.');
     } finally {
       setLoading(false);
     }
@@ -65,10 +66,10 @@ export const PaperclipRoutinesPanel: React.FC<{
     loadRoutines();
   }, [loadRoutines]);
 
-  const openRoutineDetail = async (r: PaperclipRoutineDto) => {
+  const openRoutineDetail = async (r: HermesRoutineDto) => {
     setSelectedRoutine(r);
     try {
-      const res = await PaperclipApi.getRoutineRuns(r.id);
+      const res = await HermesApi.getRoutineRuns(r.id);
       setRoutineRuns(res.runs || []);
     } catch {
       setRoutineRuns([]);
@@ -77,9 +78,9 @@ export const PaperclipRoutinesPanel: React.FC<{
 
   const handleRunManual = async (routineId: string) => {
     try {
-      await PaperclipApi.runRoutine(routineId);
+      await HermesApi.runRoutine(routineId);
       await loadRoutines();
-      onToast('Execução manual disparada no Paperclip.');
+      onToast('Execução manual disparada no Hermes.');
     } catch (err) {
       onToast(err instanceof Error ? err.message : 'Falha ao executar rotina.');
     }
@@ -87,7 +88,7 @@ export const PaperclipRoutinesPanel: React.FC<{
 
   const handleToggleTrigger = async (routineId: string, triggerId: string, enabled: boolean) => {
     try {
-      await PaperclipApi.updateRoutineTrigger(routineId, triggerId, { enabled });
+      await HermesApi.updateRoutineTrigger(routineId, triggerId, { enabled });
       await loadRoutines();
       onToast(enabled ? 'Gatilho habilitado.' : 'Gatilho desabilitado.');
     } catch (err) {
@@ -99,30 +100,31 @@ export const PaperclipRoutinesPanel: React.FC<{
     e.preventDefault();
     if (!newRoutine.name.trim()) return;
     try {
-      const created = await PaperclipApi.createRoutine({
+      const created = await HermesApi.createRoutine({
         name: newRoutine.name.trim(),
         description: newRoutine.description.trim() || undefined,
-        assigneeAgentId: newRoutine.assigneeAgentId || undefined,
+        agentId: newRoutine.agentId || undefined,
       });
       if (created.routine?.id) {
-        await PaperclipApi.createRoutineTrigger(created.routine.id, {
+        await HermesApi.createRoutineTrigger(created.routine.id, {
           kind: newRoutine.triggerType,
           type: newRoutine.triggerType,
-          cronExpression: newRoutine.triggerType === 'schedule' ? newRoutine.cronExpression : undefined,
+          cronExpression:
+            newRoutine.triggerType === 'schedule' ? newRoutine.cronExpression : undefined,
         }).catch(() => {});
       }
       setCreateOpen(false);
       setNewRoutine({
         name: '',
         description: '',
-        assigneeAgentId: '',
+        agentId: '',
         triggerType: 'schedule',
         cronExpression: '0 9 * * 1-5',
       });
       await loadRoutines();
-      onToast('Rotina criada no Paperclip.');
+      onToast('Rotina criada no Hermes.');
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao criar rotina no Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Erro ao criar rotina no Hermes.');
     }
   };
 
@@ -130,7 +132,7 @@ export const PaperclipRoutinesPanel: React.FC<{
     return (
       <HermesStatusPanel
         status={status}
-        title="Automações & Rotinas (Paperclip)"
+        title="Automações & Rotinas (Hermes)"
         requiredCapabilities={['routines:read', 'routines:manage']}
         onNavigate={onNavigate}
       />
@@ -141,7 +143,10 @@ export const PaperclipRoutinesPanel: React.FC<{
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-ink-subtle">
-          Gatilhos nativos suportados: <span className="font-mono">schedule</span>, <span className="font-mono">webhook</span> e <span className="font-mono">api</span>.
+          Gatilhos nativos suportados:{" "}
+          <span className="font-mono">schedule</span>,{" "}
+          <span className="font-mono">webhook</span> e{" "}
+          <span className="font-mono">api</span>.
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -181,7 +186,7 @@ export const PaperclipRoutinesPanel: React.FC<{
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs text-accent dark:text-cyan-300">
-                  {r.triggers.length} gatilho(s)
+                  {(r.triggers?.length || 0)} gatilho(s)
                 </span>
                 <StatusText
                   label={r.enabled ? 'Ativa' : 'Pausada'}
@@ -189,12 +194,17 @@ export const PaperclipRoutinesPanel: React.FC<{
                 />
               </div>
               <h3 className="font-display text-sm font-semibold text-ink">{r.name}</h3>
-              {r.description && <p className="text-xs text-ink-muted line-clamp-2">{r.description}</p>}
-              {r.triggers.length > 0 && (
+              {r.description && (
+                <p className="text-xs text-ink-muted line-clamp-2">{r.description}</p>
+              )}
+              {(r.triggers?.length || 0) > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {r.triggers.map((tr) => (
-                    <span key={tr.id} className="font-mono text-[11px] px-2 py-0.5 rounded border border-line bg-surface-subtle/60 text-ink-muted">
-                      {tr.type} {tr.schedule || tr.cron ? `(${tr.schedule || tr.cron})` : ''}
+                  {(r.triggers || []).map((tr) => (
+                    <span
+                      key={String(tr.id || tr.name || tr.kind || Math.random())}
+                      className="font-mono text-[11px] px-2 py-0.5 rounded border border-line bg-surface-subtle/60 text-ink-muted"
+                    >
+                      {String(tr.type || tr.kind || 'trigger')} {''}
                     </span>
                   ))}
                 </div>
@@ -203,7 +213,7 @@ export const PaperclipRoutinesPanel: React.FC<{
 
             <div className="pt-3 border-t border-line flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
               <span className="text-[11px] text-ink-subtle truncate">
-                {r.agentName || 'Sem agente fixo'} · {formatDateTimeBR(r.lastRunAt)}
+                {r.agentName || 'Sem agente fixo'} · {formatDateTimeBR(r.lastRunAt || '')}
               </span>
               <button
                 type="button"
@@ -218,7 +228,7 @@ export const PaperclipRoutinesPanel: React.FC<{
         ))}
         {routines.length === 0 && (
           <div className="col-span-full nc-card rounded-2xl p-8 text-center text-xs text-ink-subtle">
-            Nenhuma rotina cadastrada nesta empresa Paperclip.
+            Nenhuma rotina cadastrada neste runtime Hermes.
           </div>
         )}
       </div>
@@ -235,25 +245,45 @@ export const PaperclipRoutinesPanel: React.FC<{
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-ink-subtle">Gatilhos configurados</h4>
               <div className="divide-y divide-line border border-line rounded-xl">
-                {selectedRoutine.triggers.map((tr) => (
-                  <div key={tr.id} className="p-3.5 flex items-center justify-between gap-3 text-xs">
+                {(selectedRoutine.triggers || []).map((tr) => (
+                  <div
+                    key={String(tr.id || tr.name || tr.kind || Math.random())}
+                    className="p-3.5 flex items-center justify-between gap-3 text-xs"
+                  >
                     <div>
-                      <div className="font-mono font-semibold text-ink">{tr.type}</div>
+                      <div className="font-mono font-semibold text-ink">
+                        {String(tr.type || tr.kind || 'trigger')}
+                      </div>
                       <div className="text-ink-subtle font-mono">
-                        {tr.schedule || tr.cron || tr.webhookUrl || 'API trigger'}
+                        {String(
+                          tr.schedule ||
+                            tr.cron ||
+                            (tr as Record<string, unknown>).webhookUrl ||
+                            'API trigger',
+                        )}
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleToggleTrigger(selectedRoutine.id, tr.id, !tr.enabled)}
+                      onClick={() =>
+                        handleToggleTrigger(
+                          selectedRoutine.id,
+                          String(tr.id || tr.name || tr.kind),
+                          !(tr as Record<string, unknown>).enabled,
+                        )
+                      }
                       className="px-3 py-1.5 rounded-lg border border-line-strong font-semibold text-ink hover:bg-surface-blue cursor-pointer"
                     >
-                      {tr.enabled ? 'Desabilitar' : 'Habilitar'}
+                      {(tr as Record<string, unknown>).enabled
+                        ? 'Desabilitar'
+                        : 'Habilitar'}
                     </button>
                   </div>
                 ))}
-                {selectedRoutine.triggers.length === 0 && (
-                  <div className="p-4 text-xs text-ink-subtle text-center">Nenhum gatilho cadastrado.</div>
+                {(selectedRoutine.triggers || []).length === 0 && (
+                  <div className="p-4 text-xs text-ink-subtle text-center">
+                    Nenhum gatilho cadastrado.
+                  </div>
                 )}
               </div>
             </div>
@@ -265,13 +295,25 @@ export const PaperclipRoutinesPanel: React.FC<{
               </h4>
               <div className="divide-y divide-line border border-line rounded-xl">
                 {routineRuns.map((rr, i) => (
-                  <div key={String(rr.id || i)} className="p-3 text-xs flex items-center justify-between">
-                    <span className="font-mono text-ink-muted">{formatDateTimeBR(String(rr.startedAt || rr.createdAt || ''))}</span>
-                    <StatusText label={String(rr.status || 'unknown')} tone="attention" />
+                  <div
+                    key={String(rr.id || i)}
+                    className="p-3 text-xs flex items-center justify-between"
+                  >
+                    <span className="font-mono text-ink-muted">
+                      {formatDateTimeBR(
+                        String(rr.startedAt || rr.createdAt || ''),
+                      )}
+                    </span>
+                    <StatusText
+                      label={String(rr.status || 'unknown')}
+                      tone="attention"
+                    />
                   </div>
                 ))}
                 {routineRuns.length === 0 && (
-                  <div className="p-4 text-xs text-ink-subtle text-center">Sem execuções registradas.</div>
+                  <div className="p-4 text-xs text-ink-subtle text-center">
+                    Sem execuções registradas.
+                  </div>
                 )}
               </div>
             </div>
@@ -282,41 +324,53 @@ export const PaperclipRoutinesPanel: React.FC<{
       <SlideDrawer
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Nova Rotina no Paperclip"
+        title="Nova Rotina no Hermes"
         subtitle="Cria rotina operacional com gatilho schedule, webhook ou api"
       >
         <form onSubmit={handleCreateRoutine} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Nome da rotina</label>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">
+              Nome da rotina
+            </label>
             <input
               type="text"
               required
               value={newRoutine.name}
-              onChange={(e) => setNewRoutine({ ...newRoutine, name: e.target.value })}
+              onChange={(e) =>
+                setNewRoutine({ ...newRoutine, name: e.target.value })
+              }
               className="w-full px-3.5 py-2.5 rounded-lg border border-line-strong bg-canvas text-sm text-ink"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Agente executor</label>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">
+              Agente executor
+            </label>
             <select
-              value={newRoutine.assigneeAgentId}
-              onChange={(e) => setNewRoutine({ ...newRoutine, assigneeAgentId: e.target.value })}
+              value={newRoutine.agentId}
+              onChange={(e) =>
+                setNewRoutine({ ...newRoutine, agentId: e.target.value })
+              }
               className="w-full px-3 py-2.5 rounded-lg border border-line-strong bg-canvas text-xs text-ink"
             >
               <option value="">Selecionar agente</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}
+                  {a.id}
                 </option>
               ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-ink-muted mb-1.5">Tipo de gatilho</label>
+              <label className="block text-xs font-medium text-ink-muted mb-1.5">
+                Tipo de gatilho
+              </label>
               <select
                 value={newRoutine.triggerType}
-                onChange={(e) => setNewRoutine({ ...newRoutine, triggerType: e.target.value })}
+                onChange={(e) =>
+                  setNewRoutine({ ...newRoutine, triggerType: e.target.value })
+                }
                 className="w-full px-3 py-2.5 rounded-lg border border-line-strong bg-canvas text-xs text-ink"
               >
                 <option value="schedule">schedule</option>
@@ -326,22 +380,30 @@ export const PaperclipRoutinesPanel: React.FC<{
             </div>
             {newRoutine.triggerType === 'schedule' && (
               <div>
-                <label className="block text-xs font-medium text-ink-muted mb-1.5">Cron</label>
+                <label className="block text-xs font-medium text-ink-muted mb-1.5">
+                  Cron
+                </label>
                 <input
                   type="text"
                   value={newRoutine.cronExpression}
-                  onChange={(e) => setNewRoutine({ ...newRoutine, cronExpression: e.target.value })}
+                  onChange={(e) =>
+                    setNewRoutine({ ...newRoutine, cronExpression: e.target.value })
+                  }
                   className="w-full px-3 py-2.5 rounded-lg border border-line-strong bg-canvas text-xs font-mono text-ink"
                 />
               </div>
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-muted mb-1.5">Descrição</label>
+            <label className="block text-xs font-medium text-ink-muted mb-1.5">
+              Descrição
+            </label>
             <textarea
               rows={3}
               value={newRoutine.description}
-              onChange={(e) => setNewRoutine({ ...newRoutine, description: e.target.value })}
+              onChange={(e) =>
+                setNewRoutine({ ...newRoutine, description: e.target.value })
+              }
               className="w-full px-3.5 py-2.5 rounded-lg border border-line-strong bg-canvas text-sm text-ink"
             />
           </div>
@@ -366,26 +428,25 @@ export const PaperclipRoutinesPanel: React.FC<{
 /* ============================================================================
  * 2. APPROVALS & GOVERNANCE (Human authority preserved)
  * ========================================================================== */
-export const PaperclipApprovalsPanel: React.FC<{
+export const HermesApprovalsPanel: React.FC<{
   status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }> = ({ status, onNavigate, onToast }) => {
-  const [approvals, setApprovals] = useState<PaperclipApprovalDto[]>([]);
+  const [approvals, setApprovals] = useState<HermesApprovalDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [noteById, setNoteById] = useState<Record<string, string>>({});
 
-  const isConnected =
-    status.configured && status.connected;
+  const isConnected = status.configured && status.connected;
 
   const loadApprovals = useCallback(async () => {
     if (!isConnected) return;
     setLoading(true);
     try {
-      const res = await PaperclipApi.listApprovals();
+      const res = await HermesApi.listApprovals();
       setApprovals(res.approvals || []);
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao consultar aprovações no Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Erro ao consultar aprovações no Hermes.');
     } finally {
       setLoading(false);
     }
@@ -395,21 +456,24 @@ export const PaperclipApprovalsPanel: React.FC<{
     loadApprovals();
   }, [loadApprovals]);
 
-  const handleDecision = async (id: string, action: 'approve' | 'reject' | 'revision') => {
+  const handleDecision = async (
+    id: string,
+    action: 'approve' | 'reject' | 'revision',
+  ) => {
     const note = (noteById[id] || '').trim();
     if (action === 'revision' && !note) {
       onToast('Informe uma justificativa para solicitar revisão.');
       return;
     }
     try {
-      if (action === 'approve') await PaperclipApi.approveApproval(id, note || undefined);
-      else if (action === 'reject') await PaperclipApi.rejectApproval(id, note || undefined);
-      else await PaperclipApi.requestApprovalRevision(id, note);
+      if (action === 'approve') await HermesApi.approveApproval(id, note || undefined);
+      else if (action === 'reject') await HermesApi.rejectApproval(id, note || undefined);
+      else await HermesApi.requestApprovalRevision(id, note);
 
       await loadApprovals();
-      onToast('Decisão humana registrada no Paperclip.');
+      onToast('Decisão humana registrada no Hermes.');
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao registrar decisão no Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Erro ao registrar decisão no Hermes.');
     }
   };
 
@@ -417,7 +481,7 @@ export const PaperclipApprovalsPanel: React.FC<{
     return (
       <HermesStatusPanel
         status={status}
-        title="Central de Aprovações & Governança (Paperclip)"
+        title="Central de Aprovações & Governança (Hermes)"
         requiredCapabilities={['approvals:read', 'approvals:manage']}
         onNavigate={onNavigate}
       />
@@ -428,7 +492,7 @@ export const PaperclipApprovalsPanel: React.FC<{
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-xs text-ink-subtle">
-          Aprovações críticas exigem decisão humana explícita e respeitam destinatários definidos no Paperclip.
+          Aprovações críticas exigem decisão humana explícita e respeitam destinatários definidos no Hermes.
         </div>
         <button
           type="button"
@@ -443,24 +507,35 @@ export const PaperclipApprovalsPanel: React.FC<{
 
       <div className="space-y-3">
         {approvals.map((ap) => {
-          const isPending = ap.status === 'pending' || ap.status === 'revision_requested';
+          const isPending =
+            ap.status === 'pending' || ap.status === 'revision_requested';
           return (
             <div key={ap.id} className="nc-card rounded-2xl p-5 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-accent dark:text-cyan-300" />
-                  <h3 className="font-display text-sm font-semibold text-ink">{ap.title}</h3>
+                  <h3 className="font-display text-sm font-semibold text-ink">
+                    {ap.title}
+                  </h3>
                 </div>
                 <StatusText
                   label={ap.status}
-                  tone={ap.status === 'approved' ? 'nominal' : ap.status === 'rejected' ? 'critical' : 'attention'}
+                  tone={
+                    ap.status === 'approved'
+                      ? 'nominal'
+                      : ap.status === 'rejected'
+                        ? 'critical'
+                        : 'attention'
+                  }
                 />
               </div>
 
               {ap.description && <p className="text-xs text-ink-muted">{ap.description}</p>}
 
               <div className="text-[11px] font-mono text-ink-subtle flex flex-wrap gap-4">
-                <span>Solicitante: {ap.requestedByName || ap.requestedByAgentId || 'Agente'}</span>
+                <span>
+                  Solicitante: {ap.requestedByName || ap.requestedByAgentId || 'Agente'}
+                </span>
                 <span>Criada: {formatDateTimeBR(ap.createdAt)}</span>
               </div>
 
@@ -469,7 +544,9 @@ export const PaperclipApprovalsPanel: React.FC<{
                   <input
                     type="text"
                     value={noteById[ap.id] || ''}
-                    onChange={(e) => setNoteById({ ...noteById, [ap.id]: e.target.value })}
+                    onChange={(e) =>
+                      setNoteById({ ...noteById, [ap.id]: e.target.value })
+                    }
                     placeholder="Observação / justificativa da decisão..."
                     className="flex-1 px-3 py-2 rounded-lg border border-line-strong bg-canvas text-xs text-ink"
                   />
@@ -516,28 +593,31 @@ export const PaperclipApprovalsPanel: React.FC<{
 /* ============================================================================
  * 3. COSTS, ACTIVITY & AUDIT
  * ========================================================================== */
-export const PaperclipCostsAuditPanel: React.FC<{
+export const HermesCostsAuditPanel: React.FC<{
   status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }> = ({ status, onNavigate, onToast }) => {
   const [subTab, setSubTab] = useState<'custos' | 'atividade' | 'auditoria'>('custos');
-  const [costs, setCosts] = useState<PaperclipCostSummaryDto | null>(null);
-  const [activity, setActivity] = useState<PaperclipActivityDto[]>([]);
-  const [auditActions, setAuditActions] = useState<PaperclipActivityDto[]>([]);
+  const [costs, setCosts] = useState<HermesCostSummaryDto | null>(null);
+  const [activity, setActivity] = useState<Array<{ action: string; actorName: string; targetName?: string; summary?: string; timestamp: string }>>(
+    []
+  );
+  const [auditActions, setAuditActions] = useState<Array<{ action: string; actorName: string; targetName?: string; timestamp: string }>>(
+    []
+  );
   const [loading, setLoading] = useState(false);
 
-  const isConnected =
-    status.configured && status.connected;
+  const isConnected = status.configured && status.connected;
 
   const loadAll = useCallback(async () => {
     if (!isConnected) return;
     setLoading(true);
     try {
       const [cRes, aRes, auRes] = await Promise.allSettled([
-        PaperclipApi.getCostsSummary(),
-        PaperclipApi.listActivity(50),
-        PaperclipApi.listAgentActionsAudit(50),
+        HermesApi.getCostsSummary(),
+        HermesApi.listActivity(50),
+        HermesApi.listAgentActionsAudit(50),
       ]);
       if (cRes.status === 'fulfilled') setCosts(cRes.value.summary);
       if (aRes.status === 'fulfilled') setActivity(aRes.value.activity || []);
@@ -557,7 +637,7 @@ export const PaperclipCostsAuditPanel: React.FC<{
     return (
       <HermesStatusPanel
         status={status}
-        title="Custos, Atividade & Auditoria (Paperclip)"
+        title="Custos, Atividade & Auditoria (Hermes)"
         requiredCapabilities={['costs:read', 'activity:read']}
         onNavigate={onNavigate}
       />
@@ -613,12 +693,15 @@ export const PaperclipCostsAuditPanel: React.FC<{
             <div className="nc-card rounded-2xl p-5">
               <div className="text-xs text-ink-subtle">Qualidade da Apuração</div>
               <div className="mt-1.5 font-display text-2xl font-semibold font-mono text-ink tabular-nums">
-                {typeof costs?.dataQuality?.coveragePercent === 'number'
-                  ? `${costs.dataQuality.coveragePercent}% cobertura`
+                {typeof costs?.dataQuality === 'string'
+                  ? costs.dataQuality
                   : 'Verificando'}
               </div>
               <div className="text-xs text-ink-muted mt-1">
-                Execuções sem custo apurado: {costs?.dataQuality?.unpricedRunsCount ?? 0}
+                Execuções sem custo apurado:{' '}
+                {typeof costs?.dataQuality === 'object' && costs?.dataQuality !== null && 'unpricedRunsCount' in costs.dataQuality
+                  ? String((costs.dataQuality as Record<string, unknown>).unpricedRunsCount)
+                  : '—'}
               </div>
             </div>
           </div>
@@ -633,8 +716,6 @@ export const PaperclipCostsAuditPanel: React.FC<{
                   <thead>
                     <tr className="border-b border-line text-[11px] font-semibold text-ink-subtle">
                       <th className="py-2.5 px-6">Agente</th>
-                      <th className="py-2.5 px-4">Modelo</th>
-                      <th className="py-2.5 px-4 text-right">Tokens</th>
                       <th className="py-2.5 px-4 text-right">Gasto</th>
                       <th className="py-2.5 px-6 text-right">Teto Mensal</th>
                     </tr>
@@ -643,15 +724,11 @@ export const PaperclipCostsAuditPanel: React.FC<{
                     {costs.byAgent.map((row) => (
                       <tr key={row.agentId}>
                         <td className="py-3 px-6 font-medium text-ink">{row.agentName}</td>
-                        <td className="py-3 px-4 font-mono text-xs text-ink-subtle">{row.model || '—'}</td>
-                        <td className="py-3 px-4 text-right font-mono text-xs tabular-nums">
-                          {typeof row.tokens === 'number' ? row.tokens.toLocaleString('pt-BR') : '—'}
-                        </td>
                         <td className="py-3 px-4 text-right font-mono text-xs font-semibold tabular-nums">
                           {formatCents(row.costCents, costs.currency)}
                         </td>
                         <td className="py-3 px-6 text-right font-mono text-xs text-ink-subtle tabular-nums">
-                          {formatCents(row.budgetMonthlyCents, costs.currency)}
+                          {formatCents(row.costCents ?? 0, costs.currency)}
                         </td>
                       </tr>
                     ))}
@@ -667,18 +744,23 @@ export const PaperclipCostsAuditPanel: React.FC<{
         <section className="rounded-2xl nc-card overflow-hidden">
           <div className="divide-y divide-line">
             {activity.map((ev) => (
-              <div key={ev.id} className="px-6 py-3.5 flex items-center justify-between gap-4 text-xs">
+              <div key={ev.timestamp + ev.action} className="px-6 py-3.5 flex items-center justify-between gap-4 text-xs">
                 <div className="min-w-0">
                   <div className="font-semibold text-ink">{ev.action}</div>
                   <div className="text-ink-muted truncate">
-                    {ev.actorName} {ev.targetName ? `· ${ev.targetName}` : ''} {ev.summary ? `— ${ev.summary}` : ''}
+                    {ev.actorName} {ev.targetName ? `· ${ev.targetName}` : ''}{' '}
+                    {ev.summary ? `— ${ev.summary}` : ''}
                   </div>
                 </div>
-                <span className="font-mono text-ink-subtle shrink-0">{formatDateTimeBR(ev.timestamp)}</span>
+                <span className="font-mono text-ink-subtle shrink-0">
+                  {formatDateTimeBR(ev.timestamp)}
+                </span>
               </div>
             ))}
             {activity.length === 0 && (
-              <div className="p-8 text-center text-xs text-ink-subtle">Nenhum evento recente registrado.</div>
+              <div className="p-8 text-center text-xs text-ink-subtle">
+                Nenhum evento recente registrado.
+              </div>
             )}
           </div>
         </section>
@@ -688,14 +770,16 @@ export const PaperclipCostsAuditPanel: React.FC<{
         <section className="rounded-2xl nc-card overflow-hidden">
           <div className="divide-y divide-line">
             {auditActions.map((ev) => (
-              <div key={ev.id} className="px-6 py-3.5 flex items-center justify-between gap-4 text-xs">
+              <div key={ev.timestamp + ev.action} className="px-6 py-3.5 flex items-center justify-between gap-4 text-xs">
                 <div className="min-w-0">
                   <div className="font-semibold text-ink">{ev.action}</div>
                   <div className="text-ink-muted truncate">
                     {ev.actorName} {ev.targetName ? `· ${ev.targetName}` : ''}
                   </div>
                 </div>
-                <span className="font-mono text-ink-subtle shrink-0">{formatDateTimeBR(ev.timestamp)}</span>
+                <span className="font-mono text-ink-subtle shrink-0">
+                  {formatDateTimeBR(ev.timestamp)}
+                </span>
               </div>
             ))}
             {auditActions.length === 0 && (

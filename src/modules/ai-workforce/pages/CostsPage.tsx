@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipCostSummaryDto } from '../../../types/platform';
+import type { HermesCostSummaryDto } from '../../../types/platform';
 
 interface CostsPageProps {
   onNavigate: (id: string) => void;
@@ -20,7 +20,7 @@ interface CostsPageProps {
 export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [costs, setCosts] = useState<PaperclipCostSummaryDto | null>(null);
+  const [costs, setCosts] = useState<HermesCostSummaryDto | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);

@@ -1,5 +1,5 @@
 import { HermesApi, PlatformApi } from '../../../services/api';
-import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesApprovalDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto } from '../../../types/platform';
+import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesApprovalDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto, HermesIssueDto } from '../../../types/platform';
 import type { WorkforceStatus } from '../types';
 
 /**
@@ -51,7 +51,8 @@ export const hermesService = {
     HermesApi.updateTask(taskId, payload),
 
   // --- Runs ---
-  listRuns: () => HermesApi.listRuns(),
+  listRuns: (filters?: Record<string, string | number | undefined>) =>
+    HermesApi.listRuns(filters),
 
   // --- Routines ---
   listRoutines: () => HermesApi.listRoutines(),
@@ -69,12 +70,63 @@ export const hermesService = {
     description?: string;
     reason?: string;
   }) => HermesApi.createApproval(payload),
+  getApproval: (approvalId: string) => HermesApi.getApproval(approvalId),
+  approveApproval: (approvalId: string, note?: string) =>
+    HermesApi.approveApproval(approvalId, note),
+  rejectApproval: (approvalId: string, note?: string) =>
+    HermesApi.rejectApproval(approvalId, note),
+  requestApprovalRevision: (approvalId: string, note: string) =>
+    HermesApi.requestApprovalRevision(approvalId, note),
 
   // --- Costs ---
   getCostsSummary: () => HermesApi.getCostsSummary(),
+  getDashboard: () => HermesApi.getDashboard(),
 
   // --- Activity ---
   listActivity: (limit = 50) => HermesApi.listActivity(limit),
+  getInbox: () => HermesApi.getInbox(),
+  getAttention: () => HermesApi.getAttention(),
+
+  // --- Artifacts ---
+  getArtifacts: () => HermesApi.getArtifacts(),
+  getAttachmentContentUrl: (attachmentId: string) =>
+    HermesApi.getAttachmentContentUrl(attachmentId),
+
+  // --- Goals ---
+  listGoals: () => HermesApi.listGoals(),
+
+  // --- Runs ---
+  runRoutine: (routineId: string) => HermesApi.runRoutine(routineId),
+
+  // --- Issues (tasks) ---
+  listIssues: async (filters?: Record<string, string | number | undefined>) => {
+    const res = await HermesApi.listRuns(filters);
+    const issues: HermesIssueDto[] = (res.runs || []).map((run) => ({
+      id: run.id,
+      title: run.issueIdentifier || run.agentName || 'Tarefa',
+      status: run.status,
+      priority: undefined,
+      assigneeAgentId: run.agentId,
+      assigneeAgentName: run.agentName,
+      projectId: undefined,
+      projectName: undefined,
+      unresolvedBlockerCount: undefined,
+      blockerReason: undefined,
+      goalId: undefined,
+      blockedByIssueIds: undefined,
+      createdAt: run.startedAt,
+      updatedAt: run.finishedAt,
+    }));
+    return { ok: res.ok, issues };
+  },
+  getIssue: (issueId: string) => HermesApi.getIssue(issueId),
+  getIssueComments: (issueId: string) => HermesApi.getIssueComments(issueId),
+  getIssueRuns: (issueId: string) => HermesApi.getIssueRuns(issueId),
+  getIssueAttachments: (issueId: string) => HermesApi.getIssueAttachments(issueId),
+  addIssueComment: (issueId: string, body: string) =>
+    HermesApi.addIssueComment(issueId, body),
+  updateIssue: (issueId: string, payload: Record<string, unknown>) =>
+    HermesApi.updateIssue(issueId, payload),
 
   // --- Org ---
   getOrganization: () => HermesApi.getOrganization(),
@@ -125,18 +177,3 @@ export function toWorkforceStatus(
   };
 }
 
-// Aliases de compatibilidade temporaria para componentes que ainda usam nomes Paperclip
-export const isPaperclipConnected = isHermesConnected;
-export const toPaperclipWorkforceStatus = toWorkforceStatus;
-export type PaperclipIntegrationStatusCompat = HermesIntegrationStatus;
-export type PaperclipBotDtoCompat = HermesBotDto;
-export type PaperclipOverviewBundleCompat = HermesOverviewBundle;
-export type PaperclipChatThreadDtoCompat = HermesChatThreadDto;
-export type PaperclipChatMessageDtoCompat = HermesChatMessageDto;
-export type PaperclipTaskDtoCompat = HermesTaskDto;
-export type PaperclipRunDtoCompat = HermesRunDto;
-export type PaperclipRoutineDtoCompat = HermesRoutineDto;
-export type PaperclipApprovalDtoCompat = HermesApprovalDto;
-export type PaperclipCostSummaryDtoCompat = HermesCostSummaryDto;
-export type PaperclipActivityDtoCompat = HermesActivityDto;
-export type PaperclipSkillDtoCompat = HermesSkillDto;

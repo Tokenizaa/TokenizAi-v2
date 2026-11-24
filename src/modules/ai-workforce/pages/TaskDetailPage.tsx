@@ -9,7 +9,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipIssueDto, PaperclipCommentDto, PaperclipRunDto, PaperclipAttachmentDto } from '../../../types/platform';
+import type { HermesIssueDto, HermesChatMessageDto, HermesRunDto, HermesAttachmentDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
 
 type TaskTab = 'detalhes' | 'comentarios' | 'execucoes' | 'anexos' | 'interacoes';
@@ -40,10 +40,10 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
   }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [issue, setIssue] = useState<PaperclipIssueDto | null>(null);
-  const [comments, setComments] = useState<PaperclipCommentDto[]>([]);
-  const [runs, setRuns] = useState<PaperclipRunDto[]>([]);
-  const [attachments, setAttachments] = useState<PaperclipAttachmentDto[]>([]);
+  const [issue, setIssue] = useState<HermesIssueDto | null>(null);
+  const [comments, setComments] = useState<HermesChatMessageDto[]>([]);
+  const [runs, setRuns] = useState<HermesRunDto[]>([]);
+  const [attachments, setAttachments] = useState<HermesAttachmentDto[]>([]);
   const [tab, setTab] = useState<TaskTab>('detalhes');
   const [newComment, setNewComment] = useState('');
 
@@ -286,7 +286,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
                       <div className="text-[10px] text-ink-muted">{a.contentType || '—'} · {a.sizeBytes != null ? a.sizeBytes + ' bytes' : '—'}</div>
                     </div>
                     <a
-                      href={hermesService.getAttachmentContentUrl(a.id)}
+                      href={a.url || ''}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"

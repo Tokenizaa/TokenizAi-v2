@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipGoalDto } from '../../../types/platform';
+import type { HermesGoalDto } from '../../../types/platform';
 
 interface GoalsPageProps {
   onNavigate: (id: string) => void;
@@ -20,7 +20,7 @@ interface GoalsPageProps {
 export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [goals, setGoals] = useState<PaperclipGoalDto[]>([]);
+  const [goals, setGoals] = useState<HermesGoalDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);

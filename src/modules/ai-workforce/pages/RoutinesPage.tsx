@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipRoutineDto } from '../../../types/platform';
+import type { HermesRoutineDto } from '../../../types/platform';
 
 interface RoutinesPageProps {
   onNavigate: (id: string) => void;
@@ -20,7 +20,7 @@ interface RoutinesPageProps {
 export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [routines, setRoutines] = useState<PaperclipRoutineDto[]>([]);
+  const [routines, setRoutines] = useState<HermesRoutineDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);

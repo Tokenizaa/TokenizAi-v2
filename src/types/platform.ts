@@ -357,6 +357,7 @@ export interface HermesBotDto {
 export interface HermesChatThreadDto {
   id: string;
   agentId: string;
+  agentRef?: string;
   agentName: string;
   agentRole?: string;
   title?: string;
@@ -364,6 +365,9 @@ export interface HermesChatThreadDto {
   lastMessageAt?: string;
   lastMessagePreview?: string;
   canSend?: boolean;
+  conversationAgentId?: string;
+  conversationState?: string;
+  status?: string;
 }
 
 export interface HermesChatMessageDto {
@@ -395,6 +399,7 @@ export interface HermesRunDto {
   agentId?: string;
   agentName?: string;
   model?: string;
+  provider?: string;
   taskId?: string;
   status: string;
   startedAt?: string;
@@ -403,6 +408,14 @@ export interface HermesRunDto {
   errorMessage?: string | null;
   costCents?: number | null;
   currency?: string;
+  durationMs?: number | null;
+  triggerSource?: string | null;
+  issueIdentifier?: string | null;
+  totalTokens?: number | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  logs?: string[];
+  events?: Array<Record<string, unknown>>;
 }
 
 export interface HermesRoutineDto {
@@ -415,22 +428,21 @@ export interface HermesRoutineDto {
   cron?: string;
   triggers?: Array<Record<string, unknown>>;
   lastRunAt?: string | null;
-}
-
-export interface HermesApprovalDto {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  createdAt?: string;
+  lastRunStatus?: string | null;
+  projectId?: string | null;
 }
 
 export interface HermesCostSummaryDto {
   totalCostCents: number;
   currency: string;
   budgetMonthlyCents?: number | null;
-  dataQuality?: string;
-  byAgent?: Array<{ agentId: string; agentName: string; costCents: number; runsCount?: number }>;
+  dataQuality?: {
+    coveragePercent?: number;
+    unpricedRunsCount?: number;
+  };
+  byAgent?: Array<{ agentId: string; agentName: string; model?: string; costCents: number; runsCount?: number }>;
+  byProject?: Array<{ projectId: string; projectName: string; costCents: number; issuesCount?: number }>;
+  eventCount?: number;
 }
 
 export interface HermesActivityDto {
@@ -438,8 +450,20 @@ export interface HermesActivityDto {
   timestamp: string;
   actorName: string;
   action: string;
+  targetType?: string;
+  targetId?: string;
   targetName?: string;
   summary?: string;
+  issueId?: string | null;
+  actorType?: string;
+  totalCount?: number;
+  deskBadgeCount?: number;
+  title?: string;
+  source?: string;
+  status?: string;
+  assigneeAgentName?: string;
+  description?: string;
+  countsBySourceKind?: Record<string, number>;
 }
 
 export interface HermesIssueDto {
@@ -455,18 +479,25 @@ export interface HermesIssueDto {
   projectName?: string | null;
   unresolvedBlockerCount?: number;
   blockerReason?: string;
+  goalId?: string | null;
+  blockedByIssueIds?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface HermesApprovalDto {
   id: string;
+  type?: string;
   title: string;
   description?: string;
   status: string;
   requestedByName?: string | null;
   requestedByAgentId?: string | null;
   createdAt?: string;
+  approverUserId?: string | null;
+  issueId?: string | null;
+  decisionNote?: string | null;
+  decidedAt?: string | null;
 }
 
 export interface HermesProjectDto {
@@ -495,10 +526,21 @@ export interface HermesGoalDto {
 export interface HermesSkillDto {
   id: string;
   name: string;
+  key?: string;
+  slug?: string;
+  title?: string;
   description?: string;
   version?: string;
   status?: string;
   installedAt?: string | null;
+  source?: string;
+  mediaKind?: string;
+  authorName?: string;
+  previewText?: string | null;
+  issueId?: string | null;
+  sizeBytes?: number | null;
+  url?: string | null;
+  folderPath?: string | null;
 }
 
 export interface HermesOverviewBundle {
@@ -519,29 +561,13 @@ export interface HermesOverviewBundle {
 };
 
 // ============================================================================
-// Aliases de compatibilidade temporaria: tipos Paperclip -> Hermes
-// Estes aliases permitem que o frontend compile enquanto a migracao de
-// componentes continua. Nao ha acoplamento ao runtime Paperclip;
-// todos os aliases apontam para tipos Hermes (fonte unica de verdade).
-// ============================================================================
-export type PaperclipAgentDto = HermesBotDto;
-export type PaperclipIntegrationStatus = HermesIntegrationStatus;
-export type PaperclipOrgNodeDto = HermesBotDto;
-export type PaperclipOverviewBundle = HermesOverviewBundle;
-export type PaperclipAttachmentDto = HermesAttachmentDto;
-export type PaperclipArtifactDto = HermesSkillDto;
-export type PaperclipChatThreadDto = HermesChatThreadDto;
-export type PaperclipChatMessageDto = HermesChatMessageDto;
-export type PaperclipCommentDto = HermesChatMessageDto;
-export type PaperclipCompanySkillDto = HermesSkillDto;
-export type PaperclipCostSummaryDto = HermesCostSummaryDto;
-export type PaperclipGoalDto = HermesGoalDto;
-export type PaperclipInboxItemDto = HermesActivityDto;
-export type PaperclipAttentionDto = HermesActivityDto;
-export type PaperclipIssueDto = HermesIssueDto;
-export type PaperclipProjectDto = HermesProjectDto;
-export type PaperclipRoutineDto = HermesRoutineDto;
-export type PaperclipRunDto = HermesRunDto;
-export type PaperclipApprovalDto = HermesApprovalDto;
-export type PaperclipActivityDto = HermesActivityDto;
+export interface HermesAttachmentDto {
+  id: string;
+  filename: string;
+  contentType?: string;
+  sizeBytes?: number;
+  url?: string | null;
+}
+
+
 

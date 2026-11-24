@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipIssueDto } from '../../../types/platform';
+import type { HermesIssueDto } from '../../../types/platform';
 
 interface TasksPageProps {
   onNavigate: (id: string) => void;
@@ -29,7 +29,7 @@ const statusTone = (st: string) => {
 export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [issues, setIssues] = useState<PaperclipIssueDto[]>([]);
+  const [issues, setIssues] = useState<HermesIssueDto[]>([]);
   const [filters, setFilters] = useState<{ q: string; status: string; projectId: string | null }>({
     q: '',
     status: 'all',

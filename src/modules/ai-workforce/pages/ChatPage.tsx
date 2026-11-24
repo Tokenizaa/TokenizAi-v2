@@ -9,7 +9,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipChatThreadDto } from '../../../types/platform';
+import type { HermesChatThreadDto } from '../../../types/platform';
 
 interface ChatPageProps {
   onNavigate: (id: string) => void;
@@ -19,7 +19,7 @@ interface ChatPageProps {
 export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chats, setChats] = useState<PaperclipChatThreadDto[]>([]);
+  const [chats, setChats] = useState<HermesChatThreadDto[]>([]);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [agent, setAgent] = useState<any>(null);
   const [directSendAvailable, setDirectSendAvailable] = useState<boolean | null>(null);
@@ -42,7 +42,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     loadChats();
   }, [loadChats]);
 
-  const openConversation = async (conversation: PaperclipChatThreadDto) => {
+  const openConversation = async (conversation: HermesChatThreadDto) => {
     setSelectedRef(conversation.conversationAgentId || conversation.agentRef || conversation.id);
     setAgent(null);
     try {

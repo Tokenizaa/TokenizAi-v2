@@ -1,16 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Activity, OctagonX, RefreshCw, Terminal } from 'lucide-react';
 import { SlideDrawer, StatusText } from '../../components/ui/Primitives';
-import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
-import type {
-  HermesIntegrationStatus,
-  NavSectionId,
-  PaperclipIntegrationStatus,
-  PaperclipRunDto,
-} from '../../types/platform';
+import { formatCents, formatDateTimeBR, HermesApi } from '../../services/api';
+import type { HermesIntegrationStatus, NavSectionId, HermesRunDto } from '../../types/platform';
 import { HermesStatusPanel } from './HermesStatusPanel';
 
-interface PaperclipRunsPanelProps {
+interface HermesRunsPanelProps {
   status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
@@ -27,23 +22,20 @@ const RUN_STATUS_LABELS: Record<string, string> = {
   skipped: 'Ignorada',
 };
 
-export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
+export const HermesRunsPanel: React.FC<HermesRunsPanelProps> = ({
   status,
   onNavigate,
   onToast,
 }) => {
-  const [runs, setRuns] = useState<PaperclipRunDto[]>([]);
+  const [runs, setRuns] = useState<HermesRunDto[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedRun, setSelectedRun] = useState<PaperclipRunDto | null>(null);
-  const [runLogs, setRunLogs] = useState<string[]>([]);
-  const [runEvents, setRunEvents] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedRun, setSelectedRun] = useState<HermesRunDto | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const isConnected =
-    status.configured && status.connected;
+  const isConnected = status.configured && status.connected;
 
   const canCancel = status.availableCapabilities.some(
-    (c) => c.key === 'runs:cancel' && c.available,
+    (c) => c.key === 'runs:manage' && c.available,
   );
 
   const loadRuns = useCallback(async () => {
@@ -53,10 +45,10 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
     }
     setLoading(true);
     try {
-      const res = await PaperclipApi.listRuns({ limit: 50 });
+      const res = await HermesApi.listRuns();
       setRuns(res.runs || []);
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao consultar execuções no Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Erro ao consultar execuções no Hermes.');
     } finally {
       setLoading(false);
     }
@@ -66,42 +58,19 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
     loadRuns();
   }, [loadRuns]);
 
-  // Controlled polling respecting PAPERCLIP_SYNC_INTERVAL_MS
-  useEffect(() => {
-    if (!isConnected) return;
-    const timer = window.setInterval(() => {
-      loadRuns();
-    }, Math.max(5000, 15000));
-    return () => window.clearInterval(timer);
-  }, [isConnected, loadRuns]);
-
-  const openRunDetail = async (run: PaperclipRunDto) => {
+  const openRunDetail = (run: HermesRunDto) => {
     setSelectedRun(run);
-    setRunLogs(run.logs || []);
-    setRunEvents(run.events || []);
-    try {
-      const [detailRes, evRes] = await Promise.allSettled([
-        PaperclipApi.getRun(run.id),
-        PaperclipApi.getRunEvents(run.id),
-      ]);
-      if (detailRes.status === 'fulfilled') {
-        setSelectedRun(detailRes.value.run);
-      }
-      if (evRes.status === 'fulfilled') {
-        setRunLogs(evRes.value.logs || []);
-        setRunEvents(evRes.value.events || []);
-      }
-    } catch {
-      // Keep base summary
-    }
   };
 
   const handleCancelRun = async (runId: string) => {
     setCancelling(true);
     try {
-      await PaperclipApi.cancelRun(runId);
-      await loadRuns();
-      onToast('Cancelamento solicitado ao Paperclip.');
+      // O contrato Hermes atual não expõe endpoint de cancelamento direto por run.
+      // A operação é comunicada ao usuário como indisponível neste runtime, sem
+      // simular sucesso nem disparar calls para endpoints inexistentes.
+      onToast(
+        'Cancelamento de execução não disponível no contrato Hermes atual. A execução segue seu ciclo de vida.',
+      );
     } catch (err) {
       onToast(err instanceof Error ? err.message : 'Não foi possível cancelar a execução.');
     } finally {
@@ -121,7 +90,7 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
     return (
       <HermesStatusPanel
         status={status}
-        title="Execuções & Heartbeats (Paperclip)"
+        title="Execuções & Heartbeats (Hermes)"
         requiredCapabilities={['runs:read']}
         onNavigate={onNavigate}
       />
@@ -132,8 +101,7 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-ink-subtle">
-          Estados oficiais de execução (na fila, em execução, concluída, erro, cancelada, ignorada) sincronizados em intervalo de{' '}
-                    <span className="font-mono text-ink">15s</span>.
+          Estados oficiais de execução (na fila, em execução, concluída, erro, cancelada, ignorada).{" "}
         </div>
         <button
           type="button"
@@ -153,8 +121,6 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
               <tr className="border-b border-line text-[11px] font-semibold text-ink-subtle bg-surface-subtle/40">
                 <th className="py-3 px-6">Início</th>
                 <th className="py-3 px-4">Agente Executor</th>
-                <th className="py-3 px-4">Origem / Issue</th>
-                <th className="py-3 px-4">Modelo / Tokens</th>
                 <th className="py-3 px-4">Status da Execução</th>
                 <th className="py-3 px-4 text-right">Duração</th>
                 <th className="py-3 px-6 text-right">Custo</th>
@@ -168,22 +134,10 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
                   className="hover:bg-surface-blue/40 transition-colors cursor-pointer"
                 >
                   <td className="py-3.5 px-6 font-mono text-xs text-ink-subtle whitespace-nowrap">
-                    {formatDateTimeBR(run.startedAt)}
+                    {formatDateTimeBR(run.startedAt || '')}
                   </td>
                   <td className="py-3.5 px-4 font-medium text-ink whitespace-nowrap">
                     {run.agentName || run.agentId || '—'}
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-ink-muted">
-                    <div>{run.triggerSource || 'heartbeat'}</div>
-                    {run.issueIdentifier && (
-                      <div className="font-mono text-accent dark:text-cyan-300">{run.issueIdentifier}</div>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-ink-subtle">
-                    <div>{run.model || run.provider || '—'}</div>
-                    {typeof run.totalTokens === 'number' && (
-                      <div>{run.totalTokens.toLocaleString('pt-BR')} tokens</div>
-                    )}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <StatusText
@@ -201,8 +155,8 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
               ))}
               {runs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-xs text-ink-subtle">
-                    Nenhuma execução de heartbeat registrada até o momento.
+                  <td colSpan={5} className="py-10 text-center text-xs text-ink-subtle">
+                    Nenhuma execução registrada neste runtime Hermes.
                   </td>
                 </tr>
               )}
@@ -216,7 +170,11 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
         onClose={() => setSelectedRun(null)}
         wide
         title={`Execução ${selectedRun?.id || ''}`}
-        subtitle={selectedRun ? `${selectedRun.agentName || ''} · ${selectedRun.triggerSource || 'heartbeat'}` : undefined}
+        subtitle={
+          selectedRun
+            ? `${selectedRun.agentName || ''} · ${formatDateTimeBR(selectedRun.startedAt || '')}`
+            : undefined
+        }
       >
         {selectedRun && (
           <div className="space-y-5">
@@ -242,28 +200,28 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs py-3 border-b border-line">
               <div>
                 <div className="text-ink-subtle">Início</div>
-                <div className="font-mono text-ink mt-0.5">{formatDateTimeBR(selectedRun.startedAt)}</div>
+                <div className="font-mono text-ink mt-0.5">
+                  {formatDateTimeBR(selectedRun.startedAt || '')}
+                </div>
               </div>
               <div>
                 <div className="text-ink-subtle">Término</div>
-                <div className="font-mono text-ink mt-0.5">{formatDateTimeBR(selectedRun.finishedAt)}</div>
+                <div className="font-mono text-ink mt-0.5">
+                  {formatDateTimeBR(selectedRun.finishedAt || '')}
+                </div>
               </div>
               <div>
                 <div className="text-ink-subtle">Duração</div>
                 <div className="font-mono text-ink mt-0.5">
-                  {typeof selectedRun.durationMs === 'number' ? `${selectedRun.durationMs} ms` : '—'}
+                  {typeof selectedRun.durationMs === 'number'
+                    ? `${selectedRun.durationMs} ms`
+                    : '—'}
                 </div>
               </div>
               <div>
-                <div className="text-ink-subtle">Modelo / Provedor</div>
+                <div className="text-ink-subtle">Modelo</div>
                 <div className="font-mono text-ink mt-0.5">
-                  {selectedRun.model || '—'} {selectedRun.provider ? `(${selectedRun.provider})` : ''}
-                </div>
-              </div>
-              <div>
-                <div className="text-ink-subtle">Tokens (In / Out)</div>
-                <div className="font-mono text-ink mt-0.5">
-                  {selectedRun.inputTokens ?? '—'} / {selectedRun.outputTokens ?? '—'}
+                  {selectedRun.model || '—'}
                 </div>
               </div>
               <div>
@@ -286,33 +244,26 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
               </div>
             )}
 
-            {runEvents.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5" />
-                  <span>Eventos da Execução</span>
-                </h4>
-                <div className="divide-y divide-line border border-line rounded-xl max-h-48 overflow-y-auto">
-                  {runEvents.map((ev, i) => (
-                    <div key={i} className="px-3.5 py-2 text-xs font-mono text-ink-muted">
-                      {JSON.stringify(ev)}
-                    </div>
-                  ))}
-                </div>
+            {/* Logs e eventos: ausentes do contrato Hermes atual. Tratados como ausência declarada. */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
+                <Terminal className="w-3.5 h-3.5" />
+                <span>Logs de Execução</span>
+              </h4>
+              <div className="p-4 rounded-xl bg-surface-subtle/50 border border-line text-xs text-ink-muted">
+                Logs detalhados de execução não expostos pelo contrato Hermes atual.
               </div>
-            )}
+            </div>
 
-            {runLogs.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
-                  <Terminal className="w-3.5 h-3.5" />
-                  <span>Logs</span>
-                </h4>
-                <pre className="p-3.5 rounded-xl bg-slate-950 text-slate-100 text-[11px] font-mono overflow-x-auto max-h-56">
-                  {runLogs.join('\n')}
-                </pre>
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5" />
+                <span>Eventos da Execução</span>
+              </h4>
+              <div className="p-4 rounded-xl bg-surface-subtle/50 border border-line text-xs text-ink-muted">
+                Eventos estruturados de execução não expostos pelo contrato Hermes atual.
               </div>
-            )}
+            </div>
           </div>
         )}
       </SlideDrawer>

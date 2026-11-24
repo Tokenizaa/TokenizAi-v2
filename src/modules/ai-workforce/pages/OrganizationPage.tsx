@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipOrgNodeDto } from '../../../types/platform';
+import type { HermesBotDto } from '../../../types/platform';
 
 interface OrganizationPageProps {
   onNavigate: (id: string) => void;
@@ -27,7 +27,7 @@ const statusTone = (st: string) => {
 export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tree, setTree] = useState<PaperclipOrgNodeDto[]>([]);
+  const [tree, setTree] = useState<HermesBotDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,7 +42,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
     }
   }, []);
 
-  const renderBranch = (node: PaperclipOrgNodeDto, depth = 0): React.ReactNode => {
+  const renderBranch = (node: HermesBotDto, depth = 0): React.ReactNode => {
     const hasChildren = (node.children || []).length > 0;
     return (
       <div key={node.id} className="space-y-2.5">
@@ -72,7 +72,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
               <div className="text-xs text-ink-subtle truncate">
                 {node.role || 'Membro Paperclip'}
                 {node.team ? ` · ${node.team}` : ''}
-                {hasChildren ? ` · ${node.children.length} subordinado(s)` : ''}
+                {hasChildren ? ` · ${node.children?.length || 0} subordinado(s)` : ''}
               </div>
             </div>
           </div>
@@ -80,7 +80,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
         </div>
         {hasChildren && (
           <div className="pl-8 border-l border-line-strong/40 space-y-2.5">
-            {node.children.map((child) => renderBranch(child, depth + 1))}
+            {(node.children || []).map((child) => renderBranch(child, depth + 1))}
           </div>
         )}
       </div>
@@ -146,9 +146,9 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
   );
 };
 
-function countNodes(nodes: PaperclipOrgNodeDto[]): number {
+function countNodes(nodes: HermesBotDto[]): number {
   let total = 0;
-  const walk = (list: PaperclipOrgNodeDto[]) => {
+  const walk = (list: HermesBotDto[]) => {
     for (const n of list) {
       total += 1;
       if (n.children) walk(n.children);

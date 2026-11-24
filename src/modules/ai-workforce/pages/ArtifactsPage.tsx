@@ -9,7 +9,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipArtifactDto } from '../../../types/platform';
+import type { HermesSkillDto } from '../../../types/platform';
 
 interface ArtifactsPageProps {
   onNavigate: (id: string) => void;
@@ -19,7 +19,7 @@ interface ArtifactsPageProps {
 export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [artifacts, setArtifacts] = useState<PaperclipArtifactDto[]>([]);
+  const [artifacts, setArtifacts] = useState<HermesSkillDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,7 +95,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
                 <div className="font-mono text-ink-muted">—</div>
               )}
               <a
-                href={a.url || hermesService.getAttachmentContentUrl(a.id)}
+                href={a.url || ''}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 text-[11px] text-accent dark:text-cyan-300 underline hover:text-accent-ink cursor-pointer"

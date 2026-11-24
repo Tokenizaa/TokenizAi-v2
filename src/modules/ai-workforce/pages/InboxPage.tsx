@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipInboxItemDto, PaperclipAttentionDto } from '../../../types/platform';
+import type { HermesActivityDto } from '../../../types/platform';
 
 interface InboxPageProps {
   onNavigate: (id: string) => void;
@@ -20,8 +20,8 @@ interface InboxPageProps {
 export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inbox, setInbox] = useState<PaperclipInboxItemDto[]>([]);
-  const [attention, setAttention] = useState<PaperclipAttentionDto | null>(null);
+  const [inbox, setInbox] = useState<HermesActivityDto[]>([]);
+  const [attention, setAttention] = useState<HermesActivityDto | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);

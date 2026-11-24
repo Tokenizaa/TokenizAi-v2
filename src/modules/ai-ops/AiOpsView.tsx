@@ -32,13 +32,13 @@ import type {
 } from '../../types/platform';
 import { HermesChatPanel } from './HermesChatPanel';
 import {
-  PaperclipApprovalsPanel,
-  PaperclipCostsAuditPanel,
-  PaperclipRoutinesPanel,
-} from './PaperclipGovernancePanels';
-import { PaperclipRunsPanel } from './PaperclipRunsPanel';
+  HermesApprovalsPanel,
+  HermesCostsAuditPanel,
+  HermesRoutinesPanel,
+} from './HermesGovernancePanels';
+import { HermesRunsPanel } from './HermesRunsPanel';
 import { HermesStatusPanel } from './HermesStatusPanel';
-import { PaperclipTasksPanel } from './PaperclipTasksPanel';
+import { HermesTasksPanel } from './HermesTasksPanel';
 
 export type AiOpsSectionId =
   | 'ia-visao'
@@ -151,7 +151,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       if (!q) return true;
       return (
         ag.name.toLowerCase().includes(q) ||
-        ag.role.toLowerCase().includes(q) ||
+        (ag.role || '').toLowerCase().includes(q) ||
         (ag.title || '').toLowerCase().includes(q) ||
         (ag.capabilities || []).some((c) => c.toLowerCase().includes(q))
       );
@@ -239,7 +239,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
           </div>
           {node.status && <StatusText label={node.status} tone={agentStatusTone(node.status)} />}
         </div>
-        {node.children.map((child) => renderOrgBranch(child, depth + 1))}
+        {(node.children || []).map((child) => renderOrgBranch(child, depth + 1))}
       </div>
     );
   };
@@ -457,7 +457,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 </p>
               </div>
               <span className="font-mono text-xs text-ink-subtle">
-                {status.availableCapabilities.filter((c) => c.availableInVersion === true).length} /{' '}
+                {status.availableCapabilities.filter((c) => Boolean(c.availableInVersion)).length} /{' '}
                 {status.availableCapabilities.length} ativas
               </span>
             </div>
@@ -484,18 +484,18 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                       <td className="py-3 px-4">
                         <StatusText
                           label={
-                            cap.availableInVersion === true
+                            Boolean(cap.availableInVersion)
                               ? 'Disponível'
-                              : cap.availableInVersion === false
-                                ? 'Indisponível nesta versão'
-                                : 'Aguardando OpenAPI'
+                              : cap.availableInVersion === undefined
+                                ? 'Aguardando OpenAPI'
+                                : 'Indisponível nesta versão'
                           }
                           tone={
-                            cap.availableInVersion === true
+                            Boolean(cap.availableInVersion)
                               ? 'nominal'
-                              : cap.availableInVersion === false
-                                ? 'attention'
-                                : 'neutral'
+                              : cap.availableInVersion === undefined
+                                ? 'neutral'
+                                : 'attention'
                           }
                         />
                       </td>
@@ -741,12 +741,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {/* 5..9 DOMAIN PANELS                                                       */}
       {/* ======================================================================== */}
       {section === 'ia-tarefas' && (
-        <PaperclipTasksPanel
+        <HermesTasksPanel
           status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           projects={projects}
-          goals={goals}
-          initialIssueId={taskInitialId}
+          initialTaskId={taskInitialId}
           onNavigate={onNavigate}
           onRefreshAll={onRefresh}
           onToast={onToast}
@@ -754,11 +753,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       )}
 
       {section === 'ia-execucoes' && (
-        <PaperclipRunsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
+        <HermesRunsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {section === 'ia-rotinas' && (
-        <PaperclipRoutinesPanel
+        <HermesRoutinesPanel
           status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           onNavigate={onNavigate}
@@ -767,11 +766,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       )}
 
       {section === 'ia-aprovacoes' && (
-        <PaperclipApprovalsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
+        <HermesApprovalsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {section === 'ia-custos' && (
-        <PaperclipCostsAuditPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
+        <HermesCostsAuditPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {/* ======================================================================== */}

@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipRunDto } from '../../../types/platform';
+import type { HermesRunDto } from '../../../types/platform';
 
 interface RunsPageProps {
   onNavigate: (id: string) => void;
@@ -28,7 +28,7 @@ const statusTone = (st: string) => {
 export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [runs, setRuns] = useState<PaperclipRunDto[]>([]);
+  const [runs, setRuns] = useState<HermesRunDto[]>([]);
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 

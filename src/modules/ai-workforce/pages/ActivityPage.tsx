@@ -9,7 +9,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipActivityDto } from '../../../types/platform';
+import type { HermesActivityDto } from '../../../types/platform';
 
 interface ActivityPageProps {
   onNavigate: (id: string) => void;
@@ -19,7 +19,7 @@ interface ActivityPageProps {
 export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activity, setActivity] = useState<PaperclipActivityDto[]>([]);
+  const [activity, setActivity] = useState<HermesActivityDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);

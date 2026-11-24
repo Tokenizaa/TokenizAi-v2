@@ -113,7 +113,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         spentBRL: Number(editForm.spentBRL) || 0,
         stage: editForm.stage,
         hermesProjectId: editForm.hermesProjectId || null,
-        paperclipProjectName: linkedPc ? linkedPc.name : null,
       });
       setEditMode(false);
       await onRefresh();

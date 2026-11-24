@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipApprovalDto } from '../../../types/platform';
+import type { HermesApprovalDto } from '../../../types/platform';
 
 interface ApprovalsPageProps {
   onNavigate: (id: string) => void;
@@ -27,7 +27,7 @@ const statusTone = (st: string) => {
 export const ApprovalsPage: React.FC<ApprovalsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [approvals, setApprovals] = useState<PaperclipApprovalDto[]>([]);
+  const [approvals, setApprovals] = useState<HermesApprovalDto[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
 
   const load = useCallback(async () => {

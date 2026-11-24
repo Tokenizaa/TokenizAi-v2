@@ -7,7 +7,7 @@ import {
   StatusText,
 } from '../../components/ui/Primitives';
 import { AGENCY_SPECIALISTS, SPECIALIST_DIVISIONS } from '../../data/agencyCatalog';
-import { PaperclipApi } from '../../services/api';
+import { HermesApi } from '../../services/api';
 import type {
   AgencySpecialist,
   HermesOverviewBundle,
@@ -82,17 +82,13 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
     }
     setHiring(true);
     try {
-      await PaperclipApi.hireSpecialist({
-        specialistId: sp.id,
+      await HermesApi.hireBot({
         slug: sp.slug,
         name: sp.name,
         division: sp.division,
-        adapter: sp.recommendedAdapter,
-        monthlyBudgetBRL: 1200,
-        team: sp.division,
       });
       await onRefresh();
-      onToast(`Especialista "${sp.name}" criado no Paperclip.`);
+      onToast(`Especialista "${sp.name}" alocado no Hermes.`);
     } catch (err) {
       onToast(err instanceof Error ? err.message : 'Não foi possível alocar especialista.');
     } finally {

@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipProjectDto, PaperclipGoalDto } from '../../../types/platform';
+import type { HermesProjectDto, HermesGoalDto } from '../../../types/platform';
 
 interface ProjectsPageProps {
   onNavigate: (id: string) => void;
@@ -20,8 +20,8 @@ interface ProjectsPageProps {
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<PaperclipProjectDto[]>([]);
-  const [goals, setGoals] = useState<PaperclipGoalDto[]>([]);
+  const [projects, setProjects] = useState<HermesProjectDto[]>([]);
+  const [goals, setGoals] = useState<HermesGoalDto[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,7 +31,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigate, onToast 
         hermesService.listProjects(),
         hermesService.listGoals(),
       ]);
-      setProjects(pRes.projects || []);
+      setProjects(pRes || []);
       setGoals(gRes.goals || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar projetos e metas do Paperclip.');

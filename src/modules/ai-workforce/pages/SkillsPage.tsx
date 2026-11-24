@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { hermesService } from '../services/hermes';
-import type { PaperclipCompanySkillDto } from '../../../types/platform';
+import type { HermesSkillDto } from '../../../types/platform';
 
 interface SkillsPageProps {
   onNavigate: (id: string) => void;
@@ -20,7 +20,7 @@ interface SkillsPageProps {
 export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [skills, setSkills] = useState<PaperclipCompanySkillDto[]>([]);
+  const [skills, setSkills] = useState<HermesSkillDto[]>([]);
   const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
