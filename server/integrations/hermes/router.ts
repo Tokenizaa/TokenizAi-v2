@@ -9,7 +9,21 @@ import {
   resolveWorkspaceActor,
 } from '../hermes/adminAuth.ts';
 import { hermesGateway, HermesIntegrationError } from './index.ts';
-import { runCommand, runCommandSafe } from './cliRunner.ts';
+import {
+  getCachedDomain,
+  invalidateDomainCache,
+  getCacheStats,
+  fetchHermesJson,
+  DOMAIN_TTL,
+  HERMES_CLI,
+  runCommandSafe,
+} from './domainCache.ts';
+import {
+  parseProfileList,
+  parseKanbanJson,
+  parseCronList,
+  parseSkillsList,
+} from './domainParsers.ts';
 import { appendAudit } from '../../persistence.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
@@ -103,10 +117,22 @@ export function createHermesRouter(
     res.json({ ok: true, status: hermesGateway.getStatus() });
   });
 
+  router.get('/api/hermes/cache/stats', requirePermission('read'), (_req: Request, res: Response) => {
+    res.json({ ok: true, cache: getCacheStats() });
+  });
+
+  router.post('/api/hermes/cache/invalidate', requireAdminAuth, (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    invalidateDomainCache(key);
+    res.json({ ok: true, invalidated: key || 'all' });
+  });
+
   router.post('/api/hermes/refresh', requireAdminAuth, async (req: Request, res: Response) => {
     try {
       const { actor } = resolveWorkspaceActor(req);
       const status = await hermesGateway.refresh();
+      invalidateDomainCache('overview');
+      invalidateDomainCache('agents');
       appendAuditFn(actor.name, `Atualizou conexão Hermes (${status.connectionLabel})`, 'Hermes', 'Hermes Adapter');
       res.json({ ok: true, status });
     } catch (err) {
@@ -115,30 +141,39 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Overview Bundle (frontend loadAll) - async CLI + caching
+  // Overview Bundle (frontend loadAll) - cache por domínio + stale-while-revalidate
   // ============================================================================
-  const HERMES_CLI = '/home/lg/.local/bin/hermes';
-  let overviewCache: { data: any; timestamp: number } | null = null;
-  const OVERVIEW_CACHE_TTL = 5000; // 5 seconds
-
   router.get('/api/hermes/overview', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      // Return cached if fresh
-      if (overviewCache && Date.now() - overviewCache.timestamp < OVERVIEW_CACHE_TTL) {
-        res.json({ ok: true, ...overviewCache.data });
-        return;
-      }
+      // Cada domínio buscado sequencialmente (Hermes CLI não suporta concorrência)
+      // Mas permanece assíncrono: não bloqueia o event loop do Node.js
+      const agents = await getCachedDomain(
+        'overview:agents',
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        DOMAIN_TTL.agents,
+        []
+      );
 
-      // Run domain commands concurrently (non-blocking)
-      const [agentsResult, tasksResult, routinesResult] = await Promise.all([
-        runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 }),
-        runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 }),
-        runCommandSafe(`${HERMES_CLI} cron list`, { timeoutMs: 5000 }),
-      ]);
+      const tasks = await getCachedDomain(
+        'overview:tasks',
+        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        DOMAIN_TTL.tasks,
+        []
+      );
 
-      const bots = parseProfileList(agentsResult.stdout);
-      const tasks = parseKanbanJson(tasksResult.stdout);
-      const routines = parseCronList(routinesResult.stdout);
+      const routines = await getCachedDomain(
+        'overview:routines',
+        () => fetchHermesJson(`${HERMES_CLI} cron list`, parseCronList, 5000),
+        DOMAIN_TTL.routines,
+        []
+      );
+
+      const skills = await getCachedDomain(
+        'overview:skills',
+        () => fetchHermesJson(`${HERMES_CLI} skills list`, parseSkillsList, 8000),
+        DOMAIN_TTL.skills,
+        []
+      );
 
       const runs: Array<{
         id: string;
@@ -153,11 +188,7 @@ export function createHermesRouter(
 
       const approvals = tasks.filter((t) => t.title.toLowerCase().includes('aprov'));
 
-      // Skills: populate via CLI (async, with fallback to empty)
-      const skillsResult = await runCommandSafe(`${HERMES_CLI} skills list`, { timeoutMs: 5000 });
-      const skills = parseSkillsList(skillsResult.stdout);
-
-      const chats = bots.map((b) => ({
+      const chats = agents.map((b) => ({
         id: `chat-${b.id}`,
         agentId: b.id,
         agentName: b.name,
@@ -167,7 +198,7 @@ export function createHermesRouter(
         canSend: true,
       }));
 
-      const tree = bots.map((b) => ({
+      const tree = agents.map((b) => ({
         id: b.id,
         name: b.name,
         title: b.title,
@@ -191,7 +222,7 @@ export function createHermesRouter(
 
       const bundle = {
         status,
-        bots,
+        bots: agents,
         tasks,
         runs,
         routines,
@@ -201,9 +232,6 @@ export function createHermesRouter(
         skills,
         chats,
       };
-
-      // Cache the result
-      overviewCache = { data: bundle, timestamp: Date.now() };
 
       res.json({ ok: true, ...bundle });
     } catch (err) {
@@ -261,13 +289,17 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Agents (Bots Hermes)
+  // Agents (Bots Hermes) - cache por domínio
   // ============================================================================
   router.get('/api/hermes/agents', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
-      const bots = parseProfileList(result.stdout);
-      res.json({ ok: true, agents: bots });
+      const agents = await getCachedDomain(
+        'agents',
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        DOMAIN_TTL.agents,
+        []
+      );
+      res.json({ ok: true, agents });
     } catch (err) {
       sendError(res, err);
     }
@@ -276,11 +308,11 @@ export function createHermesRouter(
   router.get('/api/hermes/agents/:agentId', requirePermission('read'), async (req: Request, res: Response) => {
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
-      const result = await runCommandSafe(
+      const { stdout } = await runCommandSafe(
         `${HERMES_CLI} -p ${agentId} chat --oneshot -q "Quem você é?"`,
         { timeoutMs: 10000 }
       );
-      const description = result.stdout?.slice(0, 200) || 'Sem descrição';
+      const description = stdout?.slice(0, 200) || 'Sem descrição';
       res.json({ ok: true, agent: { id: agentId, name: agentId, status: 'connected', description } });
     } catch (err) {
       sendError(res, err);
@@ -304,6 +336,8 @@ export function createHermesRouter(
         `${HERMES_CLI} profile create ${slug.trim()} --no-skills`,
         { timeoutMs: 10000 }
       );
+      invalidateDomainCache('agents');
+      invalidateDomainCache('overview');
       appendAuditFn(actor.name, `Criou Bot Hermes ${name.trim()} (${slug.trim()})`, slug.trim(), 'Hermes Adapter');
       res.status(201).json({
         ok: true,
@@ -335,6 +369,8 @@ export function createHermesRouter(
         return;
       }
       await runCommandSafe(`${HERMES_CLI} profile delete ${agentId} --yes`, { timeoutMs: 10000 });
+      invalidateDomainCache('agents');
+      invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Encerrou Bot Hermes', agentId, 'Hermes Adapter');
       res.json({ ok: true, result: { terminated: true } });
     } catch (err) {
@@ -343,13 +379,17 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Chats
+  // Chats - cache por domínio (agents)
   // ============================================================================
   router.get('/api/hermes/chats', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
-      const bots = parseProfileList(result.stdout);
-      const chats = bots.map((b) => ({
+      const agents = await getCachedDomain(
+        'agents',
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        DOMAIN_TTL.agents,
+        []
+      );
+      const chats = agents.map((b) => ({
         id: `chat-${b.id}`,
         agentId: b.id,
         agentName: b.name,
@@ -374,7 +414,7 @@ export function createHermesRouter(
         return;
       }
       const escapedBody = body.replace(/"/g, '\\"');
-      const result = await runCommandSafe(
+      const { stdout } = await runCommandSafe(
         `${HERMES_CLI} -p ${agentRef} chat --oneshot -q "${escapedBody}"`,
         { timeoutMs: 30000 }
       );
@@ -385,7 +425,7 @@ export function createHermesRouter(
           id: `msg-${Date.now()}`,
           authorType: 'agent',
           authorName: agentRef,
-          body: result.stdout || `Erro ao executar comando Hermes`,
+          body: stdout || `Erro ao executar comando Hermes`,
           createdAt: new Date().toISOString(),
         },
       });
@@ -395,12 +435,16 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Tasks (Kanban Hermes) - uses --json for reliable parsing
+  // Tasks (Kanban Hermes) - cache por domínio
   // ============================================================================
   router.get('/api/hermes/tasks', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 });
-      const tasks = parseKanbanJson(result.stdout);
+      const tasks = await getCachedDomain(
+        'tasks',
+        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        DOMAIN_TTL.tasks,
+        []
+      );
       res.json({ ok: true, tasks });
     } catch (err) {
       sendError(res, err);
@@ -423,6 +467,8 @@ export function createHermesRouter(
         `${HERMES_CLI} kanban create "${escapedTitle}" --body "${escapedDesc}" --priority 3`,
         { timeoutMs: 10000 }
       );
+      invalidateDomainCache('tasks');
+      invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Criou tarefa no kanban Hermes', title.trim(), 'Hermes Adapter');
       res.status(201).json({
         ok: true,
@@ -438,6 +484,8 @@ export function createHermesRouter(
       const taskId = validateResourceId(req.params.taskId, 'tarefa');
       const { actor } = resolveWorkspaceActor(req);
       const payload = pickFields(req.body, TASK_ALLOWED_FIELDS);
+      invalidateDomainCache('tasks');
+      invalidateDomainCache('overview');
       appendAuditFn(actor.name, `Atualizou tarefa Hermes ${taskId}`, taskId, 'Hermes Adapter');
       res.json({ ok: true, task: { id: taskId, ...payload, updatedAt: new Date().toISOString() } });
     } catch (err) {
@@ -447,12 +495,16 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Routines (Cron Hermes)
+  // Routines (Cron Hermes) - cache por domínio
   // ============================================================================
   router.get('/api/hermes/routines', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} cron list`, { timeoutMs: 5000 });
-      const routines = parseCronList(result.stdout);
+      const routines = await getCachedDomain(
+        'routines',
+        () => fetchHermesJson(`${HERMES_CLI} cron list`, parseCronList, 5000),
+        DOMAIN_TTL.routines,
+        []
+      );
       res.json({ ok: true, routines });
     } catch (err) {
       sendError(res, err);
@@ -473,6 +525,8 @@ export function createHermesRouter(
         `${HERMES_CLI} cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`,
         { timeoutMs: 10000 }
       );
+      invalidateDomainCache('routines');
+      invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Criou rotina Hermes', name, 'Hermes Adapter');
       res.status(201).json({ ok: true, routine: { id: `routine-${Date.now()}`, name, cron, enabled: true, createdAt: new Date().toISOString() } });
     } catch (err) {
@@ -485,9 +539,13 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/approvals', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 });
-      const allTasks = parseKanbanJson(result.stdout);
-      const approvals = allTasks.filter((t) => t.title.toLowerCase().includes('aprov'));
+      const tasks = await getCachedDomain(
+        'tasks',
+        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        DOMAIN_TTL.tasks,
+        []
+      );
+      const approvals = tasks.filter((t) => t.title.toLowerCase().includes('aprov'));
       res.json({ ok: true, approvals });
     } catch (err) {
       sendError(res, err);
@@ -533,13 +591,17 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Org
+  // Org - cache por domínio (agents)
   // ============================================================================
   router.get('/api/hermes/org', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
-      const bots = parseProfileList(result.stdout);
-      const tree = bots.map((b) => ({
+      const agents = await getCachedDomain(
+        'org',
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        DOMAIN_TTL.org,
+        []
+      );
+      const tree = agents.map((b) => ({
         id: b.id,
         name: b.name,
         title: b.title,
@@ -547,19 +609,23 @@ export function createHermesRouter(
         status: b.status,
         children: [],
       }));
-      res.json({ ok: true, tree, agents: bots });
+      res.json({ ok: true, tree, agents });
     } catch (err) {
       sendError(res, err);
     }
   });
 
   // ============================================================================
-  // Skills
+  // Skills - cache por domínio
   // ============================================================================
   router.get('/api/hermes/skills', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const result = await runCommandSafe(`${HERMES_CLI} skills list`, { timeoutMs: 8000 });
-      const skills = parseSkillsList(result.stdout);
+      const skills = await getCachedDomain(
+        'skills',
+        () => fetchHermesJson(`${HERMES_CLI} skills list`, parseSkillsList, 8000),
+        DOMAIN_TTL.skills,
+        []
+      );
       res.json({ ok: true, skills });
     } catch (err) {
       sendError(res, err);
@@ -567,53 +633,4 @@ export function createHermesRouter(
   });
 
   return router;
-}
-
-function parseProfileList(output: string): Array<{ id: string; name: string; title?: string; role?: string; status: string }> {
-  const bots: Array<{ id: string; name: string; title?: string; role?: string; status: string }> = [];
-  const lines = output.split('\n');
-  for (const line of lines) {
-    // Parse table format: " ◆default         nvidia/nemotron-3.5-super-   running      —            —"
-    // Columns: Profile, Model, Gateway, Alias, Distribution
-    const match = line.match(/◆?\s*(\S+)\s+(\S+(?:\s+\S+)*)\s+(\S+)\s+(\S+)\s+(\S+)/);
-    if (match && match[1] !== 'Profile' && match[1] !== '───────────────' && !match[1].startsWith('─')) {
-      const id = match[1].replace(/^[◆\s]+/, '');
-      const model = match[2];
-      const gatewayStatus = match[3];
-      const alias = match[4] !== '—' ? match[4] : undefined;
-      bots.push({
-        id,
-        name: alias || id,
-        title: alias || undefined,
-        role: model.includes('nemotron') ? 'Nemotron Agent' : 'Agent',
-        status: gatewayStatus === 'running' ? 'connected' : 'disconnected',
-      });
-    }
-  }
-  return bots;
-}
-
-function parseKanbanJson(output: string): Array<{ id: string; title: string; status: string }> {
-  try {
-    const data = JSON.parse(output);
-    return data.map((t: any) => ({
-      id: t.id,
-      title: t.title,
-      status: t.status || 'todo',
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function parseCronList(output: string): Array<{ id: string; name: string; schedule: string; enabled: boolean }> {
-  const routines: Array<{ id: string; name: string; schedule: string; enabled: boolean }> = [];
-  const lines = output.split('\n');
-  return routines;
-}
-
-function parseSkillsList(output: string): Array<{ id: string; name: string; description?: string; status: string }> {
-  const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
-  const lines = output.split('\n');
-  return skills;
 }
