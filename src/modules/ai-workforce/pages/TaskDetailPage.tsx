@@ -10,11 +10,12 @@ import {
 } from '../components';
 import { paperclipService } from '../services/paperclip';
 import type { PaperclipIssueDto, PaperclipCommentDto, PaperclipRunDto, PaperclipAttachmentDto } from '../../../types/platform';
+import { useParams } from 'react-router-dom';
 
 type TaskTab = 'detalhes' | 'comentarios' | 'execucoes' | 'anexos' | 'interacoes';
 
 interface TaskDetailPageProps {
-  issueId: string;
+  issueId?: string;
   onNavigate: (id: string) => void;
   onToast: (msg: string) => void;
 }
@@ -28,10 +29,15 @@ const statusTone = (st: string) => {
 };
 
 export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
-  issueId,
+  issueId: issueIdProp,
   onNavigate,
   onToast,
 }) => {
+  const { issueId: issueIdFromUrl } = useParams<{ issueId: string }>();
+  const issueId = issueIdProp ?? issueIdFromUrl ?? '';
+  if (!issueId) {
+    return null;
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [issue, setIssue] = useState<PaperclipIssueDto | null>(null);

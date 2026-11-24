@@ -11,6 +11,7 @@ import {
 } from '../components';
 import { paperclipService } from '../services/paperclip';
 import type { PaperclipAgentDto, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
+import { useParams } from 'react-router-dom';
 
 type AgentTab =
   | 'geral'
@@ -22,7 +23,7 @@ type AgentTab =
   | 'permissoes';
 
 interface AgentDetailPageProps {
-  agentId: string;
+  agentId?: string;
   onNavigate: (id: string) => void;
   onToast: (msg: string) => void;
 }
@@ -45,10 +46,15 @@ const TABS: { id: AgentTab; label: string }[] = [
 ];
 
 export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({
-  agentId,
+  agentId: agentIdProp,
   onNavigate,
   onToast,
 }) => {
+  const { agentId: agentIdFromUrl } = useParams<{ agentId: string }>();
+  const agentId = agentIdProp ?? agentIdFromUrl ?? '';
+  if (!agentId) {
+    return null;
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agent, setAgent] = useState<PaperclipAgentDto | null>(null);

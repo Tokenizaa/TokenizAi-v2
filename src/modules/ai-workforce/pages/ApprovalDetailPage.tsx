@@ -3,9 +3,10 @@ import { CheckCircle2, RefreshCw } from 'lucide-react';
 import { PageHeader, StatusText } from '../../../components/ui/Primitives';
 import { paperclipService } from '../services/paperclip';
 import type { PaperclipApprovalDto } from '../../../types/platform';
+import { useParams } from 'react-router-dom';
 
 interface ApprovalDetailPageProps {
-  approvalId: string;
+  approvalId?: string;
   onNavigate: (id: string) => void;
   onToast: (msg: string) => void;
 }
@@ -18,10 +19,15 @@ const statusTone = (st: string) => {
 };
 
 export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
-  approvalId,
+  approvalId: approvalIdProp,
   onNavigate,
   onToast,
 }) => {
+  const { approvalId: approvalIdFromUrl } = useParams<{ approvalId: string }>();
+  const approvalId = approvalIdProp ?? approvalIdFromUrl ?? '';
+  if (!approvalId) {
+    return null;
+  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [approval, setApproval] = useState<PaperclipApprovalDto | null>(null);

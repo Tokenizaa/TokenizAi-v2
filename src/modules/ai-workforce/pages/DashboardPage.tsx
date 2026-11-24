@@ -10,7 +10,7 @@ import {
   LoadingState,
 } from '../components';
 import { paperclipService, isPaperclipConnected } from '../services/paperclip';
-import type { PaperclipAgentDto, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
+import type { PaperclipAgentDto, PaperclipIntegrationStatus, PaperclipIssueDto, PaperclipRunDto } from '../../../types/platform';
 
 interface DashboardPageProps {
   onRefresh: () => Promise<void>;
@@ -33,6 +33,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bundle, setBundle] = useState<{
+    status: PaperclipIntegrationStatus | null;
     agents: PaperclipAgentDto[];
     issues: PaperclipIssueDto[];
     runs: PaperclipRunDto[];
@@ -55,6 +56,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       ]);
       if (bundleRes.status === 'fulfilled') {
         setBundle({
+          status: bundleRes.value.status || null,
           agents: bundleRes.value.agents || [],
           issues: bundleRes.value.issues || [],
           runs: bundleRes.value.runs || [],
@@ -238,7 +240,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </button>
       </section>
 
-      {!isPaperclipConnected(null) && (
+      {!isPaperclipConnected(bundle?.status) && (
         <EmptyState
           title="Sem conexão com o Paperclip"
           description="Configure PAPERCLIP_API_URL no backend para exibir os dados operacionais da instância."
