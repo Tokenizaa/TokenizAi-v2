@@ -105,8 +105,11 @@ export async function fetchHermesJson<T>(
   parse: (stdout: string) => T,
   timeoutMs: number = 5000
 ): Promise<T> {
-  const { stdout } = await runCommandSafe(cmd, { timeoutMs });
-  return parse(stdout);
+  const result = await runCommandSafe(cmd, { timeoutMs });
+  if (result.error) {
+    throw result.error;
+  }
+  return parse(result.stdout);
 }
 
 export { HERMES_CLI };
