@@ -44,5 +44,27 @@ export function parseCronList(output: string): Array<{ id: string; name: string;
 export function parseSkillsList(output: string): Array<{ id: string; name: string; description?: string; status: string }> {
   const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
   const lines = output.split('\n');
+  for (const line of lines) {
+    // Skip header, borders, and empty lines
+    if (!line.includes('│')) continue;
+    if (line.includes('┏') || line.includes('┡') || line.includes('┠') || line.includes('┨') || line.includes('┚')) continue;
+    
+    // Parse data row: │ agency-agents-manager   │                      │ local   │ local   │ enabled │
+    const cells = line.split('│').map((c) => c.trim()).filter((c) => c.length > 0);
+    if (cells.length >= 5) {
+      const name = cells[0];
+      const category = cells[1] || undefined;
+      const source = cells[2] || undefined;
+      const trust = cells[3] || undefined;
+      const status = cells[4] || 'unknown';
+      
+      skills.push({
+        id: name,
+        name,
+        description: category ? `${category} · ${source} · ${trust}` : undefined,
+        status,
+      });
+    }
+  }
   return skills;
 }

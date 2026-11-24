@@ -170,7 +170,7 @@ export function createHermesRouter(
 
       const skills = await getCachedDomain(
         'overview:skills',
-        () => fetchHermesJson(`${HERMES_CLI} skills list`, parseSkillsList, 8000),
+        () => fetchHermesJson(`${HERMES_CLI} skills list --enabled-only`, parseSkillsList, 10000),
         DOMAIN_TTL.skills,
         []
       );
@@ -662,7 +662,7 @@ export function createHermesRouter(
     try {
       const skills = await getCachedDomain(
         'skills',
-        () => fetchHermesJson(`${HERMES_CLI} skills list`, parseSkillsList, 8000),
+        () => fetchHermesJson(`${HERMES_CLI} skills list --enabled-only`, parseSkillsList, 10000),
         DOMAIN_TTL.skills,
         []
       );
