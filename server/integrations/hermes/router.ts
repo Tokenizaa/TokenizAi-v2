@@ -24,7 +24,7 @@ import {
   parseCronList,
   parseSkillsList,
 } from './domainParsers.ts';
-import { appendAudit, createRun, listRuns, updateRun } from '../../persistence.ts';
+import { appendAudit, createRun, listRuns, updateRun, createActivity, listActivities } from '../../persistence.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -200,14 +200,7 @@ export function createHermesRouter(
 
       const costs = { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] };
 
-      const activity: Array<{
-        id: string;
-        timestamp: string;
-        actorName: string;
-        action: string;
-        targetName?: string;
-        summary?: string;
-      }> = [];
+      const activities = listActivities(50);
 
       const status = hermesGateway.getStatus();
 
@@ -219,7 +212,7 @@ export function createHermesRouter(
         routines,
         approvals,
         costs,
-        activity,
+        activity: activities,
         skills,
         chats,
       };
@@ -355,6 +348,15 @@ export function createHermesRouter(
       invalidateDomainCache('agents');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, `Criou Bot Hermes ${name.trim()} (${slug.trim()})`, slug.trim(), 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'agent.hire',
+        targetType: 'agent',
+        targetId: slug.trim(),
+        targetName: name.trim(),
+        summary: `Division: ${division?.trim() || 'Especialista'}`,
+        timestamp: new Date().toISOString(),
+      });
       res.status(201).json({
         ok: true,
         agent: { id: slug.trim(), name: name.trim(), role: division?.trim() || 'Especialista', status: 'created', profileName: slug.trim() },
@@ -370,6 +372,14 @@ export function createHermesRouter(
       const { actor } = resolveWorkspaceActor(req);
       const { title, role, status } = req.body as { title?: string; role?: string; status?: string };
       appendAuditFn(actor.name, `Atualizou Bot Hermes ${agentId}`, agentId, 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'agent.update',
+        targetType: 'agent',
+        targetId: agentId,
+        summary: `Role: ${role || 'unchanged'}`,
+        timestamp: new Date().toISOString(),
+      });
       res.json({ ok: true, agent: { id: agentId, title, role, status } });
     } catch (err) {
       sendError(res, err);
@@ -388,6 +398,13 @@ export function createHermesRouter(
       invalidateDomainCache('agents');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Encerrou Bot Hermes', agentId, 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'agent.delete',
+        targetType: 'agent',
+        targetId: agentId,
+        timestamp: new Date().toISOString(),
+      });
       res.json({ ok: true, result: { terminated: true } });
     } catch (err) {
       sendError(res, err);
@@ -435,6 +452,15 @@ export function createHermesRouter(
         { timeoutMs: 30000 }
       );
       appendAuditFn(actor.name, `Enviou mensagem no chat Hermes (${agentRef})`, agentRef, 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'chat.message',
+        targetType: 'chat',
+        targetId: agentRef,
+        targetName: agentRef,
+        summary: body.trim().slice(0, 100),
+        timestamp: new Date().toISOString(),
+      });
 
       // Criar run de execução associado ao chat
       const chatRun = createRun({
@@ -500,6 +526,15 @@ export function createHermesRouter(
       invalidateDomainCache('tasks');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Criou tarefa no kanban Hermes', title.trim(), 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'task.create',
+        targetType: 'task',
+        targetId: `task-${Date.now()}`,
+        targetName: title.trim(),
+        summary: desc || undefined,
+        timestamp: new Date().toISOString(),
+      });
 
       // Criar run de execução associado à tarefa
       const taskRun = createRun({
@@ -527,6 +562,14 @@ export function createHermesRouter(
       invalidateDomainCache('tasks');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, `Atualizou tarefa Hermes ${taskId}`, taskId, 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'task.update',
+        targetType: 'task',
+        targetId: taskId,
+        summary: `Status: ${payload.status || 'unchanged'}`,
+        timestamp: new Date().toISOString(),
+      });
       res.json({ ok: true, task: { id: taskId, ...payload, updatedAt: new Date().toISOString() } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -568,6 +611,15 @@ export function createHermesRouter(
       invalidateDomainCache('routines');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Criou rotina Hermes', name, 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'routine.create',
+        targetType: 'routine',
+        targetId: `routine-${Date.now()}`,
+        targetName: name,
+        summary: `Cron: ${cron}`,
+        timestamp: new Date().toISOString(),
+      });
       res.status(201).json({ ok: true, routine: { id: `routine-${Date.now()}`, name, cron, enabled: true, createdAt: new Date().toISOString() } });
     } catch (err) {
       sendError(res, err);
@@ -601,6 +653,15 @@ export function createHermesRouter(
         return;
       }
       appendAuditFn(actor.name, 'Solicitou aprovação Hermes', title.trim(), 'Hermes Adapter');
+      createActivity({
+        actorName: actor.name,
+        action: 'approval.request',
+        targetType: 'approval',
+        targetId: `approval-${Date.now()}`,
+        targetName: title.trim(),
+        summary: description || undefined,
+        timestamp: new Date().toISOString(),
+      });
       res.status(201).json({ ok: true, approval: { id: `approval-${Date.now()}`, title: title.trim(), description, reason, status: 'pending', createdAt: new Date().toISOString() } });
     } catch (err) {
       sendError(res, err);
@@ -619,12 +680,42 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Activity
+  // Activity (atividade e auditoria operacional)
   // ============================================================================
   router.get('/api/hermes/activity', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
       const limit = parseLimit(_req.query.limit, 50);
-      res.json({ ok: true, activity: [] });
+      const activities = listActivities(limit);
+      res.json({ ok: true, activity: activities });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/hermes/activity', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = resolveWorkspaceActor(req);
+      const { action, targetType, targetId, targetName, summary } = req.body as {
+        action?: string;
+        targetType?: string;
+        targetId?: string;
+        targetName?: string;
+        summary?: string;
+      };
+      if (!action || !action.trim()) {
+        res.status(400).json({ error: 'Ação é obrigatória.' });
+        return;
+      }
+      const activity = createActivity({
+        actorName: actor.name,
+        action: action.trim(),
+        targetType,
+        targetId,
+        targetName,
+        summary,
+        timestamp: new Date().toISOString(),
+      });
+      res.status(201).json({ ok: true, activity });
     } catch (err) {
       sendError(res, err);
     }

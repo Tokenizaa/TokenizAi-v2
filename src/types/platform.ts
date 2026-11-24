@@ -212,6 +212,7 @@ export interface EnterpriseDataState {
   users: AdminUserRecord[];
   auditLogs: AuditLogEntry[];
   runs: RunRecord[];
+  activities: ActivityRecord[];
 }
 
 export interface RunRecord {
@@ -229,6 +230,17 @@ export interface RunRecord {
   logs?: string[];
   costCents?: number | null;
   currency?: string;
+}
+
+export interface ActivityRecord {
+  id: string;
+  timestamp: string;
+  actorName: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  targetName?: string;
+  summary?: string;
 }
 
 /* Paperclip Native Integration Types */

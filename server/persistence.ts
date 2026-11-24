@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { EnterpriseDataState, RunRecord } from '../src/types/platform.ts';
+import type { EnterpriseDataState, RunRecord, ActivityRecord } from '../src/types/platform.ts';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STATE_FILE = path.join(DATA_DIR, 'enterprise-state.json');
@@ -84,4 +84,29 @@ export function updateRun(
   return state.runs[idx];
 }
 
-export type { RunRecord };
+// ============================================================================
+// Activity persistence (atividade e auditoria operacional)
+// ============================================================================
+
+export function listActivities(limit = 50): ActivityRecord[] {
+  const state = loadEnterpriseState();
+  if (!state) return [];
+  return (state.activities || []).slice(0, limit);
+}
+
+export function createActivity(activity: Omit<ActivityRecord, 'id'>): ActivityRecord {
+  const state = loadEnterpriseState();
+  if (!state) {
+    throw new Error('Enterprise state not initialized');
+  }
+  if (!state.activities) {
+    state.activities = [];
+  }
+  const id = `act-${Date.now()}`;
+  const newActivity: ActivityRecord = { ...activity, id };
+  state.activities.unshift(newActivity);
+  saveEnterpriseState(state);
+  return newActivity;
+}
+
+export type { RunRecord, ActivityRecord };

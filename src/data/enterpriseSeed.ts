@@ -518,4 +518,6 @@ export const INITIAL_ENTERPRISE_DATA: EnterpriseDataState = {
   ],
 
   runs: [],
+
+  activities: [],
 };
