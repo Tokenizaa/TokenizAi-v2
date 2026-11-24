@@ -150,7 +150,7 @@ export function createHermesRouter(
       // Mas permanece assíncrono: não bloqueia o event loop do Node.js
       const agents = await getCachedDomain(
         'overview:agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );
@@ -309,7 +309,7 @@ export function createHermesRouter(
     try {
       const agents = await getCachedDomain(
         'agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );
@@ -423,7 +423,7 @@ export function createHermesRouter(
     try {
       const agents = await getCachedDomain(
         'agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );

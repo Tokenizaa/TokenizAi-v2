@@ -9,8 +9,8 @@ import {
   ErrorState,
   LoadingState,
 } from '../components';
-import { paperclipService } from '../services/paperclip';
-import type { PaperclipAgentDto } from '../../../types/platform';
+import { HermesApi } from '../../../services/api';
+import type { HermesBotDto } from '../../../types/platform';
 
 interface AgentsPageProps {
   onNavigate: (id: string) => void;
@@ -27,7 +27,7 @@ const statusTone = (st: string) => {
 export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [agents, setAgents] = useState<PaperclipAgentDto[]>([]);
+  const [agents, setAgents] = useState<HermesBotDto[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -36,10 +36,10 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
     setLoading(true);
     setError(null);
     try {
-      const res = await paperclipService.listAgents();
+      const res = await HermesApi.listAgents();
       setAgents(res.agents || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar os agentes do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar os agentes do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
       if (!q) return true;
       return (
         ag.name.toLowerCase().includes(q) ||
-        ag.role.toLowerCase().includes(q) ||
+        (ag.role || '').toLowerCase().includes(q) ||
         (ag.title || '').toLowerCase().includes(q) ||
         (ag.capabilities || []).some((c) => c.toLowerCase().includes(q))
       );
@@ -66,24 +66,17 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
   const handleAction = useCallback(async (agentId: string, action: string) => {
     setBusy((prev) => ({ ...prev, [agentId]: true }));
     try {
-      if (action === 'wakeup') await paperclipService.wakeupAgent(agentId);
-      else if (action === 'heartbeat') await paperclipService.invokeHeartbeat(agentId);
-      else if (action === 'pause') await paperclipService.pauseAgent(agentId);
-      else if (action === 'resume') await paperclipService.resumeAgent(agentId);
-      await load();
-      onToast(`Ação ${action} enviada ao Paperclip.`);
+      if (action === 'chat') {
+        onNavigate(`ia-chat:agent:${agentId}`);
+        return;
+      }
+      onToast(`Ação "${action}" não disponível via REST do Hermes. Use o terminal Hermes.`);
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Paperclip recusou a operação no agente.');
+      onToast(err instanceof Error ? err.message : 'Falha ao executar ação no agente.');
     } finally {
       setBusy((prev) => ({ ...prev, [agentId]: false }));
     }
-  }, [load, onToast]);
-
-  const consumption = (ag: PaperclipAgentDto) => {
-    const spent = typeof ag.spentMonthlyCents === 'number' ? ag.spentMonthlyCents / 100 : 0;
-    const budget = typeof ag.budgetMonthlyCents === 'number' ? ag.budgetMonthlyCents / 100 : null;
-    return budget != null ? `${spent.toFixed(2)} / ${budget.toFixed(2)}` : `${spent.toFixed(2)}`;
-  };
+  }, [load, onNavigate, onToast]);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState title="Não foi possível carregar os agentes" message={error} onRetry={load} />;
@@ -91,7 +84,7 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
     return (
       <EmptyState
         title="Nenhum agente encontrado"
-        description="Ajuste os filtros de busca e status ou alocar agentes diretamente na instância Paperclip conectada."
+        description="Ajuste os filtros de busca e status ou contrate um novo agente operacional Hermes."
         action={
           <button
             type="button"
@@ -116,8 +109,8 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Agentes operacionais (Paperclip)"
-        subtitle="Instâncias ativas governadas pelo Paperclip, separadas do catálogo consultivo Agency Agents."
+        title="Agentes Operacionais (Hermes)"
+        subtitle="Instâncias ativas gerenciadas pelo runtime Hermes, separadas do catálogo consultivo Agency Agents."
         actions={
           <button
             type="button"
@@ -167,7 +160,6 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((ag) => {
-          const isPaused = ag.status.toLowerCase() === 'paused';
           const isBusy = busy[ag.id];
           return (
             <div
@@ -190,8 +182,10 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
                       {(ag.title || ag.name).charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-display text-base font-semibold text-ink truncate">{ag.title || ag.name}</h3>
-                      <p className="text-xs text-ink-subtle truncate">{ag.role || 'Agente Paperclip'}</p>
+                      <h3 className="font-display text-base font-semibold text-ink truncate">
+                        {ag.title || ag.name}
+                      </h3>
+                      <p className="text-xs text-ink-subtle truncate">{ag.role || 'Agente Hermes'}</p>
                     </div>
                   </div>
                   <StatusBadge status={ag.status} size="md" />
@@ -203,12 +197,22 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
                 )}
                 <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-line">
                   <div>
-                    <span className="text-ink-subtle block">Adapter</span>
-                    <span className="font-mono text-ink">{ag.adapterType || '—'}</span>
+                    <span className="text-ink-subtle block">Perfil</span>
+                    <span className="font-mono text-ink">{ag.profileName || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-ink-subtle block">Consumo / Teto (USD)</span>
-                    <span className="font-mono text-ink tabular-nums">{consumption(ag)}</span>
+                    <span className="text-ink-subtle block">Modelo</span>
+                    <span className="font-mono text-ink tabular-nums">{ag.model || '—'}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-line">
+                  <div>
+                    <span className="text-ink-subtle block">Divisão</span>
+                    <span className="font-mono text-ink">{ag.division || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ink-subtle block">Criado em</span>
+                    <span className="font-mono text-ink">{ag.createdAt ? new Date(ag.createdAt).toLocaleDateString('pt-BR') : '—'}</span>
                   </div>
                 </div>
               </div>
@@ -230,36 +234,12 @@ export const AgentsPage: React.FC<AgentsPageProps> = ({ onNavigate, onToast }) =
                     disabled={isBusy}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleAction(ag.id, 'wakeup');
+                      handleAction(ag.id, 'chat');
                     }}
-                    title="Wakeup"
+                    title="Abrir chat com o agente"
                     className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
                   >
                     <Zap className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAction(ag.id, 'heartbeat');
-                    }}
-                    title="Invocar Heartbeat"
-                    className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isBusy}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAction(ag.id, isPaused ? 'resume' : 'pause');
-                    }}
-                    title={isPaused ? 'Retomar agente' : 'Pausar agente'}
-                    className="p-1.5 rounded-lg border border-line-strong text-ink-muted hover:text-ink hover:bg-surface-blue cursor-pointer"
-                  >
-                    {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>

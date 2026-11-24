@@ -103,7 +103,7 @@ export function getCacheStats(): Array<{ key: string; ageMs: number; ttl: number
 export async function fetchHermesJson<T>(
   cmd: string,
   parse: (stdout: string) => T,
-  timeoutMs: number = 5000
+  timeoutMs: number = 15000
 ): Promise<T> {
   const result = await runCommandSafe(cmd, { timeoutMs });
   if (result.error) {
