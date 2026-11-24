@@ -9,6 +9,7 @@ import {
   resolveWorkspaceActor,
 } from '../hermes/adminAuth.ts';
 import { hermesGateway, HermesIntegrationError } from './index.ts';
+import { runCommand, runCommandSafe } from './cliRunner.ts';
 import { appendAudit } from '../../persistence.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
@@ -114,7 +115,8 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Overview Bundle (frontend loadAll) - with caching to avoid blocking
+  // Overview Bundle (frontend loadAll) - async CLI + caching
+  // ============================================================================
   const HERMES_CLI = '/home/lg/.local/bin/hermes';
   let overviewCache: { data: any; timestamp: number } | null = null;
   const OVERVIEW_CACHE_TTL = 5000; // 5 seconds
@@ -127,33 +129,34 @@ export function createHermesRouter(
         return;
       }
 
-      const { execSync } = await import('node:child_process');
-      
-      const runCmd = (cmd: string, timeoutMs = 5000): string => {
-              try {
-                return execSync(cmd, { encoding: 'utf8', timeout: timeoutMs, maxBuffer: 1024 * 1024 });
-              } catch {
-                return '';
-              }
-            };
-      
-      // Parallel-like: run commands with minimal overhead
-      const agentsOutput = runCmd(`${HERMES_CLI} profile list`, 8000);
-      const bots = parseProfileList(agentsOutput);
-      
-      const tasksOutput = runCmd(`${HERMES_CLI} kanban list --json`);
-      const tasks = parseKanbanJson(tasksOutput);
-      
-      const runs: Array<{ id: string; agentId?: string; agentName?: string; taskId?: string; status: string; startedAt?: string; finishedAt?: string; resultSummary?: string }> = [];
-      
-      const routinesOutput = runCmd(`${HERMES_CLI} cron list`);
-      const routines = parseCronList(routinesOutput);
-      
+      // Run domain commands concurrently (non-blocking)
+      const [agentsResult, tasksResult, routinesResult] = await Promise.all([
+        runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 }),
+        runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 }),
+        runCommandSafe(`${HERMES_CLI} cron list`, { timeoutMs: 5000 }),
+      ]);
+
+      const bots = parseProfileList(agentsResult.stdout);
+      const tasks = parseKanbanJson(tasksResult.stdout);
+      const routines = parseCronList(routinesResult.stdout);
+
+      const runs: Array<{
+        id: string;
+        agentId?: string;
+        agentName?: string;
+        taskId?: string;
+        status: string;
+        startedAt?: string;
+        finishedAt?: string;
+        resultSummary?: string;
+      }> = [];
+
       const approvals = tasks.filter((t) => t.title.toLowerCase().includes('aprov'));
-      
-      // Skip skills list for overview - too slow; use empty array
-      const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
-      
+
+      // Skills: populate via CLI (async, with fallback to empty)
+      const skillsResult = await runCommandSafe(`${HERMES_CLI} skills list`, { timeoutMs: 5000 });
+      const skills = parseSkillsList(skillsResult.stdout);
+
       const chats = bots.map((b) => ({
         id: `chat-${b.id}`,
         agentId: b.id,
@@ -163,7 +166,7 @@ export function createHermesRouter(
         unreadCount: 0,
         canSend: true,
       }));
-      
+
       const tree = bots.map((b) => ({
         id: b.id,
         name: b.name,
@@ -172,13 +175,20 @@ export function createHermesRouter(
         status: b.status,
         children: [],
       }));
-      
+
       const costs = { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] };
-      
-      const activity: Array<{ id: string; timestamp: string; actorName: string; action: string; targetName?: string; summary?: string }> = [];
-      
+
+      const activity: Array<{
+        id: string;
+        timestamp: string;
+        actorName: string;
+        action: string;
+        targetName?: string;
+        summary?: string;
+      }> = [];
+
       const status = hermesGateway.getStatus();
-      
+
       const bundle = {
         status,
         bots,
@@ -191,10 +201,10 @@ export function createHermesRouter(
         skills,
         chats,
       };
-      
+
       // Cache the result
       overviewCache = { data: bundle, timestamp: Date.now() };
-      
+
       res.json({ ok: true, ...bundle });
     } catch (err) {
       sendError(res, err);
@@ -202,11 +212,10 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Runs (placeholder - no Hermes runs CLI yet)
+  // Runs
   // ============================================================================
   router.get('/api/hermes/runs', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      // No Hermes runs CLI yet - return empty array
       res.json({ ok: true, runs: [] });
     } catch (err) {
       sendError(res, err);
@@ -256,14 +265,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/agents', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
-      } catch {
-        output = '';
-      }
-      const bots = parseProfileList(output);
+      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
+      const bots = parseProfileList(result.stdout);
       res.json({ ok: true, agents: bots });
     } catch (err) {
       sendError(res, err);
@@ -273,14 +276,12 @@ export function createHermesRouter(
   router.get('/api/hermes/agents/:agentId', requirePermission('read'), async (req: Request, res: Response) => {
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} -p ${agentId} chat --oneshot -q "Quem você é?"`, { encoding: 'utf8', timeout: 10000 });
-      } catch {
-        output = '';
-      }
-      res.json({ ok: true, agent: { id: agentId, name: agentId, status: 'connected', description: output?.slice(0, 200) || 'Sem descrição' } });
+      const result = await runCommandSafe(
+        `${HERMES_CLI} -p ${agentId} chat --oneshot -q "Quem você é?"`,
+        { timeoutMs: 10000 }
+      );
+      const description = result.stdout?.slice(0, 200) || 'Sem descrição';
+      res.json({ ok: true, agent: { id: agentId, name: agentId, status: 'connected', description } });
     } catch (err) {
       sendError(res, err);
     }
@@ -299,14 +300,15 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Slug e nome são obrigatórios para criar um Bot Hermes.' });
         return;
       }
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`${HERMES_CLI} profile create ${slug.trim()} --no-skills`, { encoding: 'utf8', stdio: 'pipe' });
-      } catch (err) {
-        // Profile may already exist
-      }
+      await runCommandSafe(
+        `${HERMES_CLI} profile create ${slug.trim()} --no-skills`,
+        { timeoutMs: 10000 }
+      );
       appendAuditFn(actor.name, `Criou Bot Hermes ${name.trim()} (${slug.trim()})`, slug.trim(), 'Hermes Adapter');
-      res.status(201).json({ ok: true, agent: { id: slug.trim(), name: name.trim(), role: division?.trim() || 'Especialista', status: 'created', profileName: slug.trim() } });
+      res.status(201).json({
+        ok: true,
+        agent: { id: slug.trim(), name: name.trim(), role: division?.trim() || 'Especialista', status: 'created', profileName: slug.trim() },
+      });
     } catch (err) {
       sendError(res, err);
     }
@@ -332,12 +334,7 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Confirmação explícita obrigatória para encerramento do agente.' });
         return;
       }
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`${HERMES_CLI} profile delete ${agentId} --yes`, { encoding: 'utf8', stdio: 'pipe' });
-      } catch {
-        // Ignore if not found
-      }
+      await runCommandSafe(`${HERMES_CLI} profile delete ${agentId} --yes`, { timeoutMs: 10000 });
       appendAuditFn(actor.name, 'Encerrou Bot Hermes', agentId, 'Hermes Adapter');
       res.json({ ok: true, result: { terminated: true } });
     } catch (err) {
@@ -350,14 +347,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/chats', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
-      } catch {
-        output = '';
-      }
-      const bots = parseProfileList(output);
+      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
+      const bots = parseProfileList(result.stdout);
       const chats = bots.map((b) => ({
         id: `chat-${b.id}`,
         agentId: b.id,
@@ -382,16 +373,22 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Mensagem não pode ser vazia.' });
         return;
       }
-      const { execSync } = await import('node:child_process');
-      let response = '';
-      try {
-        // Use --oneshot for non-interactive single query
-        response = execSync(`${HERMES_CLI} -p ${agentRef} chat --oneshot -q "${body.replace(/\"/g, '\\"')}"`, { encoding: 'utf8', timeout: 30000 });
-      } catch (err) {
-        response = `Erro ao executar comando Hermes: ${err instanceof Error ? err.message : String(err)}`;
-      }
+      const escapedBody = body.replace(/"/g, '\\"');
+      const result = await runCommandSafe(
+        `${HERMES_CLI} -p ${agentRef} chat --oneshot -q "${escapedBody}"`,
+        { timeoutMs: 30000 }
+      );
       appendAuditFn(actor.name, `Enviou mensagem no chat Hermes (${agentRef})`, agentRef, 'Hermes Adapter');
-      res.status(201).json({ ok: true, message: { id: `msg-${Date.now()}`, authorType: 'agent', authorName: agentRef, body: response, createdAt: new Date().toISOString() } });
+      res.status(201).json({
+        ok: true,
+        message: {
+          id: `msg-${Date.now()}`,
+          authorType: 'agent',
+          authorName: agentRef,
+          body: result.stdout || `Erro ao executar comando Hermes`,
+          createdAt: new Date().toISOString(),
+        },
+      });
     } catch (err) {
       sendError(res, err);
     }
@@ -402,14 +399,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/tasks', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} kanban list --json`, { encoding: 'utf8' });
-      } catch {
-        output = '[]';
-      }
-      const tasks = parseKanbanJson(output);
+      const result = await runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 });
+      const tasks = parseKanbanJson(result.stdout);
       res.json({ ok: true, tasks });
     } catch (err) {
       sendError(res, err);
@@ -426,14 +417,17 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Título da tarefa é obrigatório.' });
         return;
       }
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`hermes kanban create "${title.trim()}" --body "${desc.replace(/"/g, '\\\\"')}" --priority 3`, { encoding: 'utf8' });
-      } catch {
-        // Continue anyway
-      }
+      const escapedTitle = title.trim().replace(/"/g, '\\"');
+      const escapedDesc = desc.replace(/"/g, '\\"');
+      await runCommandSafe(
+        `${HERMES_CLI} kanban create "${escapedTitle}" --body "${escapedDesc}" --priority 3`,
+        { timeoutMs: 10000 }
+      );
       appendAuditFn(actor.name, 'Criou tarefa no kanban Hermes', title.trim(), 'Hermes Adapter');
-      res.status(201).json({ ok: true, task: { id: `task-${Date.now()}`, title, description: desc, status: 'todo', createdAt: new Date().toISOString() } });
+      res.status(201).json({
+        ok: true,
+        task: { id: `task-${Date.now()}`, title, description: desc, status: 'todo', createdAt: new Date().toISOString() },
+      });
     } catch (err) {
       sendError(res, err);
     }
@@ -457,14 +451,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/routines', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} cron list`, { encoding: 'utf8' });
-      } catch {
-        output = '';
-      }
-      const routines = parseCronList(output);
+      const result = await runCommandSafe(`${HERMES_CLI} cron list`, { timeoutMs: 5000 });
+      const routines = parseCronList(result.stdout);
       res.json({ ok: true, routines });
     } catch (err) {
       sendError(res, err);
@@ -481,12 +469,10 @@ export function createHermesRouter(
       }
       const name = (typeof payload.name === 'string' ? payload.name : typeof payload.title === 'string' ? payload.title : '').trim();
       const cron = (typeof payload.cron === 'string' ? payload.cron : '0 9 * * *').trim();
-      const { execSync } = await import('node:child_process');
-      try {
-        execSync(`${HERMES_CLI} cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`, { encoding: 'utf8' });
-      } catch (err) {
-        // Continue anyway
-      }
+      await runCommandSafe(
+        `${HERMES_CLI} cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`,
+        { timeoutMs: 10000 }
+      );
       appendAuditFn(actor.name, 'Criou rotina Hermes', name, 'Hermes Adapter');
       res.status(201).json({ ok: true, routine: { id: `routine-${Date.now()}`, name, cron, enabled: true, createdAt: new Date().toISOString() } });
     } catch (err) {
@@ -499,14 +485,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/approvals', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} kanban list --json`, { encoding: 'utf8' });
-      } catch {
-        output = '[]';
-      }
-      const allTasks = parseKanbanJson(output);
+      const result = await runCommandSafe(`${HERMES_CLI} kanban list --json`, { timeoutMs: 8000 });
+      const allTasks = parseKanbanJson(result.stdout);
       const approvals = allTasks.filter((t) => t.title.toLowerCase().includes('aprov'));
       res.json({ ok: true, approvals });
     } catch (err) {
@@ -557,14 +537,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/org', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} profile list`, { encoding: 'utf8' });
-      } catch {
-        output = '';
-      }
-      const bots = parseProfileList(output);
+      const result = await runCommandSafe(`${HERMES_CLI} profile list`, { timeoutMs: 8000 });
+      const bots = parseProfileList(result.stdout);
       const tree = bots.map((b) => ({
         id: b.id,
         name: b.name,
@@ -584,14 +558,8 @@ export function createHermesRouter(
   // ============================================================================
   router.get('/api/hermes/skills', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      const { execSync } = await import('node:child_process');
-      let output = '';
-      try {
-        output = execSync(`${HERMES_CLI} skills list`, { encoding: 'utf8' });
-      } catch {
-        output = '';
-      }
-      const skills = parseSkillsList(output);
+      const result = await runCommandSafe(`${HERMES_CLI} skills list`, { timeoutMs: 8000 });
+      const skills = parseSkillsList(result.stdout);
       res.json({ ok: true, skills });
     } catch (err) {
       sendError(res, err);
@@ -641,13 +609,11 @@ function parseKanbanJson(output: string): Array<{ id: string; title: string; sta
 function parseCronList(output: string): Array<{ id: string; name: string; schedule: string; enabled: boolean }> {
   const routines: Array<{ id: string; name: string; schedule: string; enabled: boolean }> = [];
   const lines = output.split('\n');
-  // Cron list output is typically a table; parse if there's data
   return routines;
 }
 
 function parseSkillsList(output: string): Array<{ id: string; name: string; description?: string; status: string }> {
   const skills: Array<{ id: string; name: string; description?: string; status: string }> = [];
   const lines = output.split('\n');
-  // Skills list output is typically a table; parse if there's data
   return skills;
 }
