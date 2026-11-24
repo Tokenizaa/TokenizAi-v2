@@ -259,7 +259,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
-      <aside className={`hidden shrink-0 transition-[width] duration-150 lg:block ${sidebarCollapsed ? 'w-[68px]' : 'w-[296px]'}`}>
+      <aside className={`hidden shrink-0 transition-[width] duration-150 lg:block ${sidebarCollapsed ? 'w-[68px]' : 'w-[320px]'}`}>
         <div className="sticky top-0 h-screen">{renderSidebarBody(sidebarCollapsed)}</div>
       </aside>
 
