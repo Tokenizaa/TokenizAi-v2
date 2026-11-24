@@ -273,7 +273,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/admin/auth/claim', (req: Request, res: Response) => {
     const { password } = req.body as { password?: string };
-    const result = claimAdminPasscode(password || '');
+    const result = claimAdminPasscode(req.headers.authorization, password || '');
     if (!result.ok) {
       res.status(result.status).json({ error: result.error });
       return;

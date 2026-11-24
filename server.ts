@@ -189,7 +189,7 @@ export function buildApp(): express.Application {
       });
       return;
     }
-    const result = issueNonAdminUserSession({
+    const result = issueNonAdminUserSession(req.headers.authorization, {
       id: user.id,
       name: user.name,
       email: user.email,

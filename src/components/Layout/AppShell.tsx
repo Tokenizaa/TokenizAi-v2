@@ -10,8 +10,6 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  ChevronDown,
-  ChevronRight,
   Coins,
   CreditCard,
   FileText,
@@ -127,7 +125,6 @@ export const AppShell: React.FC<AppShellProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([]);
   const currentItem = NAV_ITEMS.find((item) => item.id === activeSection) ?? NAV_ITEMS[0];
   const [expandedGroups, setExpandedGroups] = useState<NavGroup[]>([currentItem.group]);
 
@@ -140,22 +137,6 @@ export const AppShell: React.FC<AppShellProps> = ({
   const toggleGroup = (group: NavGroup) => {
     setExpandedGroups((current) =>
       current.includes(group) ? current.filter((item) => item !== group) : [...current, group],
-    );
-  };
-
-  useEffect(() => {
-    setExpandedGroups((current) =>
-      current.includes(currentItem.group)
-        ? current
-        : [...current, currentItem.group],
-    );
-  }, [activeSection, currentItem.group]);
-
-  const toggleGroup = (group: NavGroup) => {
-    setExpandedGroups((current) =>
-      current.includes(group)
-        ? current.filter((item) => item !== group)
-        : [...current, group],
     );
   };
 

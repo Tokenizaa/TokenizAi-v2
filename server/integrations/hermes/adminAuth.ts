@@ -35,28 +35,6 @@ interface SessionTokenRecord {
   isAdmin: boolean;
 }
 
-const SESSION_SECRET = process.env.TOKENIZAI_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-const TOKEN_TTL_MS = 1000 * 60 * 60 * 8;
-
-let claimedPasscodeHash: { salt: string; hash: string } | null = null;
-const activeTokens = new Map<string, SessionTokenRecord>();
-
-const DEFAULT_ADMIN_ACTOR = {
-  userId: 'usr-01',
-  name: 'Helena Vasconcelos',
-  email: 'helena@tokenizai.com.br',
-  role: 'Diretoria Executiva' as TokenizAiRole,
-};
-
-const DEFAULT_PREVIEW_OPERATOR: WorkspaceActor = {
-  userId: 'usr-02',
-  name: 'Rafael Mendes',
-  email: 'rafael@tokenizai.com.br',
-  role: 'Gestor Operacional',
-  isAdmin: false,
-  authenticated: false,
-};
-
 function hashPasscode(passcode: string, saltHex?: string): { salt: string; hash: string } {
   const salt = saltHex || crypto.randomBytes(16).toString('hex');
   const derived = crypto.scryptSync(passcode, salt, 64).toString('hex');
@@ -73,6 +51,36 @@ function safeEqualStrings(a: string, b: string): boolean {
 function getEnvPasscode(): string {
   return (process.env.TOKENIZAI_ADMIN_PASSCODE || '').trim();
 }
+
+function requireEnvSessionSecret(): string {
+  const secret = process.env.TOKENIZAI_SESSION_SECRET;
+  if (!secret || secret.trim().length === 0) {
+    throw new Error('TOKENIZAI_SESSION_SECRET deve ser definida no ambiente antes de iniciar o servidor.');
+  }
+  return secret.trim();
+}
+
+const SESSION_SECRET = requireEnvSessionSecret();
+const TOKEN_TTL_MS = 1000 * 60 * 60 * 8;
+
+let claimedPasscodeHash: { salt: string; hash: string } | null = null;
+const activeTokens = new Map<string, SessionTokenRecord>();
+
+const DEFAULT_ADMIN_ACTOR = {
+  userId: 'usr-01',
+  name: 'Helena Vasconcelos',
+  email: 'helena@tokenizai.com.br',
+  role: 'Diretoria Executiva' as TokenizAiRole,
+};
+
+const UNAUTHENTICATED_ACTOR: WorkspaceActor = {
+  userId: 'usr-anon',
+  name: 'Visitante não autenticado',
+  email: '',
+  role: 'Auditor' as TokenizAiRole,
+  isAdmin: false,
+  authenticated: false,
+};
 
 function issueToken(identity: {
   userId: string;
@@ -125,7 +133,7 @@ export function resolveWorkspaceActor(req: Request): {
     const record = verifyBearerToken(authHeader);
     if (!record) {
       return {
-        actor: { ...DEFAULT_PREVIEW_OPERATOR, role: 'Auditor', name: 'Não autenticado' },
+        actor: { ...UNAUTHENTICATED_ACTOR, role: 'Auditor', name: 'Não autenticado' },
         invalidToken: true,
       };
     }
@@ -143,13 +151,12 @@ export function resolveWorkspaceActor(req: Request): {
   }
 
   return {
-    actor: { ...DEFAULT_PREVIEW_OPERATOR, role: 'Auditor', name: 'Visitante não autenticado', authenticated: false },
+    actor: { ...UNAUTHENTICATED_ACTOR, role: 'Auditor', name: 'Visitante não autenticado', authenticated: false },
     invalidToken: false,
   };
 }
 
 export function hasPermission(actor: WorkspaceActor, permission: PlatformPermission): boolean {
-  if (permission === 'read') return true;
   if (!actor.authenticated) return false;
   if (actor.isAdmin && actor.role === 'Diretoria Executiva') return true;
 
@@ -221,26 +228,38 @@ export function getAdminAuthStatus(authHeader?: string) {
           isAdmin: record.isAdmin,
         }
       : {
-          userId: DEFAULT_PREVIEW_OPERATOR.userId,
-          name: DEFAULT_PREVIEW_OPERATOR.name,
-          email: DEFAULT_PREVIEW_OPERATOR.email,
-          role: DEFAULT_PREVIEW_OPERATOR.role,
+          userId: UNAUTHENTICATED_ACTOR.userId,
+          name: UNAUTHENTICATED_ACTOR.name,
+          email: UNAUTHENTICATED_ACTOR.email,
+          role: UNAUTHENTICATED_ACTOR.role,
           isAdmin: false,
         },
   };
 }
 
-export function issueNonAdminUserSession(user: {
-  id: string;
-  name: string;
-  email: string;
-  role: TokenizAiRole;
-}): { ok: true; token: string; expiresAt: number; actor: WorkspaceActor } | { ok: false; status: number; error: string } {
+export function issueNonAdminUserSession(
+  authHeader: string | undefined,
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: TokenizAiRole;
+  },
+): { ok: true; token: string; expiresAt: number; actor: WorkspaceActor } | { ok: false; status: number; error: string; code?: string } {
+  if (!verifyAdminBearerToken(authHeader)) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Emissão de sessão para outros usuários exige autenticação administrativa (Diretoria Executiva).',
+      code: 'ADMIN_AUTH_REQUIRED',
+    };
+  }
   if (user.role === 'Diretoria Executiva') {
     return {
       ok: false,
       status: 403,
       error: 'Perfis de Diretoria Executiva exigem autenticação administrativa via senha.',
+      code: 'FORBIDDEN_ROLE',
     };
   }
   const session = issueToken({
@@ -254,8 +273,34 @@ export function issueNonAdminUserSession(user: {
 }
 
 export function claimAdminPasscode(
+  authHeader: string | undefined,
   password: string,
-): { ok: true; token: string; expiresAt: number; actor: WorkspaceActor } | { ok: false; status: number; error: string } {
+): { ok: true; token: string; expiresAt: number; actor: WorkspaceActor } | { ok: false; status: number; error: string; code?: string } {
+  const bootstrapToken = (process.env.TOKENIZAI_BOOTSTRAP_TOKEN || '').trim();
+  if (!bootstrapToken) {
+    return {
+      ok: false,
+      status: 503,
+      error: 'Bootstrap administrativo não configurado. Defina TOKENIZAI_BOOTSTRAP_TOKEN e TOKENIZAI_ADMIN_PASSCODE no ambiente.',
+      code: 'BOOTSTRAP_NOT_CONFIGURED',
+    };
+  }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return {
+      ok: false,
+      status: 401,
+      error: 'Token de bootstrap obrigatório para inicializar a senha administrativa.',
+      code: 'BOOTSTRAP_TOKEN_REQUIRED',
+    };
+  }
+  if (!safeEqualStrings(authHeader.slice(7).trim(), bootstrapToken)) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Token de bootstrap inválido.',
+      code: 'INVALID_BOOTSTRAP_TOKEN',
+    };
+  }
   if (getEnvPasscode().length > 0) {
     return { ok: false, status: 409, error: 'A senha administrativa já está definida via variável de ambiente.' };
   }
