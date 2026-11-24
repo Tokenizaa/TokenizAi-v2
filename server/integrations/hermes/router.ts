@@ -25,6 +25,7 @@ import {
   parseSkillsList,
 } from './domainParsers.ts';
 import { appendAudit, createRun, listRuns, updateRun, createActivity, listActivities } from '../../persistence.ts';
+import type { RunRecord } from '../../../src/types/platform.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -198,7 +199,7 @@ export function createHermesRouter(
         children: [],
       }));
 
-      const costs = { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] };
+      const costs = calculateCostsSummary(runs);
 
       const activities = listActivities(50);
 
@@ -238,11 +239,13 @@ export function createHermesRouter(
   router.post('/api/hermes/runs', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
       const { actor } = resolveWorkspaceActor(req);
-      const { agentId, agentName, taskId, triggerSource } = req.body as {
+      const { agentId, agentName, taskId, triggerSource, costCents, currency } = req.body as {
         agentId?: string;
         agentName?: string;
         taskId?: string;
         triggerSource?: string;
+        costCents?: number;
+        currency?: string;
       };
       const run = createRun({
         agentId,
@@ -251,6 +254,8 @@ export function createHermesRouter(
         status: 'queued',
         triggerSource: triggerSource || 'manual',
         startedAt: new Date().toISOString(),
+        costCents,
+        currency,
       });
       appendAuditFn(actor.name, `Criou run de execução ${run.id}`, run.id, 'Hermes Adapter');
       res.status(201).json({ ok: true, run });
@@ -669,11 +674,46 @@ export function createHermesRouter(
   });
 
   // ============================================================================
-  // Costs
+  // Costs (custos reais agregados dos runs)
   // ============================================================================
   router.get('/api/hermes/costs/summary', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
-      res.json({ ok: true, summary: { totalCostCents: 0, currency: 'BRL', budgetMonthlyCents: null, byAgent: [] } });
+      const runs = listRuns();
+      const byAgentMap = new Map<string, { agentId: string; agentName: string; costCents: number; runsCount: number }>();
+      let totalCostCents = 0;
+      let currency = 'BRL';
+
+      for (const run of runs) {
+        if (run.costCents && run.costCents > 0) {
+          totalCostCents += run.costCents;
+          currency = run.currency || currency;
+          const key = run.agentId || 'unknown';
+          const existing = byAgentMap.get(key);
+          if (existing) {
+            existing.costCents += run.costCents;
+            existing.runsCount += 1;
+          } else {
+            byAgentMap.set(key, {
+              agentId: run.agentId || key,
+              agentName: run.agentName || 'Desconhecido',
+              costCents: run.costCents,
+              runsCount: 1,
+            });
+          }
+        }
+      }
+
+      const byAgent = Array.from(byAgentMap.values()).sort((a, b) => b.costCents - a.costCents);
+
+      res.json({
+        ok: true,
+        summary: {
+          totalCostCents,
+          currency,
+          budgetMonthlyCents: null,
+          byAgent,
+        },
+      });
     } catch (err) {
       sendError(res, err);
     }
@@ -764,4 +804,39 @@ export function createHermesRouter(
   });
 
   return router;
+}
+
+function calculateCostsSummary(runs: RunRecord[]): {
+  totalCostCents: number;
+  currency: string;
+  budgetMonthlyCents: number | null;
+  byAgent: Array<{ agentId: string; agentName: string; costCents: number; runsCount: number }>;
+} {
+  const byAgentMap = new Map<string, { agentId: string; agentName: string; costCents: number; runsCount: number }>();
+  let totalCostCents = 0;
+  let currency = 'BRL';
+
+  for (const run of runs) {
+    if (run.costCents && run.costCents > 0) {
+      totalCostCents += run.costCents;
+      currency = run.currency || currency;
+      const key = run.agentId || 'unknown';
+      const existing = byAgentMap.get(key);
+      if (existing) {
+        existing.costCents += run.costCents;
+        existing.runsCount += 1;
+      } else {
+        byAgentMap.set(key, {
+          agentId: run.agentId || key,
+          agentName: run.agentName || 'Desconhecido',
+          costCents: run.costCents,
+          runsCount: 1,
+        });
+      }
+    }
+  }
+
+  const byAgent = Array.from(byAgentMap.values()).sort((a, b) => b.costCents - a.costCents);
+
+  return { totalCostCents, currency, budgetMonthlyCents: null, byAgent };
 }
