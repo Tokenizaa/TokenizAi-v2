@@ -288,11 +288,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                       {proj.name}
                     </h3>
                     <p className="text-xs text-ink-subtle mt-1 truncate">{proj.clientName}</p>
-                    {(proj.paperclipProjectName || proj.hermesProjectId) && (
+                    {(proj.hermesProjectId) && (
                       <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-accent dark:text-cyan-300">
                         <FolderGit2 className="w-3 h-3" />
                         <span className="truncate">
-                          Hermes: {proj.paperclipProjectName || proj.hermesProjectId}
+                          Hermes: {proj.hermesProjectId}
                         </span>
                       </div>
                     )}
@@ -602,7 +602,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     {editForm.hermesProjectId &&
                       !hermesProjects.some((pp) => pp.id === editForm.hermesProjectId) && (
                         <option value={editForm.hermesProjectId}>
-                          {selectedProject.paperclipProjectName || editForm.hermesProjectId}
+                          {editForm.hermesProjectId}
                         </option>
                       )}
                   </select>
@@ -679,7 +679,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                   <div className="col-span-2">
                     <div className="text-xs text-ink-subtle">Projeto Operacional Hermes (vínculo opcional)</div>
                     <div className="text-xs font-medium text-ink mt-0.5">
-                      {selectedProject.paperclipProjectName || selectedProject.hermesProjectId || 'Nenhum vínculo operacional associado'}
+                      {selectedProject.hermesProjectId || 'Nenhum vínculo operacional associado'}
                     </div>
                   </div>
                 </div>

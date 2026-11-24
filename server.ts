@@ -284,7 +284,7 @@ export function buildApp(): express.Application {
         return;
       }
       const accessToken = data.session.access_token;
-      // Fundador reivindica papel administrativo para ter escrita no Paperclip
+      // Fundador reivindica papel administrativo para escrita empresarial
       const isFounder = email === 'nettoscorp@gmail.com';
       if (isFounder) {
         const client = createSupabaseUserClient(accessToken);
@@ -396,8 +396,6 @@ export function buildApp(): express.Application {
       deliverableId,
       deliverableDone,
       activityNote,
-      paperclipProjectId,
-      paperclipProjectName,
     } = req.body as {
       name?: string;
       ownerName?: string;
@@ -408,8 +406,6 @@ export function buildApp(): express.Application {
       deliverableId?: string;
       deliverableDone?: boolean;
       activityNote?: string;
-      paperclipProjectId?: string | null;
-      paperclipProjectName?: string | null;
     };
 
     let editedDetails = false;
@@ -433,12 +429,6 @@ export function buildApp(): express.Application {
       project.spentBRL = spentBRL;
       editedDetails = true;
     }
-    if (paperclipProjectId !== undefined) {
-      project.paperclipProjectId = paperclipProjectId || undefined;
-      project.paperclipProjectName = paperclipProjectName || undefined;
-      editedDetails = true;
-    }
-
     if (stage && stage !== project.stage) {
       project.stage = stage;
       if (stage === 'Entregue') project.progress = 100;

@@ -68,8 +68,6 @@ export interface ProjectRecord {
   progress: number;
   budgetBRL: number;
   spentBRL: number;
-  paperclipProjectId?: string;
-  paperclipProjectName?: string;
   hermesProjectId?: string;
   deliverables: ProjectDeliverable[];
   activities: ProjectActivity[];
