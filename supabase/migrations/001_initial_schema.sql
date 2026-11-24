@@ -75,6 +75,27 @@ create table if not exists agentes_empresariais (
 );
 
 -- ------------------------------------------------------------
+-- clientes (deve vir antes de projetos por causa da FK)
+-- ------------------------------------------------------------
+create table if not exists clientes (
+  id uuid primary key default uuid_generate_v4(),
+  nome text not null,
+  segmento text,
+  cnpj text,
+  contato_principal text,
+  email text,
+  telefone text,
+  gerente_conta text,
+  status text not null default 'Ativo' check (status in ('Ativo', 'Em Implantação', 'Em Risco', 'Inativo')),
+  mrr_brl numeric(14,2) not null default 0,
+  ltv_brl numeric(14,2) not null default 0,
+  since date,
+  produtos text[] default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- ------------------------------------------------------------
 -- projetos (empresariais)
 -- ------------------------------------------------------------
 create table if not exists projetos (
@@ -119,27 +140,6 @@ create table if not exists atividades_de_projeto (
   data text not null,
   resumo text not null,
   created_at timestamptz not null default now()
-);
-
--- ------------------------------------------------------------
--- clientes
--- ------------------------------------------------------------
-create table if not exists clientes (
-  id uuid primary key default uuid_generate_v4(),
-  nome text not null,
-  segmento text,
-  cnpj text,
-  contato_principal text,
-  email text,
-  telefone text,
-  gerente_conta text,
-  status text not null default 'Ativo' check (status in ('Ativo', 'Em Implantação', 'Em Risco', 'Inativo')),
-  mrr_brl numeric(14,2) not null default 0,
-  ltv_brl numeric(14,2) not null default 0,
-  since date,
-  produtos text[] default '{}',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
 );
 
 -- ------------------------------------------------------------
@@ -444,52 +444,77 @@ alter table costs enable row level security;
 alter table attachments enable row level security;
 
 -- Políticas: leitura autenticada para todas as tabelas empresariais.
--- A escrita e administrada por papel (role) via middleware da aplicacao;
--- aqui restringimos a leitura a usuarios autenticados como base minima.
-create policy if not exists "Leitura autenticada - perfis_empresariais"
-  on perfis_empresariais for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - departamentos"
-  on departamentos for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - agentes_empresariais"
-  on agentes_empresariais for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - projetos"
-  on projetos for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - entregas_de_projeto"
-  on entregas_de_projeto for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - atividades_de_projeto"
-  on atividades_de_projeto for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - clientes"
-  on clientes for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - interacoes_de_cliente"
-  on interacoes_de_cliente for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - negocios"
-  on negocios for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - produtos"
-  on produtos for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - assinaturas"
-  on assinaturas for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - pagamentos_de_assinatura"
-  on pagamentos_de_assinatura for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - lancamentos_financeiros"
-  on lancamentos_financeiros for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - automacoes"
-  on automacoes for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - metas"
-  on metas for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - aprovacoes"
-  on aprovacoes for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - auditoria"
-  on auditoria for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - runs"
-  on runs for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - tasks"
-  on tasks for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - activities"
-  on activities for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - costs"
-  on costs for select to authenticated using (true);
-create policy if not exists "Leitura autenticada - attachments"
-  on attachments for select to authenticated using (true);
+-- A escrita é administrada por papel (role) via middleware da aplicação;
+-- aqui restringimos a leitura a usuários autenticados como base mínima.
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'perfis_empresariais' and policyname = 'Leitura autenticada - perfis_empresariais') then
+    create policy "Leitura autenticada - perfis_empresariais" on perfis_empresariais for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'departamentos' and policyname = 'Leitura autenticada - departamentos') then
+    create policy "Leitura autenticada - departamentos" on departamentos for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'agentes_empresariais' and policyname = 'Leitura autenticada - agentes_empresariais') then
+    create policy "Leitura autenticada - agentes_empresariais" on agentes_empresariais for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'projetos' and policyname = 'Leitura autenticada - projetos') then
+    create policy "Leitura autenticada - projetos" on projetos for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'entregas_de_projeto' and policyname = 'Leitura autenticada - entregas_de_projeto') then
+    create policy "Leitura autenticada - entregas_de_projeto" on entregas_de_projeto for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'atividades_de_projeto' and policyname = 'Leitura autenticada - atividades_de_projeto') then
+    create policy "Leitura autenticada - atividades_de_projeto" on atividades_de_projeto for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'clientes' and policyname = 'Leitura autenticada - clientes') then
+    create policy "Leitura autenticada - clientes" on clientes for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'interacoes_de_cliente' and policyname = 'Leitura autenticada - interacoes_de_cliente') then
+    create policy "Leitura autenticada - interacoes_de_cliente" on interacoes_de_cliente for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'negocios' and policyname = 'Leitura autenticada - negocios') then
+    create policy "Leitura autenticada - negocios" on negocios for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'produtos' and policyname = 'Leitura autenticada - produtos') then
+    create policy "Leitura autenticada - produtos" on produtos for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'assinaturas' and policyname = 'Leitura autenticada - assinaturas') then
+    create policy "Leitura autenticada - assinaturas" on assinaturas for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'pagamentos_de_assinatura' and policyname = 'Leitura autenticada - pagamentos_de_assinatura') then
+    create policy "Leitura autenticada - pagamentos_de_assinatura" on pagamentos_de_assinatura for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'lancamentos_financeiros' and policyname = 'Leitura autenticada - lancamentos_financeiros') then
+    create policy "Leitura autenticada - lancamentos_financeiros" on lancamentos_financeiros for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'automacoes' and policyname = 'Leitura autenticada - automacoes') then
+    create policy "Leitura autenticada - automacoes" on automacoes for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'metas' and policyname = 'Leitura autenticada - metas') then
+    create policy "Leitura autenticada - metas" on metas for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'aprovacoes' and policyname = 'Leitura autenticada - aprovacoes') then
+    create policy "Leitura autenticada - aprovacoes" on aprovacoes for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'auditoria' and policyname = 'Leitura autenticada - auditoria') then
+    create policy "Leitura autenticada - auditoria" on auditoria for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'runs' and policyname = 'Leitura autenticada - runs') then
+    create policy "Leitura autenticada - runs" on runs for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'tasks' and policyname = 'Leitura autenticada - tasks') then
+    create policy "Leitura autenticada - tasks" on tasks for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'activities' and policyname = 'Leitura autenticada - activities') then
+    create policy "Leitura autenticada - activities" on activities for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'costs' and policyname = 'Leitura autenticada - costs') then
+    create policy "Leitura autenticada - costs" on costs for select to authenticated using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'attachments' and policyname = 'Leitura autenticada - attachments') then
+    create policy "Leitura autenticada - attachments" on attachments for select to authenticated using (true);
+  end if;
+end $$;
 
 -- Comentarios para documentacao
 comment on table perfis_empresariais is 'Usuarios e perfis empresariais da TokenizAi.';
