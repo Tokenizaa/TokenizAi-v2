@@ -15,14 +15,13 @@ export type PlatformPermission =
   | 'enterprise:projects:write'
   | 'enterprise:crm:write'
   | 'enterprise:finance:write'
-  | 'paperclip:ops:write';
+  | 'hermes:ops:write';
 
 export interface WorkspaceActor {
   userId: string;
   name: string;
   email: string;
   role: TokenizAiRole;
-  paperclipUserId?: string | null;
   isAdmin: boolean;
   authenticated: boolean;
 }
@@ -33,12 +32,11 @@ interface SessionTokenRecord {
   name: string;
   email: string;
   role: TokenizAiRole;
-  paperclipUserId?: string | null;
   isAdmin: boolean;
 }
 
 const SESSION_SECRET = process.env.TOKENIZAI_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-const TOKEN_TTL_MS = 1000 * 60 * 60 * 8; // 8 hours in memory
+const TOKEN_TTL_MS = 1000 * 60 * 60 * 8;
 
 let claimedPasscodeHash: { salt: string; hash: string } | null = null;
 const activeTokens = new Map<string, SessionTokenRecord>();
@@ -48,7 +46,6 @@ const DEFAULT_ADMIN_ACTOR = {
   name: 'Helena Vasconcelos',
   email: 'helena@tokenizai.com.br',
   role: 'Diretoria Executiva' as TokenizAiRole,
-  paperclipUserId: process.env.PAPERCLIP_ADMIN_USER_ID || null,
 };
 
 const DEFAULT_PREVIEW_OPERATOR: WorkspaceActor = {
@@ -56,7 +53,6 @@ const DEFAULT_PREVIEW_OPERATOR: WorkspaceActor = {
   name: 'Rafael Mendes',
   email: 'rafael@tokenizai.com.br',
   role: 'Gestor Operacional',
-  paperclipUserId: process.env.PAPERCLIP_OPERATOR_USER_ID || null,
   isAdmin: false,
   authenticated: false,
 };
@@ -83,7 +79,6 @@ function issueToken(identity: {
   name: string;
   email: string;
   role: TokenizAiRole;
-  paperclipUserId?: string | null;
   isAdmin: boolean;
 }): { token: string; expiresAt: number; actor: WorkspaceActor } {
   const nonce = crypto.randomBytes(24).toString('hex');
@@ -95,10 +90,7 @@ function issueToken(identity: {
   return {
     token,
     expiresAt,
-    actor: {
-      ...identity,
-      authenticated: true,
-    },
+    actor: { ...identity, authenticated: true },
   };
 }
 
@@ -143,7 +135,6 @@ export function resolveWorkspaceActor(req: Request): {
         name: record.name,
         email: record.email,
         role: record.role,
-        paperclipUserId: record.paperclipUserId ?? null,
         isAdmin: record.isAdmin,
         authenticated: true,
       },
@@ -167,7 +158,7 @@ export function hasPermission(actor: WorkspaceActor, permission: PlatformPermiss
     case 'approvals:decide':
       return actor.isAdmin && actor.role === 'Diretoria Executiva';
     case 'enterprise:projects:write':
-    case 'paperclip:ops:write':
+    case 'hermes:ops:write':
       return actor.isAdmin && actor.role === 'Diretoria Executiva'
         || actor.role === 'Gestor Operacional';
     case 'enterprise:crm:write':

@@ -70,6 +70,7 @@ export interface ProjectRecord {
   spentBRL: number;
   paperclipProjectId?: string;
   paperclipProjectName?: string;
+  hermesProjectId?: string;
   deliverables: ProjectDeliverable[];
   activities: ProjectActivity[];
 }
@@ -197,7 +198,7 @@ export interface AuditLogEntry {
   actor: string;
   action: string;
   target: string;
-  origin: 'Plataforma' | 'Paperclip Proxy' | 'Segurança';
+  origin: 'Plataforma' | 'Hermes Adapter' | 'Segurança';
 }
 
 export interface EnterpriseDataState {
@@ -630,4 +631,203 @@ export interface AgencySpecialist {
   runbook: string[];
   limitations: string[];
   recommendedAdapter: string;
+}
+
+/* Hermes Native Integration Types */
+export type HermesConnectionStatus =
+  | 'not_configured'
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'error';
+
+export interface HermesCapability {
+  key: string;
+  label: string;
+  domain: string;
+  route: string;
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  available: boolean;
+  requiredPermission: string;
+  errorMessage: string | null;
+}
+
+export interface HermesIntegrationStatus {
+  configured: boolean;
+  connected: boolean;
+  availableCapabilities: HermesCapability[];
+  lastError: string | null;
+  connectionStatus: HermesConnectionStatus;
+  connectionLabel: string;
+}
+
+export interface HermesBotDto {
+  id: string;
+  name: string;
+  title?: string;
+  role?: string;
+  profileName?: string;
+  model?: string;
+  division?: string;
+  description?: string;
+  capabilities?: string[];
+  status: string;
+  createdAt?: string;
+  lastActivityAt?: string | null;
+}
+
+export interface HermesChatThreadDto {
+  id: string;
+  agentId: string;
+  agentName: string;
+  agentRole?: string;
+  title?: string;
+  unreadCount?: number;
+  lastMessageAt?: string;
+  lastMessagePreview?: string;
+  canSend?: boolean;
+}
+
+export interface HermesChatMessageDto {
+  id: string;
+  threadId: string;
+  authorType: 'user' | 'agent';
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface HermesTaskDto {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  priority?: string;
+  assigneeAgentId?: string | null;
+  assigneeAgentName?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  parentId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HermesRunDto {
+  id: string;
+  agentId?: string;
+  agentName?: string;
+  taskId?: string;
+  status: string;
+  startedAt?: string;
+  finishedAt?: string;
+  resultSummary?: string;
+  errorMessage?: string | null;
+}
+
+export interface HermesRoutineDto {
+  id: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  agentId?: string | null;
+  cron?: string;
+  lastRunAt?: string | null;
+}
+
+export interface HermesApprovalDto {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  createdAt?: string;
+}
+
+export interface HermesCostSummaryDto {
+  totalCostCents: number;
+  currency: string;
+  budgetMonthlyCents?: number | null;
+}
+
+export interface HermesActivityDto {
+  id: string;
+  timestamp: string;
+  actorName: string;
+  action: string;
+  targetName?: string;
+  summary?: string;
+}
+
+export interface HermesIssueDto {
+  id: string;
+  identifier?: string;
+  title: string;
+  description?: string;
+  status: string;
+  priority?: string;
+  assigneeAgentId?: string | null;
+  assigneeAgentName?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  unresolvedBlockerCount?: number;
+  blockerReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HermesApprovalDto {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  requestedByName?: string | null;
+  requestedByAgentId?: string | null;
+  createdAt?: string;
+}
+
+export interface HermesProjectDto {
+  id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  leadAgentId?: string | null;
+  goalIds?: string[];
+  targetDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HermesGoalDto {
+  id: string;
+  title: string;
+  description?: string;
+  status?: string;
+  level?: string;
+  progressPercent?: number | null;
+  ownerAgentId?: string | null;
+  parentGoalId?: string | null;
+}
+
+export interface HermesSkillDto {
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  status?: string;
+  installedAt?: string | null;
+}
+
+export interface HermesOverviewBundle {
+  status: HermesIntegrationStatus;
+  bots: HermesBotDto[];
+  tasks: HermesTaskDto[];
+  issues: HermesIssueDto[];
+  runs: HermesRunDto[];
+  projects: HermesProjectDto[];
+  goals: HermesGoalDto[];
+  approvals: HermesApprovalDto[];
+  routines: HermesRoutineDto[];
+  costs: HermesCostSummaryDto | null;
+  activity: HermesActivityDto[];
+  chats: HermesChatThreadDto[];
+  skills: HermesSkillDto[];
 }

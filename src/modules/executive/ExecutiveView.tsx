@@ -9,10 +9,10 @@ import {
   Workflow,
 } from 'lucide-react';
 import { PageHeader, StatusText } from '../../components/ui/Primitives';
-import type { NavSectionId, PaperclipOverviewBundle } from '../../types/platform';
+import type { NavSectionId, HermesOverviewBundle } from '../../types/platform';
 
 interface ExecutiveViewProps {
-  paperclip: PaperclipOverviewBundle;
+  hermes: HermesOverviewBundle;
   onNavigate: (section: NavSectionId) => void;
 }
 
@@ -45,34 +45,32 @@ const OWNED_PRODUCTS = [
 ];
 
 export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
-  paperclip,
+  hermes,
   onNavigate,
 }) => {
   const connectionReady =
-    paperclip.status.configured &&
-    paperclip.status.reachable &&
-    paperclip.status.authenticated;
+    hermes.status.configured && hermes.status.connected;
 
   const operationalMetrics = useMemo(() => {
-    const activeAgents = paperclip.agents.filter((agent) =>
+    const activeAgents = hermes.bots.filter((agent) =>
       ['active', 'running', 'idle'].includes(agent.status.toLowerCase()),
     ).length;
-    const openTasks = paperclip.issues.filter(
+    const openTasks = hermes.issues.filter(
       (issue) => !['done', 'completed', 'cancelled', 'canceled'].includes(issue.status.toLowerCase()),
     ).length;
-    const blockedTasks = paperclip.issues.filter(
+    const blockedTasks = hermes.issues.filter(
       (issue) => issue.status === 'blocked' || (issue.unresolvedBlockerCount ?? 0) > 0,
     ).length;
-    const pendingApprovals = paperclip.approvals.filter(
+    const pendingApprovals = hermes.approvals.filter(
       (approval) => approval.status === 'pending',
     ).length;
     return { activeAgents, openTasks, blockedTasks, pendingApprovals };
-  }, [paperclip]);
+  }, [hermes]);
 
   const priorities = useMemo(() => {
     const items: Priority[] = [];
 
-    for (const issue of paperclip.issues) {
+    for (const issue of hermes.issues) {
       if (issue.status === 'blocked' || (issue.unresolvedBlockerCount ?? 0) > 0) {
         items.push({
           id: `blocked-${issue.id}`,
@@ -86,7 +84,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
       }
     }
 
-    for (const approval of paperclip.approvals) {
+    for (const approval of hermes.approvals) {
       if (approval.status === 'pending') {
         items.push({
           id: `approval-${approval.id}`,
@@ -103,7 +101,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
     }
 
     return items.slice(0, 7);
-  }, [paperclip]);
+  }, [hermes]);
 
   return (
     <div className="space-y-7">
@@ -284,8 +282,8 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
           </div>
           <p className="mt-1 text-xs text-ink-muted">
             {connectionReady
-              ? `Conectado a ${paperclip.status.companyName || 'Paperclip'}.`
-              : `Paperclip: ${paperclip.status.connectionLabel}.`}
+              ? `Conectado ao Hermes.`
+              : `Hermes: ${hermes.status.connectionLabel}.`}
           </p>
           <div className="mt-5 space-y-2">
             <button

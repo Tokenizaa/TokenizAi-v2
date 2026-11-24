@@ -25,6 +25,7 @@ import {
 } from '../../components/ui/Primitives';
 import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
 import type {
+  HermesIntegrationStatus,
   NavSectionId,
   PaperclipAgentDto,
   PaperclipOrgNodeDto,
@@ -37,7 +38,7 @@ import {
   PaperclipRoutinesPanel,
 } from './PaperclipGovernancePanels';
 import { PaperclipRunsPanel } from './PaperclipRunsPanel';
-import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { HermesStatusPanel } from './HermesStatusPanel';
 import { PaperclipTasksPanel } from './PaperclipTasksPanel';
 
 export type AiOpsSectionId =
@@ -76,8 +77,9 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
   onToast,
 }) => {
   const { status, agents, issues, runs, projects, goals, approvals, routines, costs } = bundle;
+  const hermesStatus = status as unknown as HermesIntegrationStatus;
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    hermesStatus.configured && hermesStatus.connected;
 
   const [agentSearch, setAgentSearch] = useState('');
   const [agentStatusFilter, setAgentStatusFilter] = useState('all');
@@ -303,9 +305,9 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {/* ======================================================================== */}
       {section === 'ia-visao' && (
         <div className="space-y-6">
-          <PaperclipStatusPanel
-            status={status}
-            title="Conexão & Matriz de Capacidades Paperclip"
+          <HermesStatusPanel
+            status={status as unknown as HermesIntegrationStatus}
+            title="Conexão & Matriz de Capacidades Hermes"
             onRefresh={onRefresh}
             onNavigate={onNavigate}
           />
@@ -507,7 +509,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {/* ======================================================================== */}
       {section === 'ia-chat' && (
         <PaperclipChatPanel
-          status={status}
+          status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           initialAgentRef={chatInitialRef}
           onNavigate={onNavigate}
@@ -522,9 +524,9 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {section === 'ia-agentes' && (
         <>
           {!isConnected ? (
-            <PaperclipStatusPanel
-              status={status}
-              title="Agentes Paperclip"
+            <HermesStatusPanel
+              status={status as unknown as HermesIntegrationStatus}
+              title="Agentes Hermes"
               requiredCapabilities={['agents:read', 'agents:manage']}
               onRefresh={onRefresh}
               onNavigate={onNavigate}
@@ -689,9 +691,9 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {section === 'ia-equipes' && (
         <>
           {!isConnected ? (
-            <PaperclipStatusPanel
-              status={status}
-              title="Equipes & Organograma (Paperclip)"
+            <HermesStatusPanel
+              status={status as unknown as HermesIntegrationStatus}
+              title="Equipes & Organograma Hermes"
               requiredCapabilities={['org:read', 'agents:read']}
               onRefresh={onRefresh}
               onNavigate={onNavigate}
@@ -731,7 +733,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       {/* ======================================================================== */}
       {section === 'ia-tarefas' && (
         <PaperclipTasksPanel
-          status={status}
+          status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           projects={projects}
           goals={goals}
@@ -743,12 +745,12 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       )}
 
       {section === 'ia-execucoes' && (
-        <PaperclipRunsPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+        <PaperclipRunsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {section === 'ia-rotinas' && (
         <PaperclipRoutinesPanel
-          status={status}
+          status={status as unknown as HermesIntegrationStatus}
           agents={agents}
           onNavigate={onNavigate}
           onToast={onToast}
@@ -756,11 +758,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       )}
 
       {section === 'ia-aprovacoes' && (
-        <PaperclipApprovalsPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+        <PaperclipApprovalsPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {section === 'ia-custos' && (
-        <PaperclipCostsAuditPanel status={status} onNavigate={onNavigate} onToast={onToast} />
+        <PaperclipCostsAuditPanel status={status as unknown as HermesIntegrationStatus} onNavigate={onNavigate} onToast={onToast} />
       )}
 
       {/* ======================================================================== */}

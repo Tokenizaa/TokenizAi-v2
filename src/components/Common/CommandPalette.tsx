@@ -3,10 +3,10 @@ import { ArrowRight, Search, X } from 'lucide-react';
 import { AGENCY_SPECIALISTS } from '../../data/agencyCatalog';
 import type {
   EnterpriseDataState,
+  HermesIssueDto,
+  HermesProjectDto,
+  HermesBotDto,
   NavSectionId,
-  PaperclipAgentDto,
-  PaperclipIssueDto,
-  PaperclipProjectDto,
 } from '../../types/platform';
 import { NAV_ITEMS } from '../Layout/AppShell';
 
@@ -14,9 +14,9 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   enterprise: EnterpriseDataState;
-  agents: PaperclipAgentDto[];
-  issues?: PaperclipIssueDto[];
-  projects?: PaperclipProjectDto[];
+  bots: HermesBotDto[];
+  issues?: HermesIssueDto[];
+  projects?: HermesProjectDto[];
   onNavigate: (section: NavSectionId) => void;
 }
 
@@ -31,7 +31,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   open,
   onClose,
   enterprise,
-  agents,
+  bots,
   issues = [],
   projects = [],
   onNavigate,
@@ -99,16 +99,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         }
       }
 
-      for (const ag of agents) {
+      for (const bot of bots) {
         if (
-          ag.name.toLowerCase().includes(q) ||
-          (ag.title || '').toLowerCase().includes(q) ||
-          ag.role.toLowerCase().includes(q)
+          bot.name.toLowerCase().includes(q) ||
+          (bot.title || '').toLowerCase().includes(q) ||
+          bot.role?.toLowerCase().includes(q)
         ) {
           list.push({
-            id: `pc-ag-${ag.id}`,
-            label: ag.title || ag.name,
-            context: `Agente Paperclip · ${ag.role}`,
+            id: `h-bot-${bot.id}`,
+            label: bot.title || bot.name,
+            context: `Agente Hermes · ${bot.role}`,
             section: 'ia-agentes',
           });
         }
@@ -117,23 +117,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       for (const iss of issues) {
         if (
           iss.title.toLowerCase().includes(q) ||
-          (iss.identifier || '').toLowerCase().includes(q)
+          iss.id.toLowerCase().includes(q)
         ) {
           list.push({
-            id: `pc-iss-${iss.id}`,
-            label: iss.identifier ? `${iss.identifier} · ${iss.title}` : iss.title,
-            context: `Task Paperclip · ${iss.status}`,
+            id: `h-iss-${iss.id}`,
+            label: iss.title,
+            context: `Tarefa Hermes · ${iss.status}`,
             section: 'ia-tarefas',
           });
         }
       }
 
-      for (const pcProj of projects) {
-        if (pcProj.name.toLowerCase().includes(q)) {
+      for (const hProj of projects) {
+        if (hProj.name.toLowerCase().includes(q)) {
           list.push({
-            id: `pc-proj-${pcProj.id}`,
-            label: pcProj.name,
-            context: `Projeto Operacional Paperclip · ${pcProj.status || 'Ativo'}`,
+            id: `h-proj-${hProj.id}`,
+            label: hProj.name,
+            context: `Projeto Operacional Hermes · ${hProj.status || 'Ativo'}`,
             section: 'ia-visao',
           });
         }
@@ -152,7 +152,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
 
     return list.slice(0, 12);
-  }, [query, enterprise, agents, issues, projects]);
+  }, [query, enterprise, bots, issues, projects]);
 
   if (!open) return null;
 

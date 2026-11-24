@@ -10,7 +10,7 @@ import {
 import { formatBRL, formatDateBR, PlatformApi } from '../../services/api';
 import type {
   ClientRecord,
-  PaperclipProjectDto,
+  HermesProjectDto,
   ProjectRecord,
   ProjectStage,
 } from '../../types/platform';
@@ -18,7 +18,7 @@ import type {
 interface ProjectsViewProps {
   projects: ProjectRecord[];
   clients: ClientRecord[];
-  paperclipProjects?: PaperclipProjectDto[];
+  hermesProjects?: HermesProjectDto[];
   onRefresh: () => Promise<void>;
   onToast: (msg: string) => void;
   createOpenExternal?: boolean;
@@ -35,7 +35,7 @@ function nextProjectStage(stage: ProjectStage): ProjectStage | null {
 export const ProjectsView: React.FC<ProjectsViewProps> = ({
   projects,
   clients,
-  paperclipProjects = [],
+  hermesProjects = [],
   onRefresh,
   onToast,
   createOpenExternal,
@@ -56,7 +56,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     budgetBRL: '',
     spentBRL: '',
     stage: 'Descoberta' as ProjectStage,
-    paperclipProjectId: '',
+    hermesProjectId: '',
   });
 
   const [newForm, setNewForm] = useState({
@@ -66,6 +66,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     endDate: '2027-01-30',
     budgetBRL: '85000',
     stage: 'Descoberta' as ProjectStage,
+    hermesProjectId: '',
   });
 
   const isCreateOpen = Boolean(createOpenExternal || internalCreateOpen);
@@ -93,7 +94,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       budgetBRL: String(proj.budgetBRL),
       spentBRL: String(proj.spentBRL),
       stage: proj.stage,
-      paperclipProjectId: proj.paperclipProjectId || '',
+      hermesProjectId: proj.hermesProjectId || '',
     });
     setEditMode(startEditing);
   };
@@ -103,7 +104,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
     if (!selectedProject || !editForm.name.trim()) return;
     setSaving(true);
     try {
-      const linkedPc = paperclipProjects.find((p) => p.id === editForm.paperclipProjectId);
+      const linkedPc = hermesProjects.find((p) => p.id === editForm.hermesProjectId);
       await PlatformApi.updateProject(selectedProject.id, {
         name: editForm.name.trim(),
         ownerName: editForm.ownerName.trim(),
@@ -111,8 +112,8 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         budgetBRL: Number(editForm.budgetBRL) || selectedProject.budgetBRL,
         spentBRL: Number(editForm.spentBRL) || 0,
         stage: editForm.stage,
-        paperclipProjectId: editForm.paperclipProjectId || null,
-        paperclipProjectName: linkedPc ? linkedPc.name : editForm.paperclipProjectId ? selectedProject.paperclipProjectName || null : null,
+        hermesProjectId: editForm.hermesProjectId || null,
+        paperclipProjectName: linkedPc ? linkedPc.name : null,
       });
       setEditMode(false);
       await onRefresh();
@@ -224,7 +225,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         }
       />
 
-      {/* Stage Filter Strip for Cards */}
       {viewMode === 'cartoes' && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SegmentedTabs
@@ -245,7 +245,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
       )}
 
-      {/* CARDS VIEW */}
       {viewMode === 'cartoes' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredProjects.map((proj) => {
@@ -289,10 +288,12 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                       {proj.name}
                     </h3>
                     <p className="text-xs text-ink-subtle mt-1 truncate">{proj.clientName}</p>
-                    {(proj.paperclipProjectName || proj.paperclipProjectId) && (
+                    {(proj.paperclipProjectName || proj.hermesProjectId) && (
                       <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-accent dark:text-cyan-300">
                         <FolderGit2 className="w-3 h-3" />
-                        <span className="truncate">Paperclip: {proj.paperclipProjectName || proj.paperclipProjectId}</span>
+                        <span className="truncate">
+                          Hermes: {proj.paperclipProjectName || proj.hermesProjectId}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -366,7 +367,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
       )}
 
-      {/* KANBAN VIEW */}
       {viewMode === 'kanban' && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
           {STAGES.map((stage) => {
@@ -375,7 +375,9 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
               <div key={stage} className="space-y-3">
                 <div className="flex items-center justify-between px-1 pb-2 border-b border-line">
                   <span className="text-xs font-semibold text-ink">{stage}</span>
-                  <span className="text-xs font-mono tabular-nums text-highlight font-semibold">{items.length}</span>
+                  <span className="text-xs font-mono tabular-nums text-highlight font-semibold">
+                    {items.length}
+                  </span>
                 </div>
 
                 <div className="space-y-3">
@@ -389,13 +391,19 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2 text-xs text-ink-subtle">
-                        <span className="font-mono font-semibold text-accent dark:text-cyan-300">{proj.code}</span>
+                        <span className="font-mono font-semibold text-accent dark:text-cyan-300">
+                          {proj.code}
+                        </span>
                         <span className="font-mono tabular-nums text-ink">{proj.progress}%</span>
                       </div>
 
                       <div>
-                        <div className="text-sm font-semibold text-ink leading-snug">{proj.name}</div>
-                        <div className="text-xs text-ink-subtle mt-1 truncate">{proj.clientName}</div>
+                        <div className="text-sm font-semibold text-ink leading-snug">
+                          {proj.name}
+                        </div>
+                        <div className="text-xs text-ink-subtle mt-1 truncate">
+                          {proj.clientName}
+                        </div>
                       </div>
 
                       <div className="w-full h-1.5 rounded-full bg-surface-subtle overflow-hidden">
@@ -416,7 +424,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                       </div>
                     </button>
                   ))}
-
                   {items.length === 0 && (
                     <div className="p-4 rounded-xl border border-dashed border-line text-xs text-ink-subtle text-center">
                       Nenhum projeto neste estágio
@@ -429,7 +436,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
       )}
 
-      {/* CRONOGRAMA VIEW */}
       {viewMode === 'cronograma' && (
         <section className="rounded-2xl nc-card overflow-hidden">
           <div className="grid grid-cols-12 px-6 py-3 border-b border-line bg-surface-subtle/40 text-[11px] font-semibold text-ink-subtle">
@@ -480,7 +486,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </section>
       )}
 
-      {/* PROJECT DETAIL & EDIT DRAWER */}
       <SlideDrawer
         open={Boolean(selectedProject)}
         onClose={() => {
@@ -581,29 +586,29 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-ink-muted mb-1">
-                    Vínculo com Projeto Operacional Paperclip (opcional)
+                    Vínculo com Projeto Operacional Hermes (opcional)
                   </label>
                   <select
-                    value={editForm.paperclipProjectId}
-                    onChange={(e) => setEditForm({ ...editForm, paperclipProjectId: e.target.value })}
+                    value={editForm.hermesProjectId}
+                    onChange={(e) => setEditForm({ ...editForm, hermesProjectId: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-line-strong bg-canvas text-sm text-ink"
                   >
                     <option value="">Sem vínculo operacional</option>
-                    {paperclipProjects.map((pp) => (
+                    {hermesProjects.map((pp) => (
                       <option key={pp.id} value={pp.id}>
                         {pp.name} ({pp.status || 'Ativo'})
                       </option>
                     ))}
-                    {editForm.paperclipProjectId &&
-                      !paperclipProjects.some((pp) => pp.id === editForm.paperclipProjectId) && (
-                        <option value={editForm.paperclipProjectId}>
-                          {selectedProject.paperclipProjectName || editForm.paperclipProjectId}
+                    {editForm.hermesProjectId &&
+                      !hermesProjects.some((pp) => pp.id === editForm.hermesProjectId) && (
+                        <option value={editForm.hermesProjectId}>
+                          {selectedProject.paperclipProjectName || editForm.hermesProjectId}
                         </option>
                       )}
                   </select>
-                  {paperclipProjects.length === 0 && (
+                  {hermesProjects.length === 0 && (
                     <p className="text-[11px] text-ink-subtle mt-1">
-                      Projetos operacionais do Paperclip aparecerão aqui quando a instância estiver conectada.
+                      Projetos operacionais Hermes aparecerão aqui quando a instância estiver conectada.
                     </p>
                   )}
                 </div>
@@ -672,9 +677,9 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <div className="text-xs text-ink-subtle">Projeto Operacional Paperclip (vínculo opcional)</div>
+                    <div className="text-xs text-ink-subtle">Projeto Operacional Hermes (vínculo opcional)</div>
                     <div className="text-xs font-medium text-ink mt-0.5">
-                      {selectedProject.paperclipProjectName || selectedProject.paperclipProjectId || 'Nenhum vínculo operacional associado'}
+                      {selectedProject.paperclipProjectName || selectedProject.hermesProjectId || 'Nenhum vínculo operacional associado'}
                     </div>
                   </div>
                 </div>
@@ -750,7 +755,6 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         )}
       </SlideDrawer>
 
-      {/* CREATE PROJECT DRAWER */}
       <SlideDrawer
         open={isCreateOpen}
         onClose={closeCreate}

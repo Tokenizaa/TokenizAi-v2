@@ -23,6 +23,19 @@ import type {
   PaperclipProjectDto,
   PaperclipRoutineDto,
   PaperclipRunDto,
+  HermesActivityDto,
+  HermesApprovalDto,
+  HermesBotDto,
+  HermesCapability,
+  HermesChatMessageDto,
+  HermesChatThreadDto,
+  HermesConnectionStatus,
+  HermesCostSummaryDto,
+  HermesIntegrationStatus,
+  HermesOverviewBundle,
+  HermesRoutineDto,
+  HermesRunDto,
+  HermesTaskDto,
   ProductCategory,
   ProductRecord,
   ProjectStage,
@@ -151,6 +164,7 @@ export const PlatformApi = {
       activityNote?: string;
       paperclipProjectId?: string | null;
       paperclipProjectName?: string | null;
+      hermesProjectId?: string | null;
     },
   ) =>
     request(`/api/enterprise/projects/${id}`, {
@@ -673,6 +687,144 @@ export const PaperclipApi = {
   getAttention: () =>
     request<{ ok: boolean; attention: PaperclipAttentionDto }>('/api/paperclip/attention'),
 };
+
+export const HermesApi = {
+  getStatus: () =>
+    request<{ ok: boolean; status: HermesIntegrationStatus }>('/api/hermes/status'),
+  refreshConnection: async () =>
+    request<{ ok: boolean; status: HermesIntegrationStatus }>('/api/hermes/refresh', {
+      method: 'POST',
+    }),
+  getOverviewBundle: () =>
+    request<{ ok: boolean } & HermesOverviewBundle>('/api/hermes/overview'),
+
+  // Agents (Bots)
+  listAgents: () =>
+    request<{ ok: boolean; agents: HermesBotDto[] }>('/api/hermes/agents'),
+  getAgent: (agentId: string) =>
+    request<{ ok: boolean; agent: HermesBotDto }>(
+      `/api/hermes/agents/${encodeURIComponent(agentId)}`,
+    ),
+  hireBot: (payload: {
+    slug: string;
+    name: string;
+    division?: string;
+    model?: string;
+  }) =>
+    request<{ ok: boolean; agent: HermesBotDto }>('/api/hermes/agents/hire', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateAgent: (agentId: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; agent: HermesBotDto }>(
+      `/api/hermes/agents/${encodeURIComponent(agentId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    ),
+  deleteAgent: (agentId: string) =>
+    request(`/api/hermes/agents/${encodeURIComponent(agentId)}`, {
+      method: 'DELETE',
+      headers: { 'X-Confirm-Destructive': 'TERMINATE_AGENT' },
+    }),
+
+  // Chats
+  listChats: () =>
+    request<{ ok: boolean; chats: HermesChatThreadDto[] }>('/api/hermes/chats'),
+  sendChatMessage: (agentRef: string, payload: { body: string }) =>
+    request<{ ok: boolean; message: HermesChatMessageDto }>(
+      `/api/hermes/chats/${encodeURIComponent(agentRef)}`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+
+  // Tasks (Kanban)
+  listTasks: () =>
+    request<{ ok: boolean; tasks: HermesTaskDto[] }>('/api/hermes/tasks'),
+  createTask: (payload: {
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    assigneeAgentId?: string;
+    projectId?: string;
+    parentId?: string;
+  }) =>
+    request<{ ok: boolean; task: HermesTaskDto }>('/api/hermes/tasks', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateTask: (taskId: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; task: HermesTaskDto }>(
+      `/api/hermes/tasks/${encodeURIComponent(taskId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) },
+    ),
+
+  // Runs
+  listRuns: () =>
+    request<{ ok: boolean; runs: HermesRunDto[] }>('/api/hermes/runs'),
+
+  // Routines
+  listRoutines: () =>
+    request<{ ok: boolean; routines: HermesRoutineDto[] }>(
+      '/api/hermes/routines',
+    ),
+  createRoutine: (payload: {
+    name: string;
+    description?: string;
+    cron?: string;
+    agentId?: string;
+  }) =>
+    request<{ ok: boolean; routine: HermesRoutineDto }>(
+      '/api/hermes/routines',
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+
+  // Approvals
+  listApprovals: () =>
+    request<{ ok: boolean; approvals: HermesApprovalDto[] }>(
+      '/api/hermes/approvals',
+    ),
+  createApproval: (payload: {
+    title: string;
+    description?: string;
+    reason?: string;
+  }) =>
+    request<{ ok: boolean; approval: HermesApprovalDto }>(
+      '/api/hermes/approvals',
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+
+  // Costs
+  getCostsSummary: () =>
+    request<{ ok: boolean; summary: HermesCostSummaryDto }>(
+      '/api/hermes/costs/summary',
+    ),
+
+  // Activity
+  listActivity: (limit = 50) =>
+    request<{ ok: boolean; activity: HermesActivityDto[] }>(
+      `/api/hermes/activity?limit=${limit}`,
+    ),
+
+  // Org
+  getOrganization: () =>
+    request<{
+      ok: boolean;
+      tree: HermesBotDto[];
+      agents: HermesBotDto[];
+    }>('/api/hermes/org'),
+
+  // Skills
+  getSkills: () =>
+    request<{ ok: boolean; skills: HermesSkillDto[] }>('/api/hermes/skills'),
+};
+
+export interface HermesSkillDto {
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  status?: string;
+  installedAt?: string | null;
+}
 
 export interface BootstrapAdminResult {
   ok: boolean;

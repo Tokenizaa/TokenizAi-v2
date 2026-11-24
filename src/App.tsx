@@ -23,8 +23,8 @@ import { SubscriptionsView } from './modules/subscriptions/SubscriptionsView';
 import { AuthPage } from './pages/AuthPage';
 import { supabase, mapSupabaseUser } from './lib/supabase.ts';
 import { AuthApi } from './services/api.ts';
-import { PaperclipApi, PlatformApi } from './services/api';
-import type { EnterpriseDataState, NavSectionId, PaperclipOverviewBundle } from './types/platform.ts';
+import { HermesApi, PlatformApi } from './services/api';
+import type { EnterpriseDataState, NavSectionId, HermesOverviewBundle } from './types/platform.ts';
 
 import { DashboardPage } from './modules/ai-workforce/pages/DashboardPage';
 import { InboxPage } from './modules/ai-workforce/pages/InboxPage';
@@ -88,7 +88,7 @@ const ENTERPRISE_ROUTES: Record<string, NavSectionId> = {
 interface AppContentProps {
   user: AppUser;
   enterprise: EnterpriseDataState | null;
-  paperclip: PaperclipOverviewBundle | null;
+  hermes: HermesOverviewBundle | null;
   loading: boolean;
   error: string | null;
   isDark: boolean;
@@ -101,7 +101,7 @@ interface AppContentProps {
 function AppContent({
   user,
   enterprise,
-  paperclip,
+  hermes,
   loading,
   error,
   isDark,
@@ -191,12 +191,12 @@ function AppContent({
         </div>
       )}
       <Routes>
-        <Route path="/executivo" element={<ExecutiveView paperclip={paperclip!} onNavigate={handleNavigate} />} />
+        <Route path="/executivo" element={<ExecutiveView hermes={hermes!} onNavigate={handleNavigate} />} />
         <Route path="/projetos" element={
           <ProjectsView
             projects={enterprise?.projects || []}
             clients={enterprise?.clients || []}
-            paperclipProjects={paperclip?.projects || []}
+            hermesProjects={hermes?.projects || []}
             onRefresh={async () => { window.location.reload(); }}
             onToast={showToast}
             createOpenExternal={createProjectModal}
@@ -243,14 +243,14 @@ function AppContent({
             onToast={showToast}
           />
         } />
-        <Route path="/relatorios" element={<ReportsView enterprise={enterprise!} paperclip={paperclip!} onToast={showToast} />} />
+        <Route path="/relatorios" element={<ReportsView enterprise={enterprise!} hermes={hermes!} onToast={showToast} />} />
         <Route path="/biblioteca" element={
-          <AgencyLibraryView paperclip={paperclip!} onRefresh={async () => { window.location.reload(); }} onToast={showToast} />
+          <AgencyLibraryView hermes={hermes!} onRefresh={async () => { window.location.reload(); }} onToast={showToast} />
         } />
         <Route path="/admin" element={
           <AdminView
             enterprise={enterprise!}
-            paperclipStatus={paperclip?.status}
+            hermesStatus={hermes?.status}
             isDark={isDark}
             onToggleTheme={onToggleTheme}
             reducedMotion={reducedMotion}
@@ -326,7 +326,7 @@ function AppContent({
           loc.pathname.startsWith('/ia-')
             ? 'Biblioteca Agency'
             : loc.pathname === '/biblioteca'
-              ? 'Ver Operação Paperclip'
+              ? 'Ver Operação Hermes'
               : 'Novo Projeto'
         }
         onPrimaryAction={() => {}}
@@ -343,9 +343,9 @@ function AppContent({
             open={searchOpen}
             onClose={() => setSearchOpen(false)}
             enterprise={enterprise!}
-            agents={paperclip?.agents || []}
-            issues={paperclip?.issues || []}
-            projects={paperclip?.projects || []}
+            bots={hermes?.bots || []}
+            issues={hermes?.issues || []}
+            projects={hermes?.projects || []}
             onNavigate={handleNavigate}
           />
         )}
@@ -364,7 +364,7 @@ export default function App() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [enterprise, setEnterprise] = useState<EnterpriseDataState | null>(null);
-  const [paperclip, setPaperclip] = useState<PaperclipOverviewBundle | null>(null);
+  const [hermes, setHermes] = useState<HermesOverviewBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -427,22 +427,25 @@ export default function App() {
   const loadAll = useCallback(async () => {
     try {
       setError(null);
-      const [entRes, pcRes] = await Promise.all([
+      const [entRes, hRes] = await Promise.all([
         PlatformApi.getEnterpriseState(),
-        PaperclipApi.getOverviewBundle(),
+        HermesApi.getOverviewBundle(),
       ]);
       setEnterprise(entRes.data);
-      setPaperclip({
-        status: pcRes.status,
-        agents: pcRes.agents || [],
-        issues: pcRes.issues || [],
-        runs: pcRes.runs || [],
-        projects: pcRes.projects || [],
-        goals: pcRes.goals || [],
-        approvals: pcRes.approvals || [],
-        routines: pcRes.routines || [],
-        costs: pcRes.costs || null,
-        activity: pcRes.activity || [],
+      setHermes({
+        status: hRes.status,
+        bots: hRes.bots || [],
+        tasks: hRes.tasks || [],
+        issues: hRes.issues || [],
+        runs: hRes.runs || [],
+        projects: hRes.projects || [],
+        goals: hRes.goals || [],
+        approvals: hRes.approvals || [],
+        routines: hRes.routines || [],
+        costs: hRes.costs || null,
+        activity: hRes.activity || [],
+        chats: hRes.chats || [],
+        skills: hRes.skills || [],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar dados da plataforma.');
@@ -479,7 +482,7 @@ export default function App() {
       <AppContent
         user={user}
         enterprise={enterprise}
-        paperclip={paperclip}
+        hermes={hermes}
         loading={loading}
         error={error}
         isDark={isDark}

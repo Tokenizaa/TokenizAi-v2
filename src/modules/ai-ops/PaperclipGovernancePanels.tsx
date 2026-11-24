@@ -12,6 +12,7 @@ import {
 import { SegmentedTabs, SlideDrawer, StatusText } from '../../components/ui/Primitives';
 import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
 import type {
+  HermesIntegrationStatus,
   NavSectionId,
   PaperclipActivityDto,
   PaperclipAgentDto,
@@ -20,13 +21,13 @@ import type {
   PaperclipIntegrationStatus,
   PaperclipRoutineDto,
 } from '../../types/platform';
-import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { HermesStatusPanel } from './HermesStatusPanel';
 
 /* ============================================================================
  * 1. ROUTINES & TRIGGERS (schedule, webhook, api)
  * ========================================================================== */
 export const PaperclipRoutinesPanel: React.FC<{
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   agents: PaperclipAgentDto[];
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
@@ -45,7 +46,7 @@ export const PaperclipRoutinesPanel: React.FC<{
   });
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const loadRoutines = useCallback(async () => {
     if (!isConnected) return;
@@ -127,7 +128,7 @@ export const PaperclipRoutinesPanel: React.FC<{
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Automações & Rotinas (Paperclip)"
         requiredCapabilities={['routines:read', 'routines:manage']}
@@ -366,7 +367,7 @@ export const PaperclipRoutinesPanel: React.FC<{
  * 2. APPROVALS & GOVERNANCE (Human authority preserved)
  * ========================================================================== */
 export const PaperclipApprovalsPanel: React.FC<{
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }> = ({ status, onNavigate, onToast }) => {
@@ -375,7 +376,7 @@ export const PaperclipApprovalsPanel: React.FC<{
   const [noteById, setNoteById] = useState<Record<string, string>>({});
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const loadApprovals = useCallback(async () => {
     if (!isConnected) return;
@@ -414,7 +415,7 @@ export const PaperclipApprovalsPanel: React.FC<{
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Central de Aprovações & Governança (Paperclip)"
         requiredCapabilities={['approvals:read', 'approvals:manage']}
@@ -516,7 +517,7 @@ export const PaperclipApprovalsPanel: React.FC<{
  * 3. COSTS, ACTIVITY & AUDIT
  * ========================================================================== */
 export const PaperclipCostsAuditPanel: React.FC<{
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }> = ({ status, onNavigate, onToast }) => {
@@ -527,7 +528,7 @@ export const PaperclipCostsAuditPanel: React.FC<{
   const [loading, setLoading] = useState(false);
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const loadAll = useCallback(async () => {
     if (!isConnected) return;
@@ -554,7 +555,7 @@ export const PaperclipCostsAuditPanel: React.FC<{
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Custos, Atividade & Auditoria (Paperclip)"
         requiredCapabilities={['costs:read', 'activity:read']}

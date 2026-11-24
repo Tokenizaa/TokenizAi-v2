@@ -1,10 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 import express, { type Request, type Response } from 'express';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
+import { createClient } from '@supabase/supabase-js';
 import { INITIAL_ENTERPRISE_DATA } from './src/data/enterpriseSeed.ts';
 import type {
   ClientStatus,
@@ -22,9 +24,9 @@ import {
   requirePermission,
   resolveWorkspaceActor,
   type TokenizAiRole,
-} from './server/integrations/paperclip/adminAuth.ts';
-import { paperclipGateway } from './server/integrations/paperclip/index.ts';
-import { createPaperclipRouter } from './server/integrations/paperclip/router.ts';
+} from './server/integrations/hermes/adminAuth.ts';
+import { hermesGateway } from './server/integrations/hermes/index.ts';
+import { createHermesRouter } from './server/integrations/hermes/router.ts';
 import { loadEnterpriseState, saveEnterpriseState } from './server/persistence.ts';
 import {
   authenticate,
@@ -59,7 +61,7 @@ function appendAudit(
   actor: string,
   action: string,
   target: string,
-  origin: 'Plataforma' | 'Paperclip Proxy' | 'Segurança' = 'Plataforma',
+  origin: 'Plataforma' | 'Hermes Adapter' | 'Segurança' = 'Plataforma',
 ) {
   const now = new Date();
   const formatted = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', {
@@ -89,12 +91,12 @@ export function buildApp(): express.Application {
   // Health & Integration Diagnostics (never exposes secrets to browser)
   // ============================================================================
   app.get('/api/health', (_req: Request, res: Response) => {
-    const pcStatus = paperclipGateway.getStatus();
+    const hcStatus = hermesGateway.getStatus();
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       integrations: {
-        paperclip: pcStatus,
+        hermes: hcStatus,
       },
     });
   });
@@ -199,6 +201,41 @@ export function buildApp(): express.Application {
     }
     appendAudit(result.actor.name, `Iniciou sessão operacional como ${result.actor.role}`, user.email, 'Segurança');
     res.status(201).json({ ok: true, token: result.token, expiresAt: result.expiresAt, actor: result.actor });
+  });
+
+  app.post('/api/auth/login-admin', async (req: Request, res: Response) => {
+    const { email, password } = req.body as { email?: string; password?: string };
+    if (!email || !password) {
+      res.status(400).json({ error: 'E-mail e senha são obrigatórios.', code: 'MISSING_CREDENTIALS' });
+      return;
+    }
+    try {
+      const sb = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_ANON_KEY || '');
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error || !data.session?.access_token) {
+        res.status(401).json({ error: 'Credenciais inválidas.', code: 'INVALID_CREDENTIALS' });
+        return;
+      }
+      const accessToken = data.session.access_token;
+      // Fundador reivindica papel administrativo para ter escrita no Paperclip
+      const isFounder = email === 'nettoscorp@gmail.com';
+      if (isFounder) {
+        const client = createSupabaseUserClient(accessToken);
+        const { data: rpcData, error: rpcError } = await client.rpc('claim_initial_platform_admin');
+        if (rpcError) {
+          res.status(403).json({ error: rpcError.message, code: 'BOOTSTRAP_REJECTED' });
+          return;
+        }
+      }
+      res.json({
+        ok: true,
+        token: accessToken,
+        expiresAt: data.session.expires_at ? new Date(data.session.expires_at * 1000).getTime() : Date.now() + 8 * 60 * 60 * 1000,
+        user: { id: data.user.id, email: data.user.email, emailConfirmed: Boolean(data.user.email_confirmed_at) },
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Falha ao autenticar.', code: 'LOGIN_FAILED' });
+    }
   });
 
   app.post('/api/auth/logout', (req: Request, res: Response) => {
@@ -770,7 +807,7 @@ export function buildApp(): express.Application {
     res.json({ ok: true, entry });
   });
 
-  app.patch('/api/enterprise/automations/:id', requirePermission('paperclip:ops:write'), (req: Request, res: Response) => {
+  app.patch('/api/enterprise/automations/:id', requirePermission('hermes:ops:write'), (req: Request, res: Response) => {
     const { actor } = resolveWorkspaceActor(req);
     const flow = enterpriseState.automations.find((a) => a.id === req.params.id);
     if (!flow) {
@@ -785,7 +822,7 @@ export function buildApp(): express.Application {
     res.json({ ok: true, automation: flow });
   });
 
-  app.post('/api/enterprise/automations', requirePermission('paperclip:ops:write'), (req: Request, res: Response) => {
+  app.post('/api/enterprise/automations', requirePermission('hermes:ops:write'), (req: Request, res: Response) => {
     const { actor } = resolveWorkspaceActor(req);
     const { name, trigger, action, targetAgentName } = req.body as {
       name?: string;
@@ -814,9 +851,9 @@ export function buildApp(): express.Application {
   });
 
   // ============================================================================
-  // Paperclip Integration Router (Modular Backend-to-Paperclip Isolation)
+  // Hermes Integration Router (Modular Backend-to-Hermes Integration)
   // ============================================================================
-  app.use(createPaperclipRouter(appendAudit));
+  app.use(createHermesRouter(appendAudit));
 
   return app;
 }
@@ -825,7 +862,7 @@ export function buildApp(): express.Application {
 export const app = buildApp();
 
 async function startServer() {
-  await paperclipGateway.initialize();
+  await hermesGateway.initialize();
 
   const httpServer = http.createServer(app);
 
@@ -849,8 +886,8 @@ async function startServer() {
   }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    const pc = paperclipGateway.getStatus();
-    console.log(`[TokenizAi] Servidor ativo na porta ${PORT} (Paperclip: ${pc.connectionLabel})`);
+    const hc = hermesGateway.getStatus();
+    console.log(`[TokenizAi] Servidor ativo na porta ${PORT} (Hermes: ${hc.connectionLabel})`);
   });
 }
 

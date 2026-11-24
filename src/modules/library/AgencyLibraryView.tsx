@@ -10,18 +10,18 @@ import { AGENCY_SPECIALISTS, SPECIALIST_DIVISIONS } from '../../data/agencyCatal
 import { PaperclipApi } from '../../services/api';
 import type {
   AgencySpecialist,
-  PaperclipOverviewBundle,
+  HermesOverviewBundle,
   SpecialistDivision,
 } from '../../types/platform';
 
 interface AgencyLibraryViewProps {
-  paperclip: PaperclipOverviewBundle;
+  hermes: HermesOverviewBundle;
   onRefresh: () => Promise<void>;
   onToast: (msg: string) => void;
 }
 
 export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
-  paperclip,
+  hermes,
   onRefresh,
   onToast,
 }) => {
@@ -32,28 +32,21 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hiring, setHiring] = useState(false);
 
-  const isConnected =
-    paperclip.status.configured &&
-    paperclip.status.reachable &&
-    paperclip.status.authenticated &&
-    Boolean(paperclip.status.companyId);
+  const isConnected = hermes.status.configured && hermes.status.connected;
 
   const canManageAgents = useMemo(() => {
-    const cap = paperclip.status.availableCapabilities.find((c) => c.key === 'agents:manage');
-    return isConnected && cap?.availableInVersion !== false;
-  }, [isConnected, paperclip.status.availableCapabilities]);
+    const cap = hermes.status.availableCapabilities.find((c) => c.key === 'agents:manage');
+    return isConnected && cap?.available !== false;
+  }, [isConnected, hermes.status.availableCapabilities]);
 
   const allocatedIds = useMemo(() => {
     const set = new Set<string>();
-    for (const ag of paperclip.agents) {
+    for (const ag of hermes.bots) {
       set.add(ag.name.toLowerCase());
       if (ag.title) set.add(ag.title.toLowerCase());
-      const meta = (ag.runtimeConfig?.metadata || {}) as Record<string, unknown>;
-      if (typeof meta.specialistId === 'string') set.add(meta.specialistId);
-      if (typeof meta.slug === 'string') set.add(meta.slug.toLowerCase());
     }
     return set;
-  }, [paperclip.agents]);
+  }, [hermes.bots]);
 
   const isAllocated = (sp: AgencySpecialist) =>
     isConnected &&
@@ -84,7 +77,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
 
   const handleAllocate = async (sp: AgencySpecialist) => {
     if (!canManageAgents) {
-      onToast(`Alocação bloqueada: Paperclip em estado "${paperclip.status.connectionLabel}".`);
+      onToast(`Alocação bloqueada: Paperclip em estado "${hermes.status.connectionLabel}".`);
       return;
     }
     setHiring(true);
@@ -130,12 +123,12 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
             <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-ink">
-                Paperclip: {paperclip.status.connectionLabel}.
+                Paperclip: {hermes.status.connectionLabel}.
               </span>{' '}
               A biblioteca Agency Agents permanece acessível para consulta de perfis e runbooks. A alocação para o runtime operacional exige conexão ativa com o Paperclip.
             </div>
           </div>
-          <StatusText label={paperclip.status.connectionLabel} tone="attention" />
+          <StatusText label={hermes.status.connectionLabel} tone="attention" />
         </div>
       )}
 
@@ -248,7 +241,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                       title={
                         canManageAgents
                           ? 'Criar agente no Paperclip a partir deste blueprint'
-                          : `Requer conexão ativa com o Paperclip (${paperclip.status.connectionLabel})`
+                          : `Requer conexão ativa com o Paperclip (${hermes.status.connectionLabel})`
                       }
                       className="nc-primary-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
                     >
@@ -337,7 +330,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
               className="nc-primary-btn px-5 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
             >
               {!canManageAgents
-                ? `Paperclip offline (${paperclip.status.connectionLabel})`
+                ? `Paperclip offline (${hermes.status.connectionLabel})`
                 : hiring
                   ? 'Alocando...'
                   : 'Alocar especialista no Paperclip'}

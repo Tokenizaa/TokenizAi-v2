@@ -15,6 +15,7 @@ import {
 import { SegmentedTabs, SlideDrawer, StatusText } from '../../components/ui/Primitives';
 import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
 import type {
+  HermesIntegrationStatus,
   NavSectionId,
   PaperclipAgentDto,
   PaperclipAttachmentDto,
@@ -25,10 +26,10 @@ import type {
   PaperclipProjectDto,
   PaperclipRunDto,
 } from '../../types/platform';
-import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { HermesStatusPanel } from './HermesStatusPanel';
 
 interface PaperclipTasksPanelProps {
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   agents: PaperclipAgentDto[];
   projects: PaperclipProjectDto[];
   goals: PaperclipGoalDto[];
@@ -92,7 +93,7 @@ export const PaperclipTasksPanel: React.FC<PaperclipTasksPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const loadIssues = useCallback(async () => {
     if (!isConnected) {
@@ -284,7 +285,7 @@ export const PaperclipTasksPanel: React.FC<PaperclipTasksPanelProps> = ({
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Tasks & Delegações (Issues Paperclip)"
         requiredCapabilities={['issues:read', 'issues:write']}

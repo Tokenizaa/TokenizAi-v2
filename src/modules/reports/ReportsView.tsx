@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import { PageHeader, SegmentedTabs, StatusText } from '../../components/ui/Primitives';
 import { formatBRL, formatCents, formatDateBR } from '../../services/api';
-import type { EnterpriseDataState, PaperclipOverviewBundle } from '../../types/platform';
+import type { EnterpriseDataState, HermesBotDto, HermesOverviewBundle } from '../../types/platform';
 
 interface ReportsViewProps {
   enterprise: EnterpriseDataState;
-  paperclip: PaperclipOverviewBundle;
+  hermes: HermesOverviewBundle;
   onToast: (msg: string) => void;
 }
 
@@ -118,7 +118,7 @@ const REPORT_DEFS: ReportDefinition[] = [
 
 export const ReportsView: React.FC<ReportsViewProps> = ({
   enterprise,
-  paperclip,
+  hermes,
   onToast,
 }) => {
   const [categoryFilter, setCategoryFilter] = useState<ReportCategory>('Todos');
@@ -153,18 +153,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     const activeMrr = enterprise.subscriptions
       .filter((s) => s.status === 'Ativa' || s.status === 'Em Teste')
       .reduce((a, s) => a + s.mrrBRL, 0);
-    const isPcConnected =
-      paperclip.status.configured &&
-      paperclip.status.reachable &&
-      paperclip.status.authenticated &&
-      Boolean(paperclip.status.companyId);
-    const pcCurrency = paperclip.costs?.currency || 'USD';
-    const pcSpentCents =
-      paperclip.costs?.totalCostCents ??
-      paperclip.agents.reduce((a, ag) => a + (ag.spentMonthlyCents ?? 0), 0);
-    const pcBudgetCents =
-      paperclip.costs?.budgetMonthlyCents ??
-      paperclip.agents.reduce((a, ag) => a + (ag.budgetMonthlyCents ?? 0), 0);
+    const isPcConnected = hermes.status.configured && hermes.status.connected;
+    const pcCurrency = hermes.costs?.currency || 'USD';
+    const pcSpentCents = hermes.costs?.totalCostCents ?? 0;
+    const pcBudgetCents = hermes.costs?.budgetMonthlyCents ?? 0;
 
     return {
       'exec-consolidado': { kpiLabel: 'Receita Mensal Equiv.', kpiValue: formatBRL(productMonthly) },
@@ -177,10 +169,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         kpiLabel: isPcConnected ? `Uso Paperclip (${pcCurrency})` : 'Status Paperclip',
         kpiValue: isPcConnected
           ? `${pcBudgetCents > 0 ? Math.round((pcSpentCents / pcBudgetCents) * 100) : 0}% (${formatCents(pcSpentCents, pcCurrency)})`
-          : paperclip.status.connectionLabel,
+          : hermes.status.connectionLabel,
       },
     } satisfies Record<ReportId, { kpiLabel: string; kpiValue: string }>;
-  }, [enterprise, paperclip]);
+  }, [enterprise, hermes]);
 
   const visibleCards = useMemo(() => {
     if (categoryFilter === 'Todos') return REPORT_DEFS;
@@ -337,28 +329,22 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
 
     // ia-orcamento (values stored in native cents from Paperclip without fictional BRL conversion)
-    const roles = ['Todos', ...Array.from(new Set(paperclip.agents.map((a) => a.role)))];
-    const rows = paperclip.agents
-      .filter((a) => subFilter === 'Todos' || a.role === subFilter)
-      .map((a) => {
-        const spentCents =
-          a.spentMonthlyCents ??
-          paperclip.costs?.byAgent?.find((ba) => ba.agentId === a.id)?.costCents ??
-          0;
-        const budgetCents =
-          a.budgetMonthlyCents ??
-          paperclip.costs?.byAgent?.find((ba) => ba.agentId === a.id)?.budgetMonthlyCents ??
-          0;
+    const roles = ['Todos', ...Array.from(new Set(hermes.bots.map((a: HermesBotDto) => a.role)))];
+    const rows = hermes.bots
+      .filter((a: HermesBotDto) => subFilter === 'Todos' || a.role === subFilter)
+      .map((a: HermesBotDto) => {
+        const spentCents = 0;
+        const budgetCents = 0;
         return {
           id: a.id,
           label: a.title || a.name,
-          meta: `${a.role}${a.adapterType ? ` · ${a.adapterType}` : ''}`,
+          meta: `${a.role || ''}`,
           primary: metricMode === 'principal' ? budgetCents : spentCents,
           secondary: spentCents,
           extra: a.status,
         };
       });
-    const pcCurr = paperclip.costs?.currency || 'USD';
+    const pcCurr = hermes.costs?.currency || 'USD';
     return {
       filterOptions: roles,
       primaryLabel:
@@ -366,7 +352,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       secondaryLabel: `Gasto Atual (${pcCurr})`,
       rows,
     };
-  }, [activeReportId, enterprise, paperclip, periodParam, subFilter, metricMode]);
+  }, [activeReportId, enterprise, hermes, periodParam, subFilter, metricMode]);
 
   const handleExportCSV = () => {
     if (activeDef && reportData) {
@@ -417,7 +403,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   // DETAIL REPORT VIEW
   if (activeDef && reportData) {
     const isPaperclipReport = activeDef.id === 'ia-orcamento';
-    const pcCurrency = paperclip.costs?.currency || 'USD';
+    const pcCurrency = hermes.costs?.currency || 'USD';
     const formatMetricValue = (val: number) =>
       isPaperclipReport ? formatCents(val, pcCurrency) : formatBRL(val);
     const maxVal = Math.max(...reportData.rows.map((r) => Math.max(r.primary, r.secondary)), 1);
@@ -566,7 +552,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             {reportData.rows.length === 0 && (
               <div className="py-6 text-center text-xs text-ink-subtle">
                 {isPaperclipReport
-                  ? `Nenhum dado operacional do Paperclip disponível (${paperclip.status.connectionLabel}).`
+                  ? `Nenhum dado operacional do Paperclip disponível (${hermes.status.connectionLabel}).`
                   : 'Nenhum registro encontrado para os filtros selecionados.'}
               </div>
             )}

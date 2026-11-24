@@ -3,14 +3,15 @@ import { Activity, OctagonX, RefreshCw, Terminal } from 'lucide-react';
 import { SlideDrawer, StatusText } from '../../components/ui/Primitives';
 import { formatCents, formatDateTimeBR, PaperclipApi } from '../../services/api';
 import type {
+  HermesIntegrationStatus,
   NavSectionId,
   PaperclipIntegrationStatus,
   PaperclipRunDto,
 } from '../../types/platform';
-import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { HermesStatusPanel } from './HermesStatusPanel';
 
 interface PaperclipRunsPanelProps {
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
 }
@@ -39,10 +40,10 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
   const [cancelling, setCancelling] = useState(false);
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const canCancel = status.availableCapabilities.some(
-    (c) => c.key === 'runs:cancel' && c.availableInVersion !== false && c.authState !== 'forbidden',
+    (c) => c.key === 'runs:cancel' && c.available,
   );
 
   const loadRuns = useCallback(async () => {
@@ -70,9 +71,9 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
     if (!isConnected) return;
     const timer = window.setInterval(() => {
       loadRuns();
-    }, Math.max(5000, status.syncIntervalMs || 15000));
+    }, Math.max(5000, 15000));
     return () => window.clearInterval(timer);
-  }, [isConnected, status.syncIntervalMs, loadRuns]);
+  }, [isConnected, loadRuns]);
 
   const openRunDetail = async (run: PaperclipRunDto) => {
     setSelectedRun(run);
@@ -118,7 +119,7 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Execuções & Heartbeats (Paperclip)"
         requiredCapabilities={['runs:read']}
@@ -132,7 +133,7 @@ export const PaperclipRunsPanel: React.FC<PaperclipRunsPanelProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-ink-subtle">
           Estados oficiais de execução (na fila, em execução, concluída, erro, cancelada, ignorada) sincronizados em intervalo de{' '}
-          <span className="font-mono text-ink">{Math.round((status.syncIntervalMs || 15000) / 1000)}s</span>.
+                    <span className="font-mono text-ink">15s</span>.
         </div>
         <button
           type="button"

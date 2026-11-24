@@ -511,7 +511,7 @@ export const INITIAL_ENTERPRISE_DATA: EnterpriseDataState = {
   ],
 
   auditLogs: [
-    { id: 'log-01', timestamp: '22/11/2026 15:32', actor: 'Rafael Mendes', action: 'Verificação de saúde do proxy Paperclip', target: '/api/paperclip/overview', origin: 'Paperclip Proxy' },
+    { id: 'log-01', timestamp: '22/11/2026 15:32', actor: 'Rafael Mendes', action: 'Verificação de saúde do proxy Hermes', target: '/api/hermes/overview', origin: 'Hermes Adapter' },
     { id: 'log-02', timestamp: '22/11/2026 14:15', actor: 'Helena Vasconcelos', action: 'Atualizou orçamento do projeto PRJ-215', target: 'PRJ-215', origin: 'Plataforma' },
     { id: 'log-03', timestamp: '21/11/2026 18:04', actor: 'Mariana Costa', action: 'Exportou relatório de fluxo de caixa (CSV)', target: 'Relatório Financeiro Nov/26', origin: 'Plataforma' },
     { id: 'log-04', timestamp: '20/11/2026 11:20', actor: 'Sistema RBAC', action: 'Bloqueio de exposição direta de chave no navegador', target: 'Política PAPERCLIP_API_KEY', origin: 'Segurança' },

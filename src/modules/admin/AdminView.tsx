@@ -11,12 +11,12 @@ import { AdminAuthApi, formatDateTimeBR, PaperclipApi, PlatformApi, type Workspa
 import type {
   AuditLogEntry,
   EnterpriseDataState,
-  PaperclipIntegrationStatus,
+  HermesIntegrationStatus,
 } from '../../types/platform';
 
 interface AdminViewProps {
   enterprise: EnterpriseDataState;
-  paperclipStatus?: PaperclipIntegrationStatus;
+  hermesStatus?: HermesIntegrationStatus;
   isDark: boolean;
   onToggleTheme: () => void;
   reducedMotion: boolean;
@@ -27,7 +27,7 @@ interface AdminViewProps {
 
 export const AdminView: React.FC<AdminViewProps> = ({
   enterprise,
-  paperclipStatus,
+  hermesStatus,
   isDark,
   onToggleTheme,
   reducedMotion,
@@ -37,7 +37,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 }) => {
   const [tab, setTab] = useState<'usuarios' | 'integracoes' | 'preferencias' | 'geral' | 'auditoria'>('usuarios');
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
-  const [status, setStatus] = useState<PaperclipIntegrationStatus | null>(paperclipStatus || null);
+  const [status, setStatus] = useState<HermesIntegrationStatus | null>(hermesStatus || null);
   const [adminAuth, setAdminAuth] = useState<{
     envConfigured: boolean;
     claimed: boolean;
@@ -54,7 +54,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         PaperclipApi.getStatus(),
         AdminAuthApi.getStatus(),
       ]);
-      setStatus(pcRes.status);
+      setStatus(pcRes.status as unknown as HermesIntegrationStatus);
       setAdminAuth({
         envConfigured: authRes.envConfigured,
         claimed: authRes.claimed,
@@ -67,8 +67,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   }, [onToast]);
 
   useEffect(() => {
-    if (paperclipStatus) setStatus(paperclipStatus);
-  }, [paperclipStatus]);
+    if (hermesStatus) setStatus(hermesStatus);
+  }, [hermesStatus]);
 
   useEffect(() => {
     loadDiagnostics();
@@ -105,7 +105,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setChecking(true);
     try {
       const res = await PaperclipApi.refreshConnection();
-      setStatus(res.status);
+      setStatus(res.status as unknown as HermesIntegrationStatus);
       await onRefresh();
       onToast(`Diagnóstico Paperclip atualizado (${res.status.connectionLabel}).`);
     } catch (err) {
@@ -145,10 +145,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const statusTone =
     status?.connectionStatus === 'connected'
       ? 'nominal'
-      : status?.connectionStatus === 'partially_available' ||
-          status?.connectionStatus === 'connecting' ||
-          status?.connectionStatus === 'awaiting_credentials' ||
-          status?.connectionStatus === 'not_configured'
+      : status?.connectionStatus === 'connecting' ||
+        status?.connectionStatus === 'not_configured'
         ? 'attention'
         : 'critical';
 
@@ -252,34 +250,34 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   {status?.connectionLabel || 'Consultando...'}
                 </div>
                 <div className="text-[11px] text-ink-subtle mt-0.5">
-                  Host: {status?.host || 'Não definido'}
+                  Conexão: {status?.connected ? 'Ativa' : 'Inativa'}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-ink-subtle">Empresa / Workspace</div>
+                <div className="text-xs text-ink-subtle">Erro</div>
                 <div className="font-medium text-ink mt-1">
-                  {status?.companyName || 'Não vinculada'}
-                </div>
-                <div className="font-mono text-[11px] text-ink-subtle mt-0.5 truncate">
-                  {status?.companyId ? `ID: ${status.companyId}` : 'Aguardando PAPERCLIP_COMPANY_ID'}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-ink-subtle">Versão & OpenAPI</div>
-                <div className="font-medium text-ink mt-1">
-                  {status?.serverVersion || 'Não detectada'}
+                  {status?.lastError || 'Nenhum'}
                 </div>
                 <div className="text-[11px] text-ink-subtle mt-0.5">
-                  {status?.openApiAvailable ? 'OpenAPI /api/openapi.json ativo' : 'OpenAPI indisponível'}
+                  Capacidades: {status?.availableCapabilities.length || 0}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-ink-subtle">Última Sincronização</div>
+                <div className="text-xs text-ink-subtle">Configurado</div>
                 <div className="font-medium text-ink mt-1">
-                  {status?.lastSuccessfulSync ? formatDateTimeBR(status.lastSuccessfulSync) : 'Nunca sincronizado'}
+                  {status?.configured ? 'Sim' : 'Não'}
                 </div>
-                <div className="font-mono text-[11px] text-ink-subtle mt-0.5">
-                  Timeout {status?.requestTimeoutMs || 30000}ms · Sync {status?.syncIntervalMs || 15000}ms
+                <div className="text-[11px] text-ink-subtle mt-0.5">
+                  Conectado: {status?.connected ? 'Sim' : 'Não'}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-ink-subtle">Último Erro</div>
+                <div className="font-medium text-ink mt-1">
+                  {status?.lastError ? 'Sim' : 'Não'}
+                </div>
+                <div className="text-[11px] text-ink-subtle mt-0.5">
+                  Sem métricas de sincronização Hermes
                 </div>
               </div>
             </div>
@@ -389,18 +387,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     </div>
                     <StatusText
                       label={
-                        cap.implementationState === 'implemented'
-                          ? 'Ativo'
-                          : cap.implementationState === 'partial'
-                            ? 'Parcial'
-                            : 'Indisponível'
+                        cap.available !== false ? 'Ativo' : 'Indisponível'
                       }
                       tone={
-                        cap.implementationState === 'implemented'
-                          ? 'nominal'
-                          : cap.implementationState === 'partial'
-                            ? 'attention'
-                            : 'neutral'
+                        cap.available !== false ? 'nominal' : 'neutral'
                       }
                     />
                   </div>

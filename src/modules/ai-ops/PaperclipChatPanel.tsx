@@ -12,6 +12,7 @@ import {
 import { StatusText, UserAvatar } from '../../components/ui/Primitives';
 import { formatDateTimeBR, PaperclipApi } from '../../services/api';
 import type {
+  HermesIntegrationStatus,
   NavSectionId,
   PaperclipAgentDto,
   PaperclipAttachmentDto,
@@ -19,10 +20,10 @@ import type {
   PaperclipCommentDto,
   PaperclipIntegrationStatus,
 } from '../../types/platform';
-import { PaperclipStatusPanel } from './PaperclipStatusPanel';
+import { HermesStatusPanel } from './HermesStatusPanel';
 
 interface PaperclipChatPanelProps {
-  status: PaperclipIntegrationStatus;
+  status: HermesIntegrationStatus;
   agents: PaperclipAgentDto[];
   initialAgentRef?: string | null;
   onNavigate: (sec: NavSectionId) => void;
@@ -53,12 +54,11 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isConnected =
-    status.configured && status.reachable && status.authenticated && Boolean(status.companyId);
+    status.configured && status.connected;
 
   const chatReadCap = status.availableCapabilities.find((c) => c.key === 'agent_chat:read');
   const chatWriteCap = status.availableCapabilities.find((c) => c.key === 'agent_chat:write');
-  const chatUnavailable =
-    chatReadCap?.availableInVersion === false || chatReadCap?.authState === 'forbidden';
+  const chatUnavailable = !chatReadCap?.available;
 
   const loadChats = useCallback(async (silent = false) => {
     if (!isConnected || chatUnavailable) return;
@@ -135,7 +135,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
   // Silent background polling for active conversation & chat list
   useEffect(() => {
     if (!isConnected || chatUnavailable) return;
-    const intervalMs = Math.max(5000, status.syncIntervalMs || 15000);
+    const intervalMs = Math.max(5000, 15000);
     const timer = window.setInterval(() => {
       loadChats(true);
       if (selectedRef) {
@@ -143,7 +143,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
       }
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [isConnected, chatUnavailable, status.syncIntervalMs, selectedRef, loadChats, loadConversation]);
+  }, [isConnected, chatUnavailable, selectedRef, loadChats, loadConversation]);
 
   const conversationList = useMemo(() => {
     const byAgent = new Map<string, PaperclipChatThreadDto>();
@@ -232,7 +232,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
 
   if (!isConnected) {
     return (
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Chat com Agentes (Paperclip Agent Chat)"
         requiredCapabilities={['agent_chat:read', 'agent_chat:write']}
@@ -243,7 +243,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
 
   return (
     <div className="space-y-4">
-      <PaperclipStatusPanel
+      <HermesStatusPanel
         status={status}
         title="Agent Chat Oficial"
         requiredCapabilities={['agent_chat:read', 'agent_chat:write']}
@@ -374,7 +374,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
                   )}
                   <button
                     type="button"
-                    disabled={sending || chatWriteCap?.availableInVersion === false}
+                    disabled={sending || !chatWriteCap?.available}
                     onClick={() => handleSend('/new')}
                     title="Envia /new para iniciar nova sessão oficial no Paperclip"
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-line-strong text-xs font-medium text-ink hover:bg-surface-blue cursor-pointer"
@@ -517,7 +517,7 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
                 <textarea
                   rows={2}
                   value={draft}
-                  disabled={activeThread?.canSend === false || chatWriteCap?.availableInVersion === false}
+                  disabled={activeThread?.canSend === false || !chatWriteCap?.available}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -539,10 +539,10 @@ export const PaperclipChatPanel: React.FC<PaperclipChatPanelProps> = ({
                     sending ||
                     !draft.trim() ||
                     activeThread?.canSend === false ||
-                    chatWriteCap?.availableInVersion === false
+                    chatWriteCap?.available === false
                   }
                   className="nc-primary-btn px-4 py-2.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
+                  >
                   <Send className="w-3.5 h-3.5" />
                   <span>Enviar</span>
                 </button>

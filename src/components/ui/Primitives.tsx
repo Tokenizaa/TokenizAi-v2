@@ -181,10 +181,10 @@ export const DemoNoticeBanner: React.FC<{
     <div className="flex items-start gap-2.5 text-xs text-ink-muted">
       <Info className="w-4 h-4 text-highlight shrink-0 mt-0.5" aria-hidden="true" />
       <div>
-        <span className="font-semibold text-ink">Modo Demonstrativo (Paperclip offline): </span>
+        <span className="font-semibold text-ink">Modo Demonstrativo (Hermes offline): </span>
         <span>
           {reason ||
-            'Nenhuma instância Paperclip conectada no backend. Os agentes e execuções abaixo representam dados demonstrativos isolados.'}
+            'Nenhuma instância Hermes conectada no backend. Os agentes e execuções abaixo representam dados demonstrativos isolados.'}
         </span>
       </div>
     </div>
