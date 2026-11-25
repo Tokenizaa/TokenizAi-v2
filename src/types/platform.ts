@@ -241,25 +241,12 @@ export interface ActivityRecord {
   summary?: string;
 }
 
-/* Paperclip Native Integration Types */
+/* Organizational Governance Types */
 export type DirectorateCode = 'CEO' | 'CCO' | 'CFO' | 'CMO' | 'COO' | 'CPO' | 'CTO';
 
-export type PaperclipConnectionStatus =
-  | 'not_configured'
-  | 'awaiting_credentials'
-  | 'connecting'
-  | 'connected'
-  | 'authenticated_no_company'
-  | 'partially_available'
-  | 'forbidden'
-  | 'instance_unavailable'
-  | 'communication_error'
-  | 'invalid_credentials';
 
-/* --- Novos DTOs para endpoints oficiais do Paperclip ainda não expostos --- */
 
-/* Legacy/Optional helper types kept cleanly if referenced by Agency library */
-/* Agency Agents Library Types */
+/* Agency Agents catalog types */
 export type SpecialistDivision =
   | 'Engenharia de Software'
   | 'Inteligência Artificial & ML'
