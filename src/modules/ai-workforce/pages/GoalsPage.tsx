@@ -29,7 +29,7 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => 
       const res = await hermesService.listGoals();
       setGoals(res.goals || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar as metas do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar as metas operacionais.');
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => 
     return (
       <EmptyState
         title="Nenhuma meta operacional"
-        description="A instância Paperclip conectada não possui metas (goals) cadastradas para esta empresa."
+        description="O runtime Hermes não retornou metas operacionais para esta organização."
       />
     );
   }
@@ -53,8 +53,8 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Metas e objetivos (Paperclip)"
-        subtitle="Acompanhamento de metas operacionais, progresso e relações com projetos do Paperclip."
+        title="Metas e objetivos"
+        subtitle="Acompanhamento de metas operacionais, progresso e relações com projetos utilizados pelos agentes."
         actions={
           <button
             type="button"
@@ -95,7 +95,7 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate, onToast }) => 
       </div>
 
       <p className="text-xs text-ink-subtle">
-        Metas pertencem ao escopo operacional do Paperclip. Para vincular a um projeto empresarial da TokenizAi, use o identificador correspondente.
+        Metas representam objetivos da operação de agentes. Projetos empresariais e seus vínculos permanecem sob governança da TokenizAi.
       </p>
     </div>
   );
