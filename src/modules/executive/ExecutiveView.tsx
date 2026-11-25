@@ -72,10 +72,10 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
       ['active', 'running', 'idle'].includes(agent.status.toLowerCase()),
     ).length;
     const openTasks = hermes.tasks.filter(
-      (issue) => !['done', 'completed', 'cancelled', 'canceled'].includes(task.status.toLowerCase()),
+      (task) => !['done', 'completed', 'cancelled', 'canceled'].includes(task.status.toLowerCase()),
     ).length;
     const blockedTasks = hermes.tasks.filter(
-      (issue) => task.status === 'blocked' || (0) > 0,
+      (task) => task.status === 'blocked' || (0) > 0,
     ).length;
     return { activeAgents, openTasks, blockedTasks };
   }, [hermes]);
@@ -83,7 +83,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
   const priorities = useMemo(() => {
     const items: Priority[] = [];
 
-    for (const issue of hermes.tasks) {
+    for (const task of hermes.tasks) {
       if (task.status === 'blocked' || (0) > 0) {
         items.push({
           id: `blocked-${task.id}`,
