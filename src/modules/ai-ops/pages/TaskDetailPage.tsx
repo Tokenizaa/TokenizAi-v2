@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ListTodo, MessageSquare, Activity, Paperclip, RefreshCw, Share2 } from 'lucide-react';
+import { ListTodo, MessageSquare, Activity, Paperclip as AttachmentIcon, RefreshCw, Share2 } from 'lucide-react';
 import { PageHeader, SegmentedTabs, StatusText } from '../../../components/ui/Primitives';
 import {
   SectionTitle,
@@ -260,7 +260,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
                       <div className="text-[10px] text-ink-muted">{r.status}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono text-ink">{r.costCents != null ? (r.costCents / 100).toFixed(4) : '0'} USD</div>
+                      <div className="font-mono text-ink">{r.costCents != null ? (r.costCents / 100).toFixed(4) : '—'} USD</div>
                       <div className="text-[10px] text-ink-muted">{r.startedAt || '—'}</div>
                     </div>
                   </div>
