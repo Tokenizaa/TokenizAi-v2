@@ -1,6 +1,6 @@
 {
   "name": "TokenizAi",
-  "description": "Plataforma de gestão empresarial, comercial, financeira e operações de IA integradas ao Paperclip.",
+  "description": "Plataforma de gestão empresarial, comercial, financeira e operações de IA integradas diretamente ao Hermes.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
