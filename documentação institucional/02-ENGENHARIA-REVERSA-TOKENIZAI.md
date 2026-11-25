@@ -1,4 +1,6 @@
-# Engenharia Reversa — TokenizAi (Plataforma Atual)
+# Engenharia Reversa — TokenizAi
+
+> **BASELINE HISTÓRICA SUPERADA — 25/11/2026:** Esta auditoria descreve uma versão anterior do TokenizAi, na qual Paperclip aparecia como integração não configurada ou dependência planejada. A migração posterior adotou Hermes diretamente. As recomendações de configurar Paperclip, `PAPERCLIP_ENDPOINT` ou adapters Paperclip estão canceladas. Não usar este documento como retrato do código atual sem reauditoria. (Plataforma Atual)
 
 > **Versão:** 2.0  
 > **Data:** 21 de novembro de 2026  
@@ -252,12 +254,12 @@ Principais tipos definidos (evidenciados):
 | **Frontend Completo** | **17 módulos React funcionais** | `src/modules/`, `App.tsx` | **APROVEITAR** — base sólida |
 | **Persistência** | **AUSENTE** (localStorage + /tmp) | `enterpriseService.ts`, `server.ts:9` | **CRÍTICO** — Implementar PostgreSQL + Drizzle |
 | **Auth/Authorization** | **Apenas Frontend RBAC** | `permissions.ts`, `App.tsx:60` | **CRÍTICO** — Implementar Auth real (Better Auth) |
-| **Camada de Agentes** | **AUSENTE** (apenas UI) | `OperationalAgentsModule`, `AgencyLibraryModule` | **CRÍTICO** — Integrar Paperclip + ACP |
+| **Camada de Agentes** | **AUSENTE** (apenas UI) | `OperationalAgentsModule`, `AgencyLibraryModule` | **CRÍTICO** — Integrar Hermes + Agency Agents |
 | **Reconciliação** | **AUSENTE** | `grep -r "reconcile\|ledger\|hash" src/` → vazio | **CRÍTICO** — Implementar Ledger + 5-state |
 | **Memória Institucional** | **AUSENTE** | `grep -r "vector\|embedding\|rag" src/` → vazio | **ALTO** — Implementar RAG + Vector DB |
 | **CI/CD** | **AUSENTE** | `.github/workflows/` vazio | **ALTO** — Implementar Turbo + Changesets |
 | **Observabilidade** | **AUSENTE** | `grep -r "sentry\|otel\|tracing" src/` → vazio | **ALTO** — Implementar OTel + Sentry |
-| **Paperclip Integration** | **NÃO CONFIGURADO** | `enterpriseSeed.ts:771-778` | **CRÍTICO** — Implementar Adapter |
+| **Paperclip Integration** | **NÃO CONFIGURADO** | `enterpriseSeed.ts:771-778` | **CRÍTICO** — Implementar/validar integração direta com Hermes |
 | **Supabase** | **NÃO CONFIGURADO** | `enterpriseSeed.ts:751-760` | **CRÍTICO** — Configurar Auth + DB |
 | **Gemini AI** | **FUNCIONAL** (server-side) | `server.ts:166-290` | **APROVEITAR** — Base para AI layer |
 
