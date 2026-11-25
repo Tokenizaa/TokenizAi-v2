@@ -36,7 +36,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
       const res = await hermesService.getOrganization();
       setTree(Array.isArray(res.tree) ? res.tree : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar o organograma do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar o organograma do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
                 {node.title || node.name}
               </div>
               <div className="text-xs text-ink-subtle truncate">
-                {node.role || 'Membro Paperclip'}
+                {node.role || 'Membro Hermes'}
                 {node.team ? ` · ${node.team}` : ''}
                 {hasChildren ? ` · ${node.children?.length || 0} subordinado(s)` : ''}
               </div>
@@ -95,7 +95,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
     return (
       <EmptyState
         title="Sem estrutura hierárquica"
-        description="A instância Paperclip conectada não retornou vínculos de organização para esta empresa."
+        description="A instância Hermes conectada não retornou vínculos de organização para esta empresa."
         action={
           <button
             type="button"
@@ -112,8 +112,8 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Organização e equipes (Paperclip)"
-        subtitle="Hierarquia construída dinamicamente a partir dos vínculos reportsTo e endpoint /org do Paperclip."
+        title="Organização e equipes (Hermes)"
+        subtitle="Hierarquia construída dinamicamente a partir dos vínculos reportsTo e endpoint /org do Hermes."
         actions={
           <button
             type="button"
@@ -130,7 +130,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
           <SectionTitle title="Estrutura hierárquica" subtitle={tree.length > 0 ? `Nós mapeados: ${countNodes(tree)}` : undefined} />
           <div className="text-xs text-ink-subtle inline-flex items-center gap-1.5">
             <GitBranch className="w-3.5 h-3.5 text-accent dark:text-cyan-300" />
-            <span>Fonte: endpoint /org da instância Paperclip</span>
+            <span>Fonte: endpoint /org da instância Hermes</span>
           </div>
         </div>
       </CollectionToolbar>
@@ -140,7 +140,7 @@ export const OrganizationPage: React.FC<OrganizationPageProps> = ({ onNavigate, 
       </div>
 
       <p className="text-xs text-ink-subtle">
-        Clique em um agente para abrir seu perfil operacional. A estrutura reflete a cadeia de reporte oficial do Paperclip (não a empresa TokenizAi).
+        Clique em um agente para abrir seu perfil operacional. A estrutura reflete a cadeia de reporte oficial do Hermes (não a empresa TokenizAi).
       </p>
     </div>
   );
