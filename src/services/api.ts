@@ -5,7 +5,6 @@ import type {
   EnterpriseDataState,
   FinanceEntry,
   HermesActivityDto,
-  HermesApprovalDto,
   HermesBotDto,
   HermesCapability,
   HermesChatMessageDto,
@@ -515,21 +514,6 @@ export const HermesApi = {
       { method: 'POST', body: JSON.stringify(payload) },
     ),
 
-  // Approvals
-  listApprovals: () =>
-    request<{ ok: boolean; approvals: HermesApprovalDto[] }>(
-      '/api/hermes/approvals',
-    ),
-  createApproval: (payload: {
-    title: string;
-    description?: string;
-    reason?: string;
-  }) =>
-    request<{ ok: boolean; approval: HermesApprovalDto }>(
-      '/api/hermes/approvals',
-      { method: 'POST', body: JSON.stringify(payload) },
-    ),
-
   // Costs
   getCostsSummary: () =>
     request<{ ok: boolean; summary: HermesCostSummaryDto }>(
@@ -580,23 +564,6 @@ export const HermesApi = {
         body: JSON.stringify(payload),
       },
     ),
-
-  // Approvals (acoes de decisao)
-  approveApproval: (approvalId: string, note?: string) =>
-    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/approve`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-  rejectApproval: (approvalId: string, note?: string) =>
-    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
-  requestApprovalRevision: (approvalId: string, note: string) =>
-    request(`/api/hermes/approvals/${encodeURIComponent(approvalId)}/request-revision`, {
-      method: 'POST',
-      body: JSON.stringify({ note }),
-    }),
 
   // Activity (audit)
   listAgentActionsAudit: (limit = 50) =>
