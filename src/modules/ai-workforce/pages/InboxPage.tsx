@@ -34,7 +34,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
       if (iRes.status === 'fulfilled') setInbox(iRes.value.inbox || []);
       if (aRes.status === 'fulfilled') setAttention(aRes.value.attention || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar a caixa de entrada do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar a caixa de entrada do runtime Hermes.');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
     return (
       <EmptyState
         title="Caixa de entrada vazia"
-        description="Não há itens para atenção nem sinais de atividade na instância Paperclip conectada."
+        description="Não há itens que exijam atenção nem sinais recentes de atividade dos agentes."
       />
     );
   }
@@ -61,8 +61,8 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Inbox / Decisões (Paperclip)"
-        subtitle="Itens que exigem atenção da instância Paperclip, com navegação para o recurso relacionado. Fonte: /companies/{companyId}/inbox/mine e /attention."
+        title="Caixa de entrada / Decisões"
+        subtitle="Itens que exigem atenção na operação dos agentes, com navegação para o recurso relacionado."
         actions={
           <button
             type="button"
@@ -94,7 +94,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
 
       <CollectionToolbar>
         <div className="flex items-center justify-between gap-3 flex-1 min-w-0">
-          <SectionTitle title={`Itens para atenção (${inbox.length})`} subtitle="Fonte: endpoint /companies/{companyId}/inbox/mine da instância Paperclip." />
+          <SectionTitle title={`Itens para atenção (${inbox.length})`} subtitle="Itens retornados pelo serviço de caixa de entrada do Hermes." />
         </div>
       </CollectionToolbar>
 
@@ -141,7 +141,7 @@ export const InboxPage: React.FC<InboxPageProps> = ({ onNavigate, onToast }) => 
       )}
 
       <p className="text-xs text-ink-subtle">
-        O inbox consolida sinais da instância Paperclip. Clique em um item para abrir a tarefa relacionada. Ações de aprovação respeitam as permissões reais da autoridade de aprovador.
+        A caixa de entrada consolida sinais operacionais dos agentes. Clique em um item para abrir a tarefa relacionada. Ações de aprovação respeitam as permissões da autoridade responsável.
       </p>
     </div>
   );
