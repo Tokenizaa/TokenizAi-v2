@@ -1,4 +1,6 @@
-# Engenharia Reversa — Paperclip
+# Engenharia Reversa — Paperclip (ARQUIVO HISTÓRICO)
+
+> **SOMENTE REFERÊNCIA HISTÓRICA — NÃO OPERACIONAL:** Este documento descreve a arquitetura do produto Paperclip analisada em 2026. TokenizAi V2 migrou para Hermes direto. Não instalar, iniciar, acessar ou configurar Paperclip com base neste documento. A porta 3100, os comandos, processos, variáveis, APIs, banco de dados e interfaces descritos abaixo pertencem exclusivamente ao produto Paperclip e não ao TokenizAi V2. A presença deste arquivo no repositório não representa dependência ou autorização de uso.
 
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
