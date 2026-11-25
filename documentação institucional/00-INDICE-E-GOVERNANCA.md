@@ -17,7 +17,7 @@ Este diretório é a **única fonte canônica** de documentação arquitetural e
 
 - Engenharia reversa do **TokenizAi** (plataforma atual) — **v2.0 COM EVIDÊNCIAS REAIS**
 - Engenharia reversa do **Agency Agents** (catálogo de especialistas + metodologia NEXUS) — **v1.0 COM EVIDÊNCIAS REAIS**
-- Engenharia reversa do **Paperclip** (plataforma de orquestração) — **v1.0 COM EVIDÊNCIAS REAIS**
+- Arquivo histórico de engenharia reversa do **Paperclip** (não operacional; não integra o TokenizAi V2)
 - Arquitetura alvo da **NettosCorp Enterprise** (plataforma unificada) — **v1.0 PROPOSTA**
 - Modelo de domínio, roadmap, matriz de aderência, evidências e pendências — **v2.0 ATUALIZADO COM EVIDÊNCIAS REAIS**
 
@@ -31,7 +31,7 @@ Este diretório é a **única fonte canônica** de documentação arquitetural e
 | 01 | `01-VISAO-E-DIRETRIZES.md` | Visão institucional, princípios, diretrizes de produto | ✅ Canônico | 1.0 |
 | 02 | `02-ENGENHARIA-REVERSA-TOKENIZAI.md` | **Auditoria completa com evidências reais** do TokenizAi | ✅ Canônico | **2.0** |
 | 03 | `03-ENGENHARIA-REVERSA-AGENCY-AGENTS.md` | Catálogo, identidades, NEXUS, integração Hermes | ✅ Canônico | 1.0 |
-| 04 | `04-ENGENHARIA-REVERSA-PAPERCLIP.md` | Arquitetura, mecanismos, decisões do Paperclip | ✅ Canônico | 1.0 |
+| 04 | `04-ENGENHARIA-REVERSA-PAPERCLIP.md` | Referência histórica do Paperclip — não operacional | Arquivo histórico | 1.0 |
 | 05 | `05-ARQUITETURA-ALVO.md` | Arquitetura da plataforma unificada NettosCorp Enterprise | ✅ Canônico | 1.0 |
 | 06 | `06-MODELO-DE-DOMINIO.md` | Entidades, relacionamentos, modelo de dados unificado | ✅ Canônico | 1.0 |
 | 07 | `07-COMUNICACAO-E-ORQUESTRACAO-DE-EQUIPES.md` | Chat, equipes, delegação, handoffs, orquestração | ✅ Canônico | 1.0 |
