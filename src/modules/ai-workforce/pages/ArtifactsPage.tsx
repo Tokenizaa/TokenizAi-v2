@@ -28,7 +28,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
       const res = await hermesService.getArtifacts();
       setArtifacts(res.artifacts || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar os artefatos do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar os artefatos disponibilizados aos agentes.');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
     return (
       <EmptyState
         title="Nenhum artefato encontrado"
-        description="A instância Paperclip conectada não retornou artefatos para esta empresa."
+        description="O runtime Hermes não retornou artefatos para esta organização."
       />
     );
   }
@@ -52,7 +52,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Artefatos e anexos (Paperclip)"
+        title="Artefatos e anexos"
         subtitle="Biblioteca de artefatos da empresa, com navegação e acesso conforme permissões da instância. Fonte: /companies/{companyId}/artifacts."
         actions={
           <button
@@ -67,7 +67,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
 
       <CollectionToolbar>
         <div className="flex items-center justify-between gap-3 flex-1 min-w-0">
-          <SectionTitle title={`Artefatos (${artifacts.length})`} subtitle="Biblioteca de artefatos da empresa no Paperclip." />
+          <SectionTitle title={`Artefatos (${artifacts.length})`} subtitle="Artefatos disponibilizados à operação dos agentes." />
         </div>
       </CollectionToolbar>
 
@@ -108,7 +108,7 @@ export const ArtifactsPage: React.FC<ArtifactsPageProps> = ({ onNavigate, onToas
       </div>
 
       <p className="text-xs text-ink-subtle">
-        Os arquivos são servidos pelo backend da TokenizAi como proxy do Paperclip. Nenhuma credencial é exposta ao navegador.
+        Os arquivos são disponibilizados pelo backend da TokenizAi conforme as permissões aplicáveis. Nenhuma credencial é exposta ao navegador.
       </p>
     </div>
   );
