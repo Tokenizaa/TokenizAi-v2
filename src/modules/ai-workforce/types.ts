@@ -4,7 +4,6 @@ import type {
   HermesProjectDto,
   HermesGoalDto,
   HermesRoutineDto,
-  HermesApprovalDto,
   HermesActivityDto,
   HermesCostSummaryDto,
   HermesChatThreadDto,
