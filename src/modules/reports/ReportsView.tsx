@@ -154,7 +154,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       .filter((s) => s.status === 'Ativa' || s.status === 'Em Teste')
       .reduce((a, s) => a + s.mrrBRL, 0);
     const isHermesConnected = hermes.status.configured && hermes.status.connected;
-    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
+    const runtimeCurrency = hermes.costs?.currency;
     const runtimeSpentCents = hermes.costs?.totalCostCents;
 
     return {
@@ -170,7 +170,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           ? hermes.status.connectionLabel
           : runtimeSpentCents == null
             ? 'Não reportado'
-            : `${formatCents(runtimeSpentCents, runtimeCurrency)}${hermes.costs?.budgetMonthlyCents != null && hermes.costs.budgetMonthlyCents > 0 ? ` · ${Math.round((runtimeSpentCents / hermes.costs.budgetMonthlyCents) * 100)}% do orçamento` : ''}`, 
+            : `${runtimeCurrency ? formatCents(runtimeSpentCents, runtimeCurrency) : `${runtimeSpentCents} centavos (moeda não informada)`}${hermes.costs?.budgetMonthlyCents != null && hermes.costs.budgetMonthlyCents > 0 ? ` · ${Math.round((runtimeSpentCents / hermes.costs.budgetMonthlyCents) * 100)}% do orçamento` : ''}`,  
       },
     } satisfies Record<ReportId, { kpiLabel: string; kpiValue: string }>;
   }, [enterprise, hermes]);
@@ -342,10 +342,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         secondary: item.runsCount ?? 0,
         extra: `${item.runsCount ?? '—'} execução(ões)`,
       }));
-    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
+    const runtimeCurrency = hermes.costs?.currency;
     return {
       filterOptions: agentNames,
-      primaryLabel: `Consumo apurado (${runtimeCurrency})`,
+      primaryLabel: `Consumo apurado (${runtimeCurrency || 'moeda não informada'})`,
       secondaryLabel: 'Execuções',
       rows,
     };
@@ -400,9 +400,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   // DETAIL REPORT VIEW
   if (activeDef && reportData) {
     const isHermesCostReport = activeDef.id === 'ia-orcamento';
-    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
+    const runtimeCurrency = hermes.costs?.currency;
     const formatMetricValue = (val: number) =>
-      isHermesCostReport ? formatCents(val, runtimeCurrency) : formatBRL(val);
+      isHermesCostReport
+        ? runtimeCurrency ? formatCents(val, runtimeCurrency) : 'Não reportado'
+        : formatBRL(val);
     const formatSecondaryValue = (val: number) =>
       isHermesCostReport ? new Intl.NumberFormat('pt-BR').format(val) : formatMetricValue(val);
     const maxVal = Math.max(...reportData.rows.map((r) => Math.max(r.primary, r.secondary)), 1);
@@ -491,9 +493,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-ink-subtle">{reportData.secondaryLabel}</div>
+              <div className="text-[11px] text-ink-subtle">{isHermesCostReport ? 'Execuções (quando reportadas)' : reportData.secondaryLabel}</div>
               <div className="font-display text-lg font-semibold font-mono tabular-nums text-highlight">
-                {formatSecondaryValue(totalSecondary)}
+                {isHermesCostReport ? new Intl.NumberFormat('pt-BR').format(totalSecondary) : formatSecondaryValue(totalSecondary)}
               </div>
             </div>
           </div>
@@ -507,7 +509,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 Distribuição Comparativa
               </h2>
               <p className="text-xs text-ink-subtle">
-                {reportData.primaryLabel} versus {reportData.secondaryLabel} ({reportData.rows.length} registros)
+                {isHermesCostReport ? `${reportData.rows.length} agentes com dados de custo reportados` : `${reportData.primaryLabel} versus ${reportData.secondaryLabel} (${reportData.rows.length} registros)`}
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs text-ink-muted">
@@ -529,7 +531,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <span className="font-medium text-ink truncate">{row.label}</span>
                   <span className="font-mono tabular-nums text-ink-muted shrink-0">
                     {formatMetricValue(row.primary)}{' '}
-                    <span className="text-ink-subtle">/ {formatSecondaryValue(row.secondary)}</span>
+                    {!isHermesCostReport && <span className="text-ink-subtle">/ {formatSecondaryValue(row.secondary)}</span>}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -539,12 +541,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       style={{ width: `${Math.max(3, (row.primary / maxVal) * 100)}%` }}
                     />
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-surface-subtle/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-amber-500 dark:bg-amber-400 transition-all"
-                      style={{ width: `${Math.max(2, (row.secondary / maxVal) * 100)}%` }}
-                    />
-                  </div>
+                  {!isHermesCostReport && (
+                    <div className="h-1.5 w-full rounded-full bg-surface-subtle/60 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-500 dark:bg-amber-400 transition-all"
+                        style={{ width: `${Math.max(2, (row.secondary / maxVal) * 100)}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -567,7 +571,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <th className="py-3 px-6">Item</th>
                   <th className="py-3 px-4">Contexto</th>
                   <th className="py-3 px-4 text-right">{reportData.primaryLabel}</th>
-                  <th className="py-3 px-4 text-right">{reportData.secondaryLabel}</th>
+                  {!isHermesCostReport && <th className="py-3 px-4 text-right">{reportData.secondaryLabel}</th>}
                   <th className="py-3 px-6 text-right">Indicador</th>
                 </tr>
               </thead>
@@ -579,9 +583,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     <td className="py-3.5 px-4 text-right font-mono text-xs font-semibold tabular-nums text-ink">
                       {formatMetricValue(row.primary)}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-xs tabular-nums text-ink-muted">
-                      {formatSecondaryValue(row.secondary)}
-                    </td>
+                    {!isHermesCostReport && (
+                      <td className="py-3.5 px-4 text-right font-mono text-xs tabular-nums text-ink-muted">
+                        {formatSecondaryValue(row.secondary)}
+                      </td>
+                    )}
                     <td className="py-3.5 px-6 text-right text-xs text-ink-subtle whitespace-nowrap">
                       {row.extra}
                     </td>
