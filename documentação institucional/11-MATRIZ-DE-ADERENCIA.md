@@ -2,7 +2,7 @@
 
 > **Versão:** 2.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **ATUALIZADA COM EVIDÊNCIAS REAIS** — Baseado em auditoria de código do TokenizAi, Agency Agents, Paperclip  
+> **Status:** **BASELINE HISTÓRICA — NÃO REPRESENTA A ARQUITETURA ATUAL** — Baseado em auditoria de código do TokenizAi, Agency Agents, Paperclip  
 > **Responsável:** Hermes
 
 ---
