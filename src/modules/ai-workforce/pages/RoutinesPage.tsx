@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Clock, RefreshCw, Play } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/Primitives';
 import {
   CollectionToolbar,
@@ -17,7 +17,7 @@ interface RoutinesPageProps {
   onToast: (msg: string) => void;
 }
 
-export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast }) => {
+export const RoutinesPage: React.FC<RoutinesPageProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [routines, setRoutines] = useState<HermesRoutineDto[]>([]);
@@ -38,16 +38,6 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
   useEffect(() => {
     load();
   }, [load]);
-
-  const runManually = async (routineId: string) => {
-    try {
-      await hermesService.runRoutine(routineId);
-      onToast('Rotina executada manualmente no Hermes.');
-      await load();
-    } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Falha ao executar a rotina.');
-    }
-  };
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState title="Não foi possível carregar as rotinas" message={error} onRetry={load} />;
@@ -94,20 +84,13 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
             <div className="flex items-center gap-2">
               <StatusBadge status={routine.enabled === false ? 'paused' : 'active'} size="sm" />
               <StatusBadge status={routine.lastRunStatus || 'desconhecido'} size="sm" />
-              <button
-                type="button"
-                onClick={() => runManually(routine.id)}
-                className="px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
-              >
-                <Play className="w-3.5 h-3.5 mr-1.5" /> Executar
-              </button>
             </div>
           </div>
         ))}
       </div>
 
       <p className="text-xs text-ink-subtle">
-        A execução manual de rotinas é uma operação de escrita sobre o Hermes. Gatilhos e agendamentos são gerenciados diretamente na instância operacional.
+        A execução manual e a gestão de gatilhos ainda não estão disponíveis no contrato conectado do Hermes.
       </p>
     </div>
   );
