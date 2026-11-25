@@ -115,8 +115,8 @@
 | **P1-05 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | Não configurar; integração substituída por Hermes | Migração Hermes |
 | **P1-06** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Fase 0 |
 | **P1-07** | Adapters + MCP packages (14) | — | — | Publicar 12 adapters ACP + MCP server/gateway | Fase 2 |
-| **P1-08** | Catalog Sync Pipeline (AA → Paperclip) | — | — | GitHub webhook → Paperclip Skill Catalog | Fase 6 |
-| **P1-09** | Agent Hire Flow (`hireAgent(slug)`) | — | — | AA corpus → Paperclip agent provisioning | Fase 7 |
+| **P1-08 (SUBSTITUÍDO)** | Catalog Sync Pipeline (Agency Agents → TokenizAi/Hermes) | — | — | Definir e validar integração pelo catálogo próprio e Hermes | Roadmap Hermes |
+| **P1-09 (SUBSTITUÍDO)** | Agent Provisioning (`hireAgent(slug)`) | — | — | Provisionamento controlado pelo TokenizAi e runtime Hermes | Roadmap Hermes |
 
 ---
 
@@ -157,12 +157,12 @@
 |---------|--------|---------------------|---------|
 | **Vector DB** | pgvector (PG) vs Pinecone vs Weaviate | **pgvector** (unified PG, custo zero) | Baixo custo, unified stack |
 | **Knowledge Graph** | Apache Age (PG extension) vs Neo4j | **Apache Age** (unified PG) | Baixo custo, unified stack |
-| **Workflow Engine** | Paperclip routines + NEXUS vs Temporal vs custom | **Paperclip + NEXUS** (reutilização) | Reutiliza código existente |
+| **Workflow Engine** | Hermes + NEXUS vs Temporal vs custom | **Hermes + NEXUS** (integração direta; workflows próprios) | Reutiliza código existente |
 | **API Gateway** | Cloudflare Workers (atual) vs Kong vs custom | **Cloudflare Workers** (já em TokenizAi) | Aproveita infra atual |
-| **Secrets** | 1Password (Paperclip) vs Vault vs AWS Secrets | **1Password** (já integrado) | Aproveita integração atual |
-| **Frontend Framework** | React 19 (Paperclip) vs Svelte 5 (TokenizAi/AA) | **React 19** (Paperclip base) | Migração TokenizAi necessária |
-| **Package Manager** | pnpm (Paperclip/AA) vs Bun (TokenizAi) | **pnpm** (monorepo standard) | Migração TokenizAi necessária |
-| **Monorepo Structure** | Single package (TokenizAi) vs 27 packages (Paperclip) | **pnpm workspace** (Paperclip model) | Reestruturação TokenizAi |
+| **Secrets** | 1Password vs Vault vs AWS Secrets | **1Password** (já integrado) | Aproveita integração atual |
+| **Frontend Framework** | React 19 (TokenizAi atual) vs Svelte 5 (Agency Agents) | **React 19** (stack atual do TokenizAi) | Migração TokenizAi necessária |
+| **Package Manager** | pnpm (Agency Agents) vs Bun (TokenizAi) | **pnpm** (monorepo standard) | Migração TokenizAi necessária |
+| **Monorepo Structure** | Single package (TokenizAi) vs monorepo (alternativa arquitetural) | **Avaliar workspace próprio** (sem replicar modelo Paperclip) | Reestruturação TokenizAi |
 
 ---
 
