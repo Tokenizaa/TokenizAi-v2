@@ -1,251 +1,77 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { LayoutDashboard, ListTodo, Activity, Bot } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Activity, Bot, RefreshCw } from 'lucide-react';
 import { PageHeader } from '../../../components/ui/Primitives';
-import {
-  CollectionToolbar,
-  SectionTitle,
-  StatusBadge,
-  EmptyState,
-  ErrorState,
-  LoadingState,
-} from '../components';
+import { StatusBadge, EmptyState, ErrorState, LoadingState } from '../components';
 import { hermesService, isHermesConnected } from '../services/hermes';
-import type { HermesBotDto, HermesIntegrationStatus, HermesIssueDto, HermesRunDto } from '../../../types/platform';
+import type { HermesOverviewBundle } from '../../../types/platform';
 
-interface DashboardPageProps {
-  onRefresh: () => Promise<void>;
-  onNavigate: (id: string) => void;
-  onToast: (msg: string) => void;
-}
+interface DashboardPageProps { onRefresh: () => Promise<void>; onNavigate: (id: string) => void; onToast: (msg: string) => void; }
 
-const statusTone = (st: string) => {
-  const s = st.toLowerCase();
-  if (s === 'running' || s === 'active' || s === 'idle' || s === 'ready') return 'nominal';
-  if (s === 'error' || s === 'failed' || s === 'terminated') return 'critical';
-  return 'attention';
-};
-
-export const DashboardPage: React.FC<DashboardPageProps> = ({
-  onRefresh,
-  onNavigate,
-  onToast,
-}) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [bundle, setBundle] = useState<{
-    status: HermesIntegrationStatus | null;
-    agents: HermesBotDto[];
-    issues: HermesIssueDto[];
-    runs: HermesRunDto[];
-    projects: any[];
-    goals: any[];
-    approvals: any[];
-    routines: any[];
-    costs: any;
-    activity: any[];
-  } | null>(null);
-  const [dashboard, setDashboard] = useState<any>(null);
+  const [bundle, setBundle] = useState<HermesOverviewBundle | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [bundleRes, dashRes] = await Promise.allSettled([
-        hermesService.getOverviewBundle(),
-        hermesService.getDashboard(),
-      ]);
-      if (bundleRes.status === 'fulfilled') {
-        setBundle({
-          status: bundleRes.value.status || null,
-          agents: bundleRes.value.agents || [],
-          issues: bundleRes.value.issues || [],
-          runs: bundleRes.value.runs || [],
-          projects: bundleRes.value.projects || [],
-          goals: bundleRes.value.goals || [],
-          approvals: bundleRes.value.approvals || [],
-          routines: bundleRes.value.routines || [],
-          costs: bundleRes.value.costs || null,
-          activity: bundleRes.value.activity || [],
-        });
-      }
-      if (dashRes.status === 'fulfilled') setDashboard(dashRes.value);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar o dashboard operacional.');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { setBundle(await hermesService.getOverviewBundle()); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Falha ao carregar dados do runtime Hermes.'); }
+    finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const agents = bundle?.agents ?? [];
-  const issues = bundle?.issues ?? [];
-  const runs = bundle?.runs ?? [];
-  const costs = bundle?.costs;
-  const pendingApprovals = (bundle?.approvals ?? []).filter((a) => a.status === 'pending').length;
-  const blockedIssues = issues.filter((i) => i.status === 'blocked').length;
-  const openIssues = issues.filter((i) => i.status !== 'done' && i.status !== 'cancelled').length;
-  const runningAgents = agents.filter((a) => a.status === 'running').length;
+  useEffect(() => { void load(); }, [load]);
 
   if (loading) return <LoadingState />;
-  if (error) return <ErrorState title="Não foi possível carregar o dashboard" message={error} onRetry={load} />;
-  if (!bundle) return <EmptyState title="Sem dados do Paperclip" description="Nenhum pacote de visão geral disponível." />;
+  if (error) return <ErrorState title="Não foi possível carregar a visão geral" message={error} onRetry={load} />;
+  if (!bundle) return <EmptyState title="Visão geral indisponível" description="O serviço Hermes não retornou um pacote de dados." />;
 
-  const dAgents = dashboard?.agents ?? { active: agents.length, running: runningAgents, paused: 0, error: 0 };
-  const dTasks = dashboard?.tasks ?? { open: openIssues, inProgress: 0, blocked: blockedIssues, done: 0 };
-  const dCosts = dashboard?.costs ?? { monthSpendCents: costs?.totalCostCents ?? 0, monthBudgetCents: costs?.budgetMonthlyCents ?? 0, monthUtilizationPercent: 0 };
+  const agents = bundle.bots || bundle.agents || [];
+  const tasks = bundle.tasks || [];
+  const runs = bundle.runs || [];
+  const pendingApprovals = 0;
+  const runningAgents = agents.filter((agent) => agent.status === 'running').length;
+  const openTasks = tasks.filter((task) => !['done', 'completed', 'cancelled'].includes(task.status.toLowerCase())).length;
+  const blockedTasks = tasks.filter((task) => task.status.toLowerCase() === 'blocked').length;
+  const completedTasks = tasks.filter((task) => ['done', 'completed'].includes(task.status.toLowerCase())).length;
+  const knownCost = bundle.costs?.totalCostCents;
+  const currency = bundle.costs?.currency || 'USD';
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Dashboard operacional — Força de trabalho IA"
-        subtitle="Indicadores da instância Paperclip conectada (TokenizAi). Todos os números vêm da API operacional (endpoint /companies/{id}/dashboard)."
-        actions={
-          <button
-            type="button"
-            onClick={load}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" /> <span>Sincronizar</span>
-          </button>
-        }
-      />
+      <PageHeader title="Visão geral — Força de trabalho IA" subtitle="Indicadores retornados pelo runtime Hermes."
+        actions={<button type="button" onClick={load} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Atualizar</button>} />
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Agentes operacionais</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">{agents.length}</div>
-          <div className="mt-1 text-xs text-ink-muted">
-            {dAgents.running} em execução · {dAgents.paused} pausado(s) · {dAgents.error} com erro
-          </div>
-        </div>
-        <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Tarefas abertas</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">{dTasks.open}</div>
-          <div className="mt-1 text-xs text-ink-muted">{dTasks.blocked} bloqueada(s) · {dTasks.done} concluída(s)</div>
-        </div>
-        <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Aprovações pendentes</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-highlight">{pendingApprovals}</div>
-          <div className="mt-1 text-xs text-ink-muted">Aguardando decisão humana</div>
-        </div>
-        <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Consumo do mês (USD)</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-accent">
-            {(dCosts.monthSpendCents / 100).toFixed(2)}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">
-            Utilização: {dCosts.monthUtilizationPercent}% · {runs.length} execução(ões)
-          </div>
-        </div>
+        <div className="nc-card rounded-2xl p-5"><div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Agentes</div><div className="mt-1.5 font-display text-3xl font-semibold font-mono text-ink">{agents.length}</div><div className="mt-1 text-xs text-ink-muted">{runningAgents} em execução</div></div>
+        <div className="nc-card rounded-2xl p-5"><div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Tarefas abertas</div><div className="mt-1.5 font-display text-3xl font-semibold font-mono text-ink">{openTasks}</div><div className="mt-1 text-xs text-ink-muted">{blockedTasks} bloqueada(s) · {completedTasks} concluída(s)</div></div>
+        <div className="nc-card rounded-2xl p-5"><div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Aprovações</div><div className="mt-1.5 font-display text-3xl font-semibold font-mono text-ink">—</div><div className="mt-1 text-xs text-ink-muted">Não disponibilizadas no bundle Hermes</div></div>
+        <div className="nc-card rounded-2xl p-5"><div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Custo reportado</div><div className="mt-1.5 font-display text-3xl font-semibold font-mono text-accent">{knownCost == null ? 'Não apurado' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(knownCost / 100)}</div><div className="mt-1 text-xs text-ink-muted">{runs.length} execução(ões) · {currency}</div></div>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="nc-card rounded-2xl overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-line bg-surface-subtle/40 flex items-center justify-between">
-            <div>
-              <div className="font-display text-base font-semibold text-ink">Tarefas em destaque</div>
-              <div className="text-xs text-ink-subtle">Issues operacionais mais recentes do Paperclip</div>
-            </div>
-          </div>
-          <div className="divide-y divide-line p-6 overflow-y-auto max-h-96">
-            {issues.slice(0, 8).map((issue) => (
-              <div key={issue.id} className="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm">
-                <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-mono text-accent dark:text-cyan-300 truncate">
-                    {issue.identifier || issue.id}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-ink truncate">{issue.title}</div>
-                    <div className="text-[10px] text-ink-subtle">
-                      {issue.assigneeAgentName || 'Não atribuída'} · {issue.projectName || 'Sem projeto'}
-                    </div>
-                  </div>
-                </div>
-                <StatusBadge status={issue.status} size="sm" />
-              </div>
-            ))}
-            {issues.length === 0 && (
-              <div className="py-8 text-center text-xs text-ink-subtle">Nenhuma tarefa operacional encontrada.</div>
-            )}
+        <div className="nc-card rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-line bg-surface-subtle/40"><div className="font-display text-base font-semibold text-ink">Tarefas recentes</div><div className="text-xs text-ink-subtle">Registros reais do Hermes</div></div>
+          <div className="divide-y divide-line p-6">
+            {tasks.slice(0, 8).map((task) => <div key={task.id} className="py-3 flex items-center justify-between gap-3 text-xs"><div className="min-w-0"><div className="font-medium text-ink truncate">{task.title}</div><div className="text-[10px] text-ink-subtle">{task.assigneeAgentName || 'Não atribuída'} · {task.projectName || 'Sem projeto'}</div></div><StatusBadge status={task.status} size="sm" /></div>)}
+            {tasks.length === 0 && <div className="py-8 text-center text-xs text-ink-subtle">Nenhuma tarefa retornada pelo Hermes.</div>}
           </div>
         </div>
-
-        <div className="nc-card rounded-2xl overflow-hidden flex flex-col">
-          <div className="px-6 py-4 border-b border-line bg-surface-subtle/40 flex items-center justify-between">
-            <div>
-              <div className="font-display text-base font-semibold text-ink">Execuções recentes</div>
-              <div className="text-xs text-ink-subtle">Runs e heartbeats dos agentes</div>
-            </div>
-          </div>
-          <div className="divide-y divide-line p-6 overflow-y-auto max-h-96">
-            {runs.slice(0, 8).map((run) => (
-              <div key={run.id} className="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm">
-                <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-mono text-ink-muted truncate">{run.id.slice(0, 8)}…</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-ink truncate">
-                      {run.agentName || 'Agente'} · {run.model || '—'}
-                    </div>
-                    <div className="text-[10px] text-ink-subtle">
-                      {run.issueIdentifier || 'Sem issue'} · {run.status}
-                    </div>
-                  </div>
-                </div>
-                <StatusBadge status={run.status} size="sm" />
-              </div>
-            ))}
-            {runs.length === 0 && (
-              <div className="py-8 text-center text-xs text-ink-subtle">Nenhuma execução registrada.</div>
-            )}
+        <div className="nc-card rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-line bg-surface-subtle/40"><div className="font-display text-base font-semibold text-ink">Execuções recentes</div><div className="text-xs text-ink-subtle">Runs do runtime</div></div>
+          <div className="divide-y divide-line p-6">
+            {runs.slice(0, 8).map((run) => <div key={run.id} className="py-3 flex items-center justify-between gap-3 text-xs"><div className="min-w-0"><div className="font-medium text-ink truncate">{run.agentName || run.agentId || 'Agente'} · {run.model || 'Modelo não informado'}</div><div className="text-[10px] text-ink-subtle">{run.taskId || 'Sem tarefa vinculada'} · {run.status}</div></div><StatusBadge status={run.status} size="sm" /></div>)}
+            {runs.length === 0 && <div className="py-8 text-center text-xs text-ink-subtle">Nenhuma execução retornada pelo Hermes.</div>}
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          type="button"
-          onClick={() => onNavigate('ia-agentes')}
-          className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors group"
-        >
-          <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-accent dark:text-cyan-300" />
-            <span className="font-semibold text-ink group-hover:text-accent-ink transition-colors">Agentes operacionais</span>
-          </div>
-          <div className="mt-3 text-xs text-ink-muted">{agents.length} registrados no Paperclip</div>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate('ia-tarefas')}
-          className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors group"
-        >
-          <div className="flex items-center gap-2">
-            <ListTodo className="w-4 h-4 text-accent dark:text-cyan-300" />
-            <span className="font-semibold text-ink group-hover:text-accent-ink transition-colors">Tarefas e delegações</span>
-          </div>
-          <div className="mt-3 text-xs text-ink-muted">{issues.length} issues operacionais</div>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate('ia-execucoes')}
-          className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors group"
-        >
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-accent dark:text-cyan-300" />
-            <span className="font-semibold text-ink group-hover:text-accent-ink transition-colors">Execuções &amp; heartbeats</span>
-          </div>
-          <div className="mt-3 text-xs text-ink-muted">{runs.length} execuções recentes</div>
-        </button>
+        <button type="button" onClick={() => onNavigate('ia-agentes')} className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors"><div className="flex items-center gap-2"><Bot className="w-4 h-4 text-accent" /><span className="font-semibold text-ink">Agentes</span></div><div className="mt-3 text-xs text-ink-muted">{agents.length} agentes retornados</div></button>
+        <button type="button" onClick={() => onNavigate('ia-tarefas')} className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors"><div className="flex items-center gap-2"><ListTodo className="w-4 h-4 text-accent" /><span className="font-semibold text-ink">Tarefas</span></div><div className="mt-3 text-xs text-ink-muted">{tasks.length} tarefas retornadas</div></button>
+        <button type="button" onClick={() => onNavigate('ia-execucoes')} className="nc-card rounded-2xl p-5 text-left hover:bg-surface-blue cursor-pointer border border-line transition-colors"><div className="flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /><span className="font-semibold text-ink">Execuções</span></div><div className="mt-3 text-xs text-ink-muted">{runs.length} execuções retornadas</div></button>
       </section>
 
-      {!isHermesConnected(bundle?.status) && (
-        <EmptyState
-          title="Sem conexão com o Hermes"
-          description="Configure TOKENIZAI_HERMES_URL no backend para exibir os dados operacionais da instância."
-        />
-      )}
+      {!isHermesConnected(bundle.status) && <EmptyState title="Runtime Hermes desconectado" description="Configure e valide a conexão Hermes no backend para carregar os dados operacionais." />}
     </div>
   );
 };
