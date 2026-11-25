@@ -96,7 +96,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState title="Não foi possível carregar a tarefa" message={error} onRetry={load} />;
-  if (!issue) return <EmptyState title="Tarefa não encontrada" description="A issue solicitada não existe na instância Paperclip." />;
+  if (!issue) return <EmptyState title="Tarefa não encontrada" description="A tarefa solicitada não existe no contexto operacional disponível." />;
 
   return (
     <div className="space-y-5">
@@ -306,7 +306,7 @@ export const TaskDetailPage: React.FC<TaskDetailPageProps> = ({
       {tab === 'interacoes' && (
         <EmptyState
           title="Interações estruturadas"
-          description="As interações da tarefa (quando disponíveis na versão instalada do Paperclip) são exibidas aqui."
+          description="As interações da tarefa são exibidas quando disponibilizadas pelo contrato do runtime Hermes."
         />
       )}
     </div>
