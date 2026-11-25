@@ -572,18 +572,18 @@ CREATE TABLE knowledge_documents (
 
 | Categoria | Tabelas Estimadas | Origem Principal |
 |-----------|-------------------|------------------|
-| **Organização & Auth** | 8 | Paperclip + extensões |
-| **Agentes & Roles** | 12 | Paperclip + Agency Agents |
-| **Skills & Catálogo** | 8 | Paperclip + Agency Agents |
-| **Orquestração (Tasks, NEXUS)** | 10 | Paperclip + NEXUS |
+| **Organização & Auth** | 8 | Conceitos estudados em referência histórica (não dependência) |
+| **Agentes & Roles** | 12 | Agency Agents + modelo próprio |
+| **Skills & Catálogo** | 8 | Agency Agents + catálogo próprio |
+| **Orquestração (Tasks, NEXUS)** | 10 | Hermes + NEXUS |
 | **Workspaces & Execução** | 8 | Modelo próprio; referência histórica Paperclip |
 | **Comunicação (Chat)** | 8 | Hermes; referência histórica Paperclip |
 | **Orçamento & Custos** | 6 | Modelo próprio; referência histórica Paperclip |
 | **Auditoria & Governança** | 6 | **Novo** |
 | **Memória & Conhecimento** | 6 | **Novo** |
-| **TOTAL ESTIMADO** | **~72** | (vs 480 Paperclip — consolidado) |
+| **TOTAL ESTIMADO** | **~72** | (estimativa conceitual; não deriva de schema Paperclip operacional) |
 
-> **Nota:** O modelo consolida as 480 tabelas do Paperclip em ~72 tabelas core, removendo redundâncias, normalizando versionamento e adicionando governança, memória e multi-tenancy nativo. Tabelas específicas de domínio (issues, cases, pipelines, etc.) podem ser adicionadas como módulos opcionais.
+> **Nota:** O modelo conceitual propõe ~72 tabelas core próprias; a contagem de 480 tabelas citada é somente referência histórica e não deve ser usada como baseline de implementação, removendo redundâncias, normalizando versionamento e adicionando governança, memória e multi-tenancy nativo. Tabelas específicas de domínio (issues, cases, pipelines, etc.) podem ser adicionadas como módulos opcionais.
 
 ---
 
