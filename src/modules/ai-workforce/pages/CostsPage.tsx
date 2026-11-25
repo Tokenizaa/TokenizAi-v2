@@ -29,7 +29,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
       const res = await hermesService.getCostsSummary();
       setCosts(res.summary || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar os custos do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar os custos do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
     return (
       <EmptyState
         title="Sem dados de custo"
-        description="A instância Paperclip conectada não retornou um resumo de custos para esta empresa."
+        description="A instância Hermes conectada não retornou um resumo de custos para esta empresa."
       />
     );
   }
@@ -58,7 +58,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Custos e orçamentos (Paperclip)"
+        title="Custos e orçamentos (Hermes)"
         subtitle="Consumo oficial por agente/projeto, cobertura de apuração e limites de orçamento da força de trabalho."
         actions={
           <button
@@ -73,14 +73,14 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Consumo total (USD)</div>
-          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-accent">{totalUsd.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-ink-muted">{costs.currency || 'USD'} · {costs.eventCount} eventos</div>
+          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Consumo total</div>
+          <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-accent">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: costs.currency || 'USD' }).format(totalUsd)}</div>
+          <div className="mt-1 text-xs text-ink-muted">{costs.currency || 'USD'} · {costs.eventCount ?? '—'} eventos</div>
         </div>
         <div className="nc-card rounded-2xl p-5 text-left">
-          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Orçamento mensal (USD)</div>
+          <div className="text-xs text-ink-subtle font-semibold tracking-wide uppercase">Orçamento mensal</div>
           <div className="mt-1.5 font-display text-3xl font-semibold font-mono tabular-nums text-ink">
-            {budget != null ? budget.toFixed(2) : '—'}
+            {budget != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: costs.currency || 'USD' }).format(budget) : 'Não informado'}
           </div>
           <div className="mt-1 text-xs text-ink-muted">
             Utilização: {budget != null ? ((totalUsd / budget) * 100).toFixed(1) : '—'}%
@@ -113,7 +113,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
                   <div className="text-[11px] text-ink-muted">{a.model || '—'} · {a.runsCount ?? 0} run(s)</div>
                 </div>
                 <div className="font-mono text-ink tabular-nums">
-                  {(a.costCents / 100).toFixed(2)} USD
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: costs.currency || 'USD' }).format(a.costCents / 100)}
                 </div>
               </div>
             ))}
@@ -135,7 +135,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
                   <div className="text-[11px] text-ink-muted">{p.issuesCount ?? 0} issue(s)</div>
                 </div>
                 <div className="font-mono text-ink tabular-nums">
-                  {(p.costCents / 100).toFixed(2)} USD
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: costs.currency || 'USD' }).format(p.costCents / 100)}
                 </div>
               </div>
             ))}
@@ -147,7 +147,7 @@ export const CostsPage: React.FC<CostsPageProps> = ({ onNavigate, onToast }) => 
       </section>
 
       <p className="text-xs text-ink-subtle">
-        Estes custos pertencem ao orçamento operacional do Paperclip. Não confundir com o financeiro empresarial da TokenizAi.
+        Estes custos pertencem ao orçamento operacional do Hermes. Não confundir com o financeiro empresarial da TokenizAi.
       </p>
     </div>
   );
