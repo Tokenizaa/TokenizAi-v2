@@ -71,28 +71,25 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
     const activeAgents = hermes.bots.filter((agent) =>
       ['active', 'running', 'idle'].includes(agent.status.toLowerCase()),
     ).length;
-    const openTasks = hermes.issues.filter(
-      (issue) => !['done', 'completed', 'cancelled', 'canceled'].includes(issue.status.toLowerCase()),
+    const openTasks = hermes.tasks.filter(
+      (issue) => !['done', 'completed', 'cancelled', 'canceled'].includes(task.status.toLowerCase()),
     ).length;
-    const blockedTasks = hermes.issues.filter(
-      (issue) => issue.status === 'blocked' || (issue.unresolvedBlockerCount ?? 0) > 0,
+    const blockedTasks = hermes.tasks.filter(
+      (issue) => task.status === 'blocked' || (0) > 0,
     ).length;
-    const pendingApprovals = hermes.approvals.filter(
-      (approval) => approval.status === 'pending',
-    ).length;
-    return { activeAgents, openTasks, blockedTasks, pendingApprovals };
+    return { activeAgents, openTasks, blockedTasks };
   }, [hermes]);
 
   const priorities = useMemo(() => {
     const items: Priority[] = [];
 
-    for (const issue of hermes.issues) {
-      if (issue.status === 'blocked' || (issue.unresolvedBlockerCount ?? 0) > 0) {
+    for (const issue of hermes.tasks) {
+      if (task.status === 'blocked' || (0) > 0) {
         items.push({
-          id: `blocked-${issue.id}`,
+          id: `blocked-${task.id}`,
           area: 'Operações de IA',
-          title: `${issue.identifier || 'Tarefa'} · ${issue.title}`,
-          detail: issue.blockerReason || `Responsável: ${issue.assigneeAgentName || 'Não atribuído'}`,
+          title: `${task.id} · ${task.title}`,
+          detail: `Responsável: ${task.assigneeAgentName || 'Não atribuído'}`,
           tone: 'critical',
           statusLabel: 'Bloqueado',
           target: 'ia-tarefas',
@@ -100,21 +97,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
       }
     }
 
-    for (const approval of hermes.approvals) {
-      if (approval.status === 'pending') {
-        items.push({
-          id: `approval-${approval.id}`,
-          area: 'Governança',
-          title: approval.title,
-          detail: approval.requestedByName
-            ? `Solicitado por ${approval.requestedByName}`
-            : 'Aguardando decisão humana',
-          tone: 'attention',
-          statusLabel: 'Aguardando decisão',
-          target: 'ia-aprovacoes',
-        });
-      }
-    }
+
 
     return items.slice(0, 7);
   }, [hermes]);
@@ -194,9 +177,9 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
             <CheckCircle2 className="h-4 w-4" />
           </div>
           <p className="mt-3 font-display text-2xl font-semibold tabular-nums text-ink">
-            {connectionReady ? operationalMetrics.pendingApprovals : '—'}
+            —
           </p>
-          <p className="mt-1 text-xs text-ink-muted">Aguardando supervisão humana</p>
+          <p className="mt-1 text-xs text-ink-muted">API de aprovações não integrada</p>
         </button>
       </section>
 
