@@ -1,8 +1,10 @@
 # Modelo de Domínio — NettosCorp Enterprise
 
+> **AVISO — 25/11/2026:** Este modelo é uma proposta conceitual anterior à migração direta para Hermes. As menções a Paperclip descrevem somente a origem histórica de conceitos estudados. Nenhuma entidade, tabela, formato, ID ou runtime do Paperclip é dependência do TokenizAi V2. A fonte de verdade operacional definida para a plataforma é Supabase; execução de agentes ocorre pelo Hermes.
+
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Baseado em Paperclip (480 tabelas) + Agency Agents + TokenizAi  
+> **Status:** **PROPOSTA** — Baseado em conceitos de domínio estudados em referências históricas + Agency Agents + TokenizAi  
 > **Responsável:** Hermes
 
 ---
@@ -93,7 +95,7 @@ CREATE TABLE roles (
 
 ---
 
-## 3. Entidades de Agentes (Paperclip + Agency Agents)
+## 3. Entidades de Agentes (referências históricas + Agency Agents)
 
 ### 3.1 Agent (Instância de Cargo)
 
