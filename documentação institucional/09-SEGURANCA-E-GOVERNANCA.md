@@ -1,8 +1,10 @@
 # Segurança e Governança
 
+> **REVISÃO — 25/11/2026:** Este documento contém desenho anterior à migração, com referências ao Paperclip como origem de conceitos. Paperclip não participa da autenticação, autorização, execução, auditoria ou governança atuais do TokenizAi V2. A arquitetura vigente usa Supabase Auth/RLS e BFF próprio; execução de agentes é via Hermes. Toda referência ao Paperclip abaixo é histórica e não representa componente, integração ou requisito ativo.
+
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Baseado em Paperclip + Agency Agents + Requisitos NettosCorp  
+> **Status:** **PROPOSTA** — Baseado em requisitos NettosCorp, Supabase Auth/RLS, Hermes e Agency Agents (referências históricas não operacionais)  
 > **Responsável:** Hermes  
 > **Autoridade:** Netto Farias (Founder)
 
@@ -56,7 +58,7 @@
 
 ## 3. Autorização (RBAC + ABAC)
 
-### 3.1 Hierarquia de Autoridade (TokenizAi — Implantada no Paperclip)
+### 3.1 Hierarquia de Autoridade (modelo histórico; enforcement deve ocorrer no BFF e Supabase)
 
 ```text
 Founder (Netto Farias)
