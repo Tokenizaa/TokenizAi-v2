@@ -22,28 +22,23 @@ import { ReportsView } from './modules/reports/ReportsView';
 import { SubscriptionsView } from './modules/subscriptions/SubscriptionsView';
 import { AuthPage } from './pages/AuthPage';
 import { supabase, mapSupabaseUser } from './lib/supabase.ts';
+import { FOUNDER_EMAIL, isFounderEmail } from './lib/founder.ts';
 import { AuthApi } from './services/api.ts';
 import { HermesApi, PlatformApi } from './services/api';
 import type { EnterpriseDataState, NavSectionId, HermesOverviewBundle } from './types/platform.ts';
 
 import { DashboardPage } from './modules/ai-ops/pages';
-import { InboxPage } from './modules/ai-workforce/pages/InboxPage';
 import { ChatPage } from './modules/ai-ops/pages';
 import { AgentsPage } from './modules/ai-ops/pages';
 import { AgentDetailPage } from './modules/ai-ops/pages';
 import { OrganizationPage } from './modules/ai-ops/pages';
 import { TasksPage } from './modules/ai-ops/pages';
 import { TaskDetailPage } from './modules/ai-ops/pages';
-import { GoalsPage } from './modules/ai-workforce/pages/GoalsPage';
 import { RunsPage } from './modules/ai-ops/pages';
 import { RoutinesPage } from './modules/ai-ops/pages';
 import { ApprovalsPage } from './modules/ai-ops/pages';
 import { ApprovalDetailPage } from './modules/ai-ops/pages';
 import { CostsPage } from './modules/ai-ops/pages';
-import { ActivityPage } from './modules/ai-workforce/pages/ActivityPage';
-import { SkillsPage } from './modules/ai-workforce/pages/SkillsPage';
-import { ConnectorsPage } from './modules/ai-workforce/pages/ConnectorsPage';
-import { ArtifactsPage } from './modules/ai-workforce/pages/ArtifactsPage';
 
 type AppUser = {
   id: string;
@@ -65,11 +60,6 @@ const WORKFORCE_ROUTES: Record<string, NavSectionId> = {
   '/ia-rotinas': 'ia-rotinas',
   '/ia-aprovacoes': 'ia-aprovacoes',
   '/ia-custos': 'ia-custos',
-  '/ia-metas': 'ia-metas',
-  '/ia-skills': 'ia-skills',
-  '/ia-conectores': 'ia-conectores',
-  '/ia-atividade': 'ia-atividade',
-  '/ia-artefatos': 'ia-artefatos',
 };
 
 const ENTERPRISE_ROUTES: Record<string, NavSectionId> = {
@@ -96,6 +86,8 @@ interface AppContentProps {
   onToggleTheme: () => void;
   onToggleReducedMotion: () => void;
   onLogout: () => void;
+  onToast: (msg: string) => void;
+  onRefresh: () => Promise<void>;
 }
 
 function AppContent({
@@ -109,6 +101,8 @@ function AppContent({
   onToggleTheme,
   onToggleReducedMotion,
   onLogout,
+  onToast,
+  onRefresh,
 }: AppContentProps) {
   const loc = useLocation();
   const navigate = useNavigate();
@@ -172,11 +166,6 @@ function AppContent({
     [],
   );
 
-  const showToast = useCallback((msg: string) => {
-    // eslint-disable-next-line no-console
-    console.log('[toast]', msg);
-  }, []);
-
   const mainContent = !error ? (
     <>
       {loc.pathname.startsWith('/executivo') && (
@@ -197,8 +186,8 @@ function AppContent({
             projects={enterprise?.projects || []}
             clients={enterprise?.clients || []}
             hermesProjects={hermes?.projects || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
             createOpenExternal={createProjectModal}
             onCloseCreateExternal={() => setCreateProjectModal(false)}
           />
@@ -209,43 +198,43 @@ function AppContent({
             projects={enterprise?.projects || []}
             deals={enterprise?.deals || []}
             subscriptions={enterprise?.subscriptions || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
           />
         } />
         <Route path="/comercial" element={
           <CommercialView
             deals={enterprise?.deals || []}
             clients={enterprise?.clients || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
           />
         } />
         <Route path="/produtos" element={
           <ProductsView
             products={enterprise?.products || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
             onNavigate={handleNavigate}
           />
         } />
         <Route path="/assinaturas" element={
           <SubscriptionsView
             subscriptions={enterprise?.subscriptions || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
           />
         } />
         <Route path="/financeiro" element={
           <FinanceView
             entries={enterprise?.financeEntries || []}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
           />
         } />
-        <Route path="/relatorios" element={<ReportsView enterprise={enterprise!} hermes={hermes!} onToast={showToast} />} />
+        <Route path="/relatorios" element={<ReportsView enterprise={enterprise!} hermes={hermes!} onToast={onToast} />} />
         <Route path="/biblioteca" element={
-          <AgencyLibraryView hermes={hermes!} onRefresh={async () => { window.location.reload(); }} onToast={showToast} />
+          <AgencyLibraryView hermes={hermes!} onRefresh={onRefresh} onToast={onToast} />
         } />
         <Route path="/admin" element={
           <AdminView
@@ -255,30 +244,24 @@ function AppContent({
             onToggleTheme={onToggleTheme}
             reducedMotion={reducedMotion}
             onToggleReducedMotion={onToggleReducedMotion}
-            onRefresh={async () => { window.location.reload(); }}
-            onToast={showToast}
+            onRefresh={onRefresh}
+            onToast={onToast}
           />
         } />
 
         {/* WORKFORCE IA */}
-        <Route path="/ia-visao" element={<DashboardPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-inbox" element={<InboxPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-chat" element={<ChatPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-agentes" element={<AgentsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-agentes/:agentId" element={<AgentDetailPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-equipes" element={<OrganizationPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-tarefas" element={<TasksPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-tarefas/:taskId" element={<TaskDetailPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-execucoes" element={<RunsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-rotinas" element={<RoutinesPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-aprovacoes" element={<ApprovalsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-aprovacoes/:approvalId" element={<ApprovalDetailPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-custos" element={<CostsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-metas" element={<GoalsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-skills" element={<SkillsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-conectores" element={<ConnectorsPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-atividade" element={<ActivityPage onNavigate={handleNavigate} onToast={showToast} />} />
-        <Route path="/ia-artefatos" element={<ArtifactsPage onNavigate={handleNavigate} onToast={showToast} />} />
+        <Route path="/ia-visao" element={<DashboardPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-chat" element={<ChatPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-agentes" element={<AgentsPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-agentes/:agentId" element={<AgentDetailPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-equipes" element={<OrganizationPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-tarefas" element={<TasksPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-tarefas/:taskId" element={<TaskDetailPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-execucoes" element={<RunsPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-rotinas" element={<RoutinesPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-aprovacoes" element={<ApprovalsPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-aprovacoes/:approvalId" element={<ApprovalDetailPage onNavigate={handleNavigate} onToast={onToast} />} />
+        <Route path="/ia-custos" element={<CostsPage onNavigate={handleNavigate} onToast={onToast} />} />
 
         <Route path="/" element={<Navigate to="/executivo" replace />} />
         <Route path="*" element={
@@ -403,7 +386,7 @@ export default function App() {
       if (session?.user) {
         const appUser = mapSupabaseUser(session.user);
         setUser(appUser);
-        if (appUser.email === 'olfnetto@gmail.com' && !appUser.isPlatformAdmin) {
+        if (isFounderEmail(appUser.email) && !appUser.isPlatformAdmin) {
           try {
             const res = await AuthApi.bootstrapAdmin();
             if (res.ok && res.claimed) {
@@ -475,6 +458,10 @@ export default function App() {
     }
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    await loadAll();
+  }, [loadAll]);
+
   useEffect(() => {
     loadAll();
   }, [user, loadAll]);
@@ -486,7 +473,7 @@ export default function App() {
           <AuthPage
             onAuthenticated={(appUser) => {
               setUser(appUser);
-              if (appUser.email === 'olfnetto@gmail.com' && !appUser.isPlatformAdmin) {
+              if (isFounderEmail(appUser.email) && !appUser.isPlatformAdmin) {
                 AuthApi.bootstrapAdmin().catch(() => {
                   // erro tratado na UI
                 });
@@ -511,7 +498,20 @@ export default function App() {
         onToggleTheme={() => setIsDark((d) => !d)}
         onToggleReducedMotion={() => setReducedMotion((r) => !r)}
         onLogout={handleLogout}
+        onToast={showToast}
+        onRefresh={handleRefresh}
       />
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className="fixed top-4 right-4 z-50 bg-ink text-surface px-4 py-3 rounded-xl border border-line shadow-lg animate-in fade-in slide-in-from-right-2 duration-300"
+          role="alert"
+          aria-live="polite"
+        >
+          {toast}
+        </div>
+      )}
     </BrowserRouter>
   );
 }

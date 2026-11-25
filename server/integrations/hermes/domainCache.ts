@@ -1,6 +1,6 @@
 import { runCommand, runCommandSafe } from './cliRunner.ts';
 
-const HERMES_CLI = '/home/lg/.local/bin/hermes';
+const HERMES_CLI = process.env.HERMES_CLI || '/home/lg/.local/bin/hermes';
 
 export interface CacheEntry<T> {
   data: T;
@@ -101,11 +101,12 @@ export function getCacheStats(): Array<{ key: string; ageMs: number; ttl: number
  * permitindo que getCachedDomain gerencie fallback e stale-while-revalidate.
  */
 export async function fetchHermesJson<T>(
-  cmd: string,
+  command: string,
+  args: string[],
   parse: (stdout: string) => T,
   timeoutMs: number = 15000
 ): Promise<T> {
-  const result = await runCommandSafe(cmd, { timeoutMs });
+  const result = await runCommandSafe(command, args, { timeoutMs });
   if (result.error) {
     throw result.error;
   }

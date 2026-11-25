@@ -1,7 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {
+  AgenteEmpresarial,
   ClientRecord,
+  Departamento,
   DealRecord,
+  Equipe,
   EnterpriseDataState,
   FinanceEntry,
   ProductRecord,
@@ -97,6 +100,193 @@ export class SupabaseRepository {
     if (idx === -1) return null;
     this.mem.projects[idx] = { ...this.mem.projects[idx], ...patch };
     return this.mem.projects[idx];
+  }
+
+  // ------------------------------------------------------------------
+  // Entregas de projeto
+  // ------------------------------------------------------------------
+  async listDeliverables(projectId: string): Promise<any[]> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('entregas_de_projeto')
+        .select('*')
+        .eq('projeto_id', projectId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    }
+    const project = this.mem.projects.find((p) => p.id === projectId);
+    return project?.deliverables ?? [];
+  }
+
+  async createDeliverable(deliverable: any): Promise<any> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('entregas_de_projeto')
+        .insert(deliverable)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    const project = this.mem.projects.find((p) => p.id === deliverable.projeto_id);
+    if (project) {
+      project.deliverables = project.deliverables || [];
+      project.deliverables.push(deliverable);
+    }
+    return deliverable;
+  }
+
+  async updateDeliverable(id: string, patch: any): Promise<any | null> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('entregas_de_projeto')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    for (const project of this.mem.projects) {
+      const idx = project.deliverables?.findIndex((d) => d.id === id);
+      if (idx !== -1) {
+        project.deliverables[idx] = { ...project.deliverables[idx], ...patch };
+        return project.deliverables[idx];
+      }
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------
+  // Atividades de projeto
+  // ------------------------------------------------------------------
+  async listProjectActivities(projectId: string): Promise<any[]> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('atividades_de_projeto')
+        .select('*')
+        .eq('projeto_id', projectId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    }
+    const project = this.mem.projects.find((p) => p.id === projectId);
+    return project?.activities ?? [];
+  }
+
+  async createProjectActivity(activity: any): Promise<any> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('atividades_de_projeto')
+        .insert(activity)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    const project = this.mem.projects.find((p) => p.id === activity.projeto_id);
+    if (project) {
+      project.activities = project.activities || [];
+      project.activities.push(activity);
+    }
+    return activity;
+  }
+
+  async updateProjectActivity(id: string, patch: any): Promise<any | null> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin
+        .from('atividades_de_projeto')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    for (const project of this.mem.projects) {
+      const idx = project.activities?.findIndex((a) => a.id === id);
+      if (idx !== -1) {
+        project.activities[idx] = { ...project.activities[idx], ...patch };
+        return project.activities[idx];
+      }
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------
+  // Departamentos
+  // ------------------------------------------------------------------
+  async listDepartamentos(): Promise<Departamento[]> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin.from('departamentos').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        nome: row.nome,
+        codigo: row.codigo,
+        descricao: row.descricao,
+        departamentoPaiId: row.departamento_pai_id,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    }
+    return this.mem.departamentos;
+  }
+
+  // ------------------------------------------------------------------
+  // Agentes Empresariais
+  // ------------------------------------------------------------------
+  async listAgentesEmpresariais(): Promise<AgenteEmpresarial[]> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin.from('agentes_empresariais').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        nome: row.nome,
+        slug: row.slug,
+        divisao: row.divisao,
+        papel: row.papel,
+        departamentoId: row.departamento_id,
+        hermesAgentId: row.hermes_agent_id,
+        hermesProfileId: row.hermes_profile_id,
+        status: row.status,
+        capabilities: row.capabilities,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    }
+    return this.mem.agentesEmpresariais;
+  }
+
+  // ------------------------------------------------------------------
+  // Equipes
+  // ------------------------------------------------------------------
+  async listEquipes(): Promise<Equipe[]> {
+    if (this.useSupabase) {
+      const admin = getSupabaseAdmin();
+      const { data, error } = await admin.from('equipes').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        nome: row.nome,
+        descricao: row.descricao,
+        departamentoId: row.departamento_id,
+        liderId: row.lider_id,
+        integrantes: row.integrantes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    }
+    return this.mem.equipes;
   }
 
   // ------------------------------------------------------------------
@@ -560,6 +750,18 @@ export class SupabaseRepository {
       budget_brl: p.budgetBRL,
       spent_brl: p.spentBRL,
       hermes_project_id: p.hermesProjectId || null,
+      // Modelo estratégico empresarial
+      strategic_objective: p.strategicObjective || null,
+      problem_to_solve: p.problemToSolve || null,
+      expected_outcome: p.expectedOutcome || null,
+      success_indicators: p.successIndicators || [],
+      priority: p.priority || null,
+      risks_and_dependencies: p.risksAndDependencies || [],
+      managing_agent_id: p.managingAgentId || null,
+      team_agent_ids: p.teamAgentIds || [],
+      strategic_milestones: p.strategicMilestones || [],
+      linked_documents: p.linkedDocuments || [],
+      decision_history: p.decisionHistory || [],
     };
   }
 
@@ -578,6 +780,18 @@ export class SupabaseRepository {
       budgetBRL: Number(row.budget_brl || 0),
       spentBRL: Number(row.spent_brl || 0),
       hermesProjectId: row.hermes_project_id || undefined,
+      // Modelo estratégico empresarial
+      strategicObjective: row.strategic_objective || undefined,
+      problemToSolve: row.problem_to_solve || undefined,
+      expectedOutcome: row.expected_outcome || undefined,
+      successIndicators: row.success_indicators || [],
+      priority: row.priority || undefined,
+      risksAndDependencies: row.risks_and_dependencies || [],
+      managingAgentId: row.managing_agent_id || undefined,
+      teamAgentIds: row.team_agent_ids || [],
+      strategicMilestones: row.strategic_milestones || [],
+      linkedDocuments: row.linked_documents || [],
+      decisionHistory: row.decision_history || [],
       deliverables: [],
       activities: [],
     } as ProjectRecord;

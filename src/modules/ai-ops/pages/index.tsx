@@ -4,6 +4,7 @@ import type { WorkforcePageProps } from './WorkforcePage';
 import { AgentDetailPage } from './AgentDetailPage';
 import { TaskDetailPage } from './TaskDetailPage';
 import { ApprovalDetailPage } from './ApprovalDetailPage';
+import { OrganizationPage } from './OrganizationPage';
 
 export const DashboardPage: React.FC<WorkforcePageProps> = (props) => (
   <WorkforcePage section="ia-visao" {...props} />
@@ -17,9 +18,7 @@ export const AgentsPage: React.FC<WorkforcePageProps> = (props) => (
   <WorkforcePage section="ia-agentes" {...props} />
 );
 
-export const OrganizationPage: React.FC<WorkforcePageProps> = (props) => (
-  <WorkforcePage section="ia-equipes" {...props} />
-);
+export { OrganizationPage };
 
 export const TasksPage: React.FC<WorkforcePageProps> = (props) => (
   <WorkforcePage section="ia-tarefas" {...props} />

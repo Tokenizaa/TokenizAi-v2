@@ -41,11 +41,11 @@ create table if not exists perfis_empresariais (
 -- departamentos (estrutura organizacional)
 -- ------------------------------------------------------------
 create table if not exists departamentos (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   nome text not null,
   codigo text unique not null,
   descricao text,
-  departamento_pai_id uuid references departamentos(id),
+  departamento_pai_id text references departamentos(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -58,12 +58,12 @@ alter table perfis_empresariais
 -- agentes_empresariais (cadastro de agentes da empresa)
 -- ------------------------------------------------------------
 create table if not exists agentes_empresariais (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   nome text not null,
   slug text unique not null,
   divisao text,
   papel text,
-  departamento_id uuid references departamentos(id),
+  departamento_id text references departamentos(id),
   -- Vinculo com o agente Hermes (runtime). nao eh o estado efetivo,
   -- apenas o identificador de correlacao.
   hermes_agent_id text,
@@ -75,10 +75,27 @@ create table if not exists agentes_empresariais (
 );
 
 -- ------------------------------------------------------------
+-- equipes (agrupamento organizacional de agentes)
+-- ------------------------------------------------------------
+create table if not exists equipes (
+  id text primary key,
+  nome text not null,
+  descricao text,
+  departamento_id text references departamentos(id),
+  lider_id text references agentes_empresariais(id),
+  integrantes text[] default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_equipes_departamento on equipes(departamento_id);
+create index if not exists idx_equipes_lider on equipes(lider_id);
+
+-- ------------------------------------------------------------
 -- clientes (deve vir antes de projetos por causa da FK)
 -- ------------------------------------------------------------
 create table if not exists clientes (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   nome text not null,
   segmento text,
   cnpj text,
@@ -99,10 +116,10 @@ create table if not exists clientes (
 -- projetos (empresariais)
 -- ------------------------------------------------------------
 create table if not exists projetos (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   codigo text unique not null,
   nome text not null,
-  cliente_id uuid references clientes(id),
+  cliente_id text references clientes(id),
   cliente_nome text,
   stage text not null default 'Descoberta',
   owner_name text not null,
@@ -113,16 +130,42 @@ create table if not exists projetos (
   spent_brl numeric(14,2) not null default 0,
   -- Vinculo com projeto no runtime Hermes (se houver).
   hermes_project_id text,
+  -- Modelo estratégico empresarial (TokenizAi V2)
+  strategic_objective text,
+  problem_to_solve text,
+  expected_outcome text,
+  success_indicators text[] default '{}',
+  priority text check (priority in ('Baixa', 'Media', 'Alta', 'Critica')),
+  risks_and_dependencies text[] default '{}',
+  managing_agent_id text,
+  team_agent_ids text[] default '{}',
+  strategic_milestones text[] default '{}',
+  linked_documents text[] default '{}',
+  decision_history text[] default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Adiciona colunas estratégicas em instalações existentes (idempotente)
+alter table projetos
+  add column if not exists strategic_objective text,
+  add column if not exists problem_to_solve text,
+  add column if not exists expected_outcome text,
+  add column if not exists success_indicators text[] default '{}',
+  add column if not exists priority text check (priority in ('Baixa', 'Media', 'Alta', 'Critica')),
+  add column if not exists risks_and_dependencies text[] default '{}',
+  add column if not exists managing_agent_id text,
+  add column if not exists team_agent_ids text[] default '{}',
+  add column if not exists strategic_milestones text[] default '{}',
+  add column if not exists linked_documents text[] default '{}',
+  add column if not exists decision_history text[] default '{}';
 
 -- ------------------------------------------------------------
 -- entregas_de_projeto
 -- ------------------------------------------------------------
 create table if not exists entregas_de_projeto (
-  id uuid primary key default uuid_generate_v4(),
-  projeto_id uuid not null references projetos(id) on delete cascade,
+  id text primary key,
+  projeto_id text not null references projetos(id) on delete cascade,
   titulo text not null,
   responsavel text not null,
   data_vencimento date,
@@ -134,8 +177,8 @@ create table if not exists entregas_de_projeto (
 -- atividades_de_projeto
 -- ------------------------------------------------------------
 create table if not exists atividades_de_projeto (
-  id uuid primary key default uuid_generate_v4(),
-  projeto_id uuid not null references projetos(id) on delete cascade,
+  id text primary key,
+  projeto_id text not null references projetos(id) on delete cascade,
   autor text not null,
   data text not null,
   resumo text not null,
@@ -146,8 +189,8 @@ create table if not exists atividades_de_projeto (
 -- interacoes_de_cliente
 -- ------------------------------------------------------------
 create table if not exists interacoes_de_cliente (
-  id uuid primary key default uuid_generate_v4(),
-  cliente_id uuid not null references clientes(id) on delete cascade,
+  id text primary key,
+  cliente_id text not null references clientes(id) on delete cascade,
   data text not null,
   canal text not null check (canal in ('Reuniao', 'E-mail', 'Proposta', 'Suporte')),
   autor text not null,
@@ -159,9 +202,9 @@ create table if not exists interacoes_de_cliente (
 -- negocios (deals / pipeline comercial)
 -- ------------------------------------------------------------
 create table if not exists negocios (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   titulo text not null,
-  cliente_id uuid references clientes(id),
+  cliente_id text references clientes(id),
   cliente_nome text,
   stage text not null default 'Prospeccao',
   valor_brl numeric(14,2) not null default 0,
@@ -178,7 +221,7 @@ create table if not exists negocios (
 -- produtos
 -- ------------------------------------------------------------
 create table if not exists produtos (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   sku text unique not null,
   nome text not null,
   categoria text,
@@ -196,8 +239,8 @@ create table if not exists produtos (
 -- assinaturas
 -- ------------------------------------------------------------
 create table if not exists assinaturas (
-  id uuid primary key default uuid_generate_v4(),
-  cliente_id uuid references clientes(id),
+  id text primary key,
+  cliente_id text references clientes(id),
   cliente_nome text,
   plano text not null,
   ciclo text not null check (ciclo in ('Mensal', 'Anual')),
@@ -213,8 +256,8 @@ create table if not exists assinaturas (
 -- pagamentos_de_assinatura
 -- ------------------------------------------------------------
 create table if not exists pagamentos_de_assinatura (
-  id uuid primary key default uuid_generate_v4(),
-  assinatura_id uuid not null references assinaturas(id) on delete cascade,
+  id text primary key,
+  assinatura_id text not null references assinaturas(id) on delete cascade,
   data text not null,
   amount_brl numeric(14,2) not null default 0,
   metodo text not null check (metodo in ('Pix', 'Boleto', 'Cartao Corporativo')),
@@ -226,7 +269,7 @@ create table if not exists pagamentos_de_assinatura (
 -- lancamentos_financeiros
 -- ------------------------------------------------------------
 create table if not exists lancamentos_financeiros (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   data text not null,
   descricao text not null,
   contraparte text not null,
@@ -244,7 +287,7 @@ create table if not exists lancamentos_financeiros (
 -- automacoes (fluxos de automatizacao empresa-Hermes)
 -- ------------------------------------------------------------
 create table if not exists automacoes (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   nome text not null,
   trigger text not null,
   action text not null,
@@ -260,14 +303,14 @@ create table if not exists automacoes (
 -- metas
 -- ------------------------------------------------------------
 create table if not exists metas (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   titulo text not null,
   descricao text,
   status text not null default 'ativa' check (status in ('ativa', 'concluida', 'arquivada')),
   nivel text,
   progress_percent numeric(5,2) not null default 0 check (progress_percent >= 0 and progress_percent <= 100),
-  owner_agent_id uuid references agentes_empresariais(id),
-  parent_goal_id uuid references metas(id),
+  owner_agent_id text references agentes_empresariais(id),
+  parent_goal_id text references metas(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -276,12 +319,12 @@ create table if not exists metas (
 -- aprovacoes (governanca empresarial)
 -- ------------------------------------------------------------
 create table if not exists aprovacoes (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   tipo text,
   titulo text not null,
   descricao text,
   status text not null default 'pendente' check (status in ('pendente', 'aprovada', 'rejeitada', 'em_revisao')),
-  requested_by_agent_id uuid references agentes_empresariais(id),
+  requested_by_agent_id text references agentes_empresariais(id),
   requested_by_name text,
   approver_user_id uuid references perfis_empresariais(id),
   issue_id uuid,
@@ -295,7 +338,7 @@ create table if not exists aprovacoes (
 -- auditoria (append-only, rastreabilidade)
 -- ------------------------------------------------------------
 create table if not exists auditoria (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   timestamp timestamptz not null default now(),
   actor text not null,
   action text not null,
@@ -308,10 +351,10 @@ create table if not exists auditoria (
 -- runs (registros empresariais de execucao Hermes)
 -- ------------------------------------------------------------
 create table if not exists runs (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   agent_id text,
   agent_name text,
-  task_id uuid,
+  task_id text,
   task_identifier text,
   status text not null default 'queued' check (status in ('queued', 'running', 'completed', 'failed')),
   trigger_source text,
@@ -330,16 +373,16 @@ create table if not exists runs (
 -- tasks (tarefas empresariais, vinculadas a tarefas Hermes quando aplicavel)
 -- ------------------------------------------------------------
 create table if not exists tasks (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   titulo text not null,
   descricao text,
   status text not null default 'todo',
   prioridade text,
-  assignee_agent_id uuid references agentes_empresariais(id),
+  assignee_agent_id text references agentes_empresariais(id),
   assignee_agent_name text,
-  projeto_id uuid references projetos(id),
+  projeto_id text references projetos(id),
   projeto_nome text,
-  parent_id uuid references tasks(id),
+  parent_id text references tasks(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -348,7 +391,7 @@ create table if not exists tasks (
 -- activities (atividade operacional empresarial)
 -- ------------------------------------------------------------
 create table if not exists activities (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   timestamp timestamptz not null default now(),
   actor_name text not null,
   action text not null,
@@ -363,7 +406,7 @@ create table if not exists activities (
 -- costs (custos empresariais com origem e qualidade identificaveis)
 -- ------------------------------------------------------------
 create table if not exists costs (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   agent_id text,
   agent_name text,
   cost_cents bigint not null default 0,
@@ -380,7 +423,7 @@ create table if not exists costs (
 -- attachments (metadados de anexos e documentos)
 -- ------------------------------------------------------------
 create table if not exists attachments (
-  id uuid primary key default uuid_generate_v4(),
+  id text primary key,
   filename text not null,
   content_type text,
   size_bytes bigint,
@@ -442,79 +485,317 @@ alter table tasks enable row level security;
 alter table activities enable row level security;
 alter table costs enable row level security;
 alter table attachments enable row level security;
+alter table equipes enable row level security;
+
+-- Função auxiliar: verifica se o usuário autenticado é Diretoria Executiva
+-- (platform_admin) no Supabase, lendo o app_metadata do auth.users.
+create or replace function tokenizai_is_platform_admin() returns boolean
+language plpgsql stable as $$
+  select coalesce((
+    select (app_metadata->>'platform_role') = 'platform_admin'
+    from auth.users
+    where auth.users.id = auth.uid()
+  ), false);
+$$;
+
+-- Função auxiliar: departamento_id do usuário autenticado (retorna null se não houver).
+create or replace function tokenizai_my_departamento_id() returns uuid
+language plpgsql stable as $$
+  select departamento_id from perfis_empresariais where id = auth.uid();
+$$;
 
 -- Políticas: leitura autenticada para todas as tabelas empresariais.
 -- A escrita é administrada por papel (role) via middleware da aplicação;
 -- aqui restringimos a leitura a usuários autenticados como base mínima.
+
+-- Políticas de RLS com isolamento por tenant (departamento).
+-- Cada usuário só acessa dados do seu departamento. Diretoria Executiva acessa tudo.
 do $$
 begin
-  if not exists (select 1 from pg_policies where tablename = 'perfis_empresariais' and policyname = 'Leitura autenticada - perfis_empresariais') then
-    create policy "Leitura autenticada - perfis_empresariais" on perfis_empresariais for select to authenticated using (true);
+  -- perfis_empresariais: todos veem perfis do próprio departamento; diretoria vê todos
+  if not exists (select 1 from pg_policies where tablename = 'perfis_empresariais' and policyname = 'Isolamento por departamento - perfis_empresariais') then
+    create policy "Isolamento por departamento - perfis_empresariais" on perfis_empresariais
+      for select to authenticated
+      using (
+        auth.uid()::text = id::text OR
+        departamento_id IS NOT NULL AND departamento_id = (
+          select departamento_id from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'departamentos' and policyname = 'Leitura autenticada - departamentos') then
-    create policy "Leitura autenticada - departamentos" on departamentos for select to authenticated using (true);
+
+  -- departamentos: todos veem departamentos do próprio departamento; diretoria vê todos
+  if not exists (select 1 from pg_policies where tablename = 'departamentos' and policyname = 'Isolamento por departamento - departamentos') then
+    create policy "Isolamento por departamento - departamentos" on departamentos
+      for select to authenticated
+      using (
+        departamento_pai_id IS NULL OR
+        departamento_pai_id = (
+          select departamento_id from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'agentes_empresariais' and policyname = 'Leitura autenticada - agentes_empresariais') then
-    create policy "Leitura autenticada - agentes_empresariais" on agentes_empresariais for select to authenticated using (true);
+
+  -- agentes_empresariais: isolamento por departamento
+  if not exists (select 1 from pg_policies where tablename = 'agentes_empresariais' and policyname = 'Isolamento por departamento - agentes_empresariais') then
+    create policy "Isolamento por departamento - agentes_empresariais" on agentes_empresariais
+      for select to authenticated
+      using (
+        departamento_id = (
+          select departamento_id from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'projetos' and policyname = 'Leitura autenticada - projetos') then
-    create policy "Leitura autenticada - projetos" on projetos for select to authenticated using (true);
+
+  -- projetos: isolamento via cliente gerenciado pelo usuário autenticado
+  if not exists (select 1 from pg_policies where tablename = 'projetos' and policyname = 'Isolamento por departamento - projetos') then
+    create policy "Isolamento por departamento - projetos" on projetos
+      for select to authenticated
+      using (
+        tokenizai_is_platform_admin()
+        or cliente_id IS NULL
+        or cliente_id = (
+          select id from clientes
+          where gerente_conta = (select email from perfis_empresariais where id = auth.uid())
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'entregas_de_projeto' and policyname = 'Leitura autenticada - entregas_de_projeto') then
-    create policy "Leitura autenticada - entregas_de_projeto" on entregas_de_projeto for select to authenticated using (true);
+
+  -- deliveries: isolamento via projeto do cliente gerenciado pelo usuário
+  if not exists (select 1 from pg_policies where tablename = 'entregas_de_projeto' and policyname = 'Isolamento por departamento - entregas_de_projeto') then
+    create policy "Isolamento por departamento - entregas_de_projeto" on entregas_de_projeto
+      for select to authenticated
+      using (
+        tokenizai_is_platform_admin()
+        or projeto_id = (
+          select p.id from projetos p
+          where p.cliente_id = (
+            select id from clientes
+            where gerente_conta = (select email from perfis_empresariais where id = auth.uid())
+          )
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'atividades_de_projeto' and policyname = 'Leitura autenticada - atividades_de_projeto') then
-    create policy "Leitura autenticada - atividades_de_projeto" on atividades_de_projeto for select to authenticated using (true);
+
+  -- activities: isolamento via projeto do cliente gerenciado pelo usuário
+  if not exists (select 1 from pg_policies where tablename = 'atividades_de_projeto' and policyname = 'Isolamento por departamento - atividades_de_projeto') then
+    create policy "Isolamento por departamento - atividades_de_projeto" on atividades_de_projeto
+      for select to authenticated
+      using (
+        tokenizai_is_platform_admin()
+        or projeto_id = (
+          select p.id from projetos p
+          where p.cliente_id = (
+            select id from clientes
+            where gerente_conta = (select email from perfis_empresariais where id = auth.uid())
+          )
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'clientes' and policyname = 'Leitura autenticada - clientes') then
-    create policy "Leitura autenticada - clientes" on clientes for select to authenticated using (true);
+
+  -- clientes: isolamento por departamento
+  if not exists (select 1 from pg_policies where tablename = 'clientes' and policyname = 'Isolamento por departamento - clientes') then
+    create policy "Isolamento por departamento - clientes" on clientes
+      for select to authenticated
+      using (
+        gerente_conta = (
+          select email from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'interacoes_de_cliente' and policyname = 'Leitura autenticada - interacoes_de_cliente') then
-    create policy "Leitura autenticada - interacoes_de_cliente" on interacoes_de_cliente for select to authenticated using (true);
+
+  -- interacoes_de_cliente: isolamento por cliente
+  if not exists (select 1 from pg_policies where tablename = 'interacoes_de_cliente' and policyname = 'Isolamento por departamento - interacoes_de_cliente') then
+    create policy "Isolamento por departamento - interacoes_de_cliente" on interacoes_de_cliente
+      for select to authenticated
+      using (
+        cliente_id = (
+          select clientes.id from clientes
+          join perfis_empresariais on clientes.gerente_conta = perfis_empresariais.email
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'negocios' and policyname = 'Leitura autenticada - negocios') then
-    create policy "Leitura autenticada - negocios" on negocios for select to authenticated using (true);
+
+  -- negocios: isolamento por cliente
+  if not exists (select 1 from pg_policies where tablename = 'negocios' and policyname = 'Isolamento por departamento - negocios') then
+    create policy "Isolamento por departamento - negocios" on negocios
+      for select to authenticated
+      using (
+        cliente_id = (
+          select clientes.id from clientes
+          join perfis_empresariais on clientes.gerente_conta = perfis_empresariais.email
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'produtos' and policyname = 'Leitura autenticada - produtos') then
-    create policy "Leitura autenticada - produtos" on produtos for select to authenticated using (true);
+
+  -- produtos: todos autenticados veem (catálogo público)
+  if not exists (select 1 from pg_policies where tablename = 'produtos' and policyname = 'Acesso autenticado - produtos') then
+    create policy "Acesso autenticado - produtos" on produtos for select to authenticated using (true);
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'assinaturas' and policyname = 'Leitura autenticada - assinaturas') then
-    create policy "Leitura autenticada - assinaturas" on assinaturas for select to authenticated using (true);
+
+  -- assinaturas: isolamento por cliente
+  if not exists (select 1 from pg_policies where tablename = 'assinaturas' and policyname = 'Isolamento por departamento - assinaturas') then
+    create policy "Isolamento por departamento - assinaturas" on assinaturas
+      for select to authenticated
+      using (
+        cliente_id = (
+          select clientes.id from clientes
+          join perfis_empresariais on clientes.gerente_conta = perfis_empresariais.email
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'pagamentos_de_assinatura' and policyname = 'Leitura autenticada - pagamentos_de_assinatura') then
-    create policy "Leitura autenticada - pagamentos_de_assinatura" on pagamentos_de_assinatura for select to authenticated using (true);
+
+  -- pagamentos_de_assinatura: isolamento por assinatura
+  if not exists (select 1 from pg_policies where tablename = 'pagamentos_de_assinatura' and policyname = 'Isolamento por departamento - pagamentos_de_assinatura') then
+    create policy "Isolamento por departamento - pagamentos_de_assinatura" on pagamentos_de_assinatura
+      for select to authenticated
+      using (
+        assinatura_id = (
+          select assinaturas.id from assinaturas
+          join perfis_empresariais on assinaturas.cliente_id = (
+            select clientes.id from clientes
+            join perfis_empresariais on clientes.gerente_conta = perfis_empresariais.email
+            where perfis_empresariais.id = auth.uid()
+          )
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'lancamentos_financeiros' and policyname = 'Leitura autenticada - lancamentos_financeiros') then
-    create policy "Leitura autenticada - lancamentos_financeiros" on lancamentos_financeiros for select to authenticated using (true);
+
+  -- lancamentos_financeiros: sem coluna de departamento na tabela;
+  -- leitura restrita a Diretoria Executiva; escrita via service_role no backend.
+  if not exists (select 1 from pg_policies where tablename = 'lancamentos_financeiros' and policyname = 'Isolamento por departamento - lancamentos_financeiros') then
+    create policy "Isolamento por departamento - lancamentos_financeiros" on lancamentos_financeiros
+      for select to authenticated
+      using (tokenizai_is_platform_admin());
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'automacoes' and policyname = 'Leitura autenticada - automacoes') then
-    create policy "Leitura autenticada - automacoes" on automacoes for select to authenticated using (true);
+
+  -- automacoes: sem coluna de departamento na tabela; leitura restrita a Diretoria Executiva.
+  if not exists (select 1 from pg_policies where tablename = 'automacoes' and policyname = 'Isolamento por departamento - automacoes') then
+    create policy "Isolamento por departamento - automacoes" on automacoes
+      for select to authenticated
+      using (tokenizai_is_platform_admin());
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'metas' and policyname = 'Leitura autenticada - metas') then
-    create policy "Leitura autenticada - metas" on metas for select to authenticated using (true);
+
+  -- metas: isolamento por departamento do agente proprietário; diretoria vê tudo.
+  if not exists (select 1 from pg_policies where tablename = 'metas' and policyname = 'Isolamento por departamento - metas') then
+    create policy "Isolamento por departamento - metas" on metas
+      for select to authenticated
+      using (
+        tokenizai_is_platform_admin()
+        or owner_agent_id = (
+          select id from agentes_empresariais
+          where departamento_id = tokenizai_my_departamento_id()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'aprovacoes' and policyname = 'Leitura autenticada - aprovacoes') then
-    create policy "Leitura autenticada - aprovacoes" on aprovacoes for select to authenticated using (true);
+
+  -- aprovacoes: isolamento por solicitante; diretoria e Auditoria veem tudo.
+  if not exists (select 1 from pg_policies where tablename = 'aprovacoes' and policyname = 'Isolamento por departamento - aprovacoes') then
+    create policy "Isolamento por departamento - aprovacoes" on aprovacoes
+      for select to authenticated
+      using (
+        tokenizai_is_platform_admin()
+        or (select role from perfis_empresariais where id = auth.uid()) = 'Auditor'
+        or requested_by_name = (select email from perfis_empresariais where id = auth.uid())
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'auditoria' and policyname = 'Leitura autenticada - auditoria') then
-    create policy "Leitura autenticada - auditoria" on auditoria for select to authenticated using (true);
+
+  -- auditoria: auditor vê tudo; outros veem apenas próprios
+  if not exists (select 1 from pg_policies where tablename = 'auditoria' and policyname = 'Isolamento por departamento - auditoria') then
+    create policy "Isolamento por departamento - auditoria" on auditoria
+      for select to authenticated
+      using (
+        actor = (
+          select email from perfis_empresariais where id = auth.uid()
+        ) OR
+        (select role from perfis_empresariais where id = auth.uid()) = 'Auditor'
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'runs' and policyname = 'Leitura autenticada - runs') then
-    create policy "Leitura autenticada - runs" on runs for select to authenticated using (true);
+
+  -- runs: isolamento por agente
+  if not exists (select 1 from pg_policies where tablename = 'runs' and policyname = 'Isolamento por departamento - runs') then
+    create policy "Isolamento por departamento - runs" on runs
+      for select to authenticated
+      using (
+        agent_id = (
+          select agentes_empresariais.id from agentes_empresariais
+          join perfis_empresariais on agentes_empresariais.departamento_id = perfis_empresariais.departamento_id
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'tasks' and policyname = 'Leitura autenticada - tasks') then
-    create policy "Leitura autenticada - tasks" on tasks for select to authenticated using (true);
+
+  -- tasks: isolamento por agente
+  if not exists (select 1 from pg_policies where tablename = 'tasks' and policyname = 'Isolamento por departamento - tasks') then
+    create policy "Isolamento por departamento - tasks" on tasks
+      for select to authenticated
+      using (
+        assignee_agent_id = (
+          select agentes_empresariais.id from agentes_empresariais
+          join perfis_empresariais on agentes_empresariais.departamento_id = perfis_empresariais.departamento_id
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'activities' and policyname = 'Leitura autenticada - activities') then
-    create policy "Leitura autenticada - activities" on activities for select to authenticated using (true);
+
+  -- activities: isolamento por ator
+  if not exists (select 1 from pg_policies where tablename = 'activities' and policyname = 'Isolamento por departamento - activities') then
+    create policy "Isolamento por departamento - activities" on activities
+      for select to authenticated
+      using (
+        actorName = (
+          select nome from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'costs' and policyname = 'Leitura autenticada - costs') then
-    create policy "Leitura autenticada - costs" on costs for select to authenticated using (true);
+
+  -- costs: isolamento por agente
+  if not exists (select 1 from pg_policies where tablename = 'costs' and policyname = 'Isolamento por departamento - costs') then
+    create policy "Isolamento por departamento - costs" on costs
+      for select to authenticated
+      using (
+        agent_id = (
+          select agentes_empresariais.id from agentes_empresariais
+          join perfis_empresariais on agentes_empresariais.departamento_id = perfis_empresariais.departamento_id
+          where perfis_empresariais.id = auth.uid()
+        )
+      );
   end if;
-  if not exists (select 1 from pg_policies where tablename = 'attachments' and policyname = 'Leitura autenticada - attachments') then
-    create policy "Leitura autenticada - attachments" on attachments for select to authenticated using (true);
+
+  -- attachments: isolamento por uploader
+  if not exists (select 1 from pg_policies where tablename = 'attachments' and policyname = 'Isolamento por departamento - attachments') then
+    create policy "Isolamento por departamento - attachments" on attachments
+      for select to authenticated
+      using (
+        uploaded_by = (
+          select nome from perfis_empresariais where id = auth.uid()
+        )
+      );
+  end if;
+
+  -- equipes: isolamento por departamento
+  if not exists (select 1 from pg_policies where tablename = 'equipes' and policyname = 'Isolamento por departamento - equipes') then
+    create policy "Isolamento por departamento - equipes" on equipes
+      for all to authenticated
+      using (
+        departamento_id IS NULL OR
+        departamento_id = (
+          select departamento_id from perfis_empresariais where id = auth.uid()
+        )
+      )
+      with check (
+        departamento_id IS NULL OR
+        departamento_id = (
+          select departamento_id from perfis_empresariais where id = auth.uid()
+        )
+      );
   end if;
 end $$;
+-- Comentarios para documentacao
+
 
 -- Comentarios para documentacao
 comment on table perfis_empresariais is 'Usuarios e perfis empresariais da TokenizAi.';

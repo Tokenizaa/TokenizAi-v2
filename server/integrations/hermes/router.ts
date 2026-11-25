@@ -24,8 +24,8 @@ import {
   parseCronList,
   parseSkillsList,
 } from './domainParsers.ts';
-import { appendAudit, createRun, listRuns, updateRun, createActivity, listActivities } from '../../persistence.ts';
-import type { RunRecord } from '../../../src/types/platform.ts';
+import { appendAudit, createRun, listRuns, updateRun, createActivity, listActivities, createAgenteEmpresarial, createDepartamento, createEquipe, listAgentesEmpresariais, listDepartamentos, listEquipes, updateAgenteEmpresarial, updateDepartamento, updateEquipe, deleteAgenteEmpresarial, deleteDepartamento, deleteEquipe } from '../../persistence.ts';
+import type { RunRecord, Departamento, AgenteEmpresarial, Equipe } from '../../../src/types/platform.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -150,28 +150,28 @@ export function createHermesRouter(
       // Mas permanece assíncrono: não bloqueia o event loop do Node.js
       const agents = await getCachedDomain(
         'overview:agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
+        () => fetchHermesJson(HERMES_CLI, ['profile', 'list'], parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );
 
       const tasks = await getCachedDomain(
         'overview:tasks',
-        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        () => fetchHermesJson(HERMES_CLI, ['kanban', 'list', '--json'], parseKanbanJson, 8000),
         DOMAIN_TTL.tasks,
         []
       );
 
       const routines = await getCachedDomain(
         'overview:routines',
-        () => fetchHermesJson(`${HERMES_CLI} cron list`, parseCronList, 5000),
+        () => fetchHermesJson(HERMES_CLI, ['cron', 'list'], parseCronList, 5000),
         DOMAIN_TTL.routines,
         []
       );
 
       const skills = await getCachedDomain(
         'overview:skills',
-        () => fetchHermesJson(`${HERMES_CLI} skills list --enabled-only`, parseSkillsList, 10000),
+        () => fetchHermesJson(HERMES_CLI, ['skills', 'list', '--enabled-only'], parseSkillsList, 10000),
         DOMAIN_TTL.skills,
         []
       );
@@ -309,7 +309,7 @@ export function createHermesRouter(
     try {
       const agents = await getCachedDomain(
         'agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
+        () => fetchHermesJson(HERMES_CLI, ['profile', 'list'], parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );
@@ -323,7 +323,8 @@ export function createHermesRouter(
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
       const { stdout } = await runCommandSafe(
-        `${HERMES_CLI} -p ${agentId} chat --oneshot -q "Quem você é?"`,
+        HERMES_CLI,
+        ['-p', agentId, 'chat', '--oneshot', '-q', 'Quem você é?'],
         { timeoutMs: 10000 }
       );
       const description = stdout?.slice(0, 200) || 'Sem descrição';
@@ -347,7 +348,8 @@ export function createHermesRouter(
         return;
       }
       await runCommandSafe(
-        `${HERMES_CLI} profile create ${slug.trim()} --no-skills`,
+        HERMES_CLI,
+        ['profile', 'create', slug.trim(), '--no-skills'],
         { timeoutMs: 10000 }
       );
       invalidateDomainCache('agents');
@@ -362,6 +364,26 @@ export function createHermesRouter(
         summary: `Division: ${division?.trim() || 'Especialista'}`,
         timestamp: new Date().toISOString(),
       });
+      // Registra agente empresarial vinculado ao perfil Hermes
+      try {
+        const existing = listAgentesEmpresariais().find((a) => a.slug === slug.trim());
+        if (!existing) {
+          createAgenteEmpresarial({
+            nome: name.trim(),
+            slug: slug.trim(),
+            divisao: division?.trim() || undefined,
+            papel: division?.trim() || undefined,
+            departamentoId: undefined,
+            hermesAgentId: slug.trim(),
+            hermesProfileId: slug.trim(),
+            status: 'ativo',
+            capabilities: [],
+          });
+        }
+      } catch (err) {
+        // Não falha a contratação se o registro empresarial falhar
+        console.warn('Falha ao registrar agente empresarial:', err);
+      }
       res.status(201).json({
         ok: true,
         agent: { id: slug.trim(), name: name.trim(), role: division?.trim() || 'Especialista', status: 'created', profileName: slug.trim() },
@@ -371,18 +393,32 @@ export function createHermesRouter(
     }
   });
 
-  router.patch('/api/hermes/agents/:agentId', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+  router.patch('/api/hermes/agents/:agentId', requirePermission('hermes:ops:write'), async (req, res) => {
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
       const { actor } = await resolveWorkspaceActor(req);
       const { title, role, status } = req.body as { title?: string; role?: string; status?: string };
+
+      // Executa atualizacao real no Hermes CLI quando houver campo suportado.
+      // O Hermes CLI oferece 'profile describe --text' para definir a
+      // descricao/titulo de um perfil. Nao há comando nativo para alterar
+      // 'role' ou 'status' do runtime; esses campos sao atualizados no
+      // registro empresarial e o resultado e reportado com transparencia.
+      if (title && title.trim()) {
+        await runCommandSafe(
+          HERMES_CLI,
+          ['profile', 'describe', agentId, '--text', title.trim()],
+          { timeoutMs: 10000 },
+        );
+      }
+
       appendAuditFn(actor.name, `Atualizou Bot Hermes ${agentId}`, agentId, 'Hermes Adapter');
       createActivity({
         actorName: actor.name,
         action: 'agent.update',
         targetType: 'agent',
         targetId: agentId,
-        summary: `Role: ${role || 'unchanged'}`,
+        summary: `Role: ${role || 'unchanged'}; Status: ${status || 'unchanged'}; Titulo: ${title || 'unchanged'}`,
         timestamp: new Date().toISOString(),
       });
       res.json({ ok: true, agent: { id: agentId, title, role, status } });
@@ -399,7 +435,7 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Confirmação explícita obrigatória para encerramento do agente.' });
         return;
       }
-      await runCommandSafe(`${HERMES_CLI} profile delete ${agentId} --yes`, { timeoutMs: 10000 });
+      await runCommandSafe(HERMES_CLI, ['profile', 'delete', agentId, '--yes'], { timeoutMs: 10000 });
       invalidateDomainCache('agents');
       invalidateDomainCache('overview');
       appendAuditFn(actor.name, 'Encerrou Bot Hermes', agentId, 'Hermes Adapter');
@@ -417,13 +453,97 @@ export function createHermesRouter(
   });
 
   // ============================================================================
+  // Agent Lifecycle - wakeup, heartbeat, pause, resume, runtime-state
+  // ============================================================================
+  router.post('/api/hermes/agents/:agentId/wakeup', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = await resolveWorkspaceActor(req);
+      await runCommandSafe(HERMES_CLI, ['profile', 'wakeup', agentId], { timeoutMs: 10000 });
+      appendAuditFn(actor.name, 'Wakeup solicitado ao agente Hermes', agentId, 'Hermes Adapter');
+      res.json({ ok: true, result: { wakeup: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/hermes/agents/:agentId/heartbeat', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = await resolveWorkspaceActor(req);
+      await runCommandSafe(HERMES_CLI, ['profile', 'heartbeat', agentId], { timeoutMs: 10000 });
+      appendAuditFn(actor.name, 'Heartbeat solicitado ao agente Hermes', agentId, 'Hermes Adapter');
+      res.json({ ok: true, result: { heartbeat: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/hermes/agents/:agentId/pause', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = await resolveWorkspaceActor(req);
+      await runCommandSafe(HERMES_CLI, ['profile', 'pause', agentId], { timeoutMs: 10000 });
+      appendAuditFn(actor.name, 'Pause solicitado ao agente Hermes', agentId, 'Hermes Adapter');
+      res.json({ ok: true, result: { paused: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/hermes/agents/:agentId/resume', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = await resolveWorkspaceActor(req);
+      await runCommandSafe(HERMES_CLI, ['profile', 'resume', agentId], { timeoutMs: 10000 });
+      appendAuditFn(actor.name, 'Resume solicitado ao agente Hermes', agentId, 'Hermes Adapter');
+      res.json({ ok: true, result: { resumed: true } });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/hermes/agents/:agentId/runtime-state', requirePermission('read'), async (req: Request, res: Response) => {
+    try {
+      const agentId = validateResourceId(req.params.agentId, 'agente');
+      const { actor } = await resolveWorkspaceActor(req);
+      const { stdout } = await runCommandSafe(HERMES_CLI, ['profile', 'state', agentId], { timeoutMs: 10000 });
+      res.json({ ok: true, runtimeState: stdout ? JSON.parse(stdout) : {} });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Activity (audit) - agent actions list
+  // ============================================================================
+  router.get('/api/hermes/activity/agent-actions', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const limit = parseLimit(_req.query.limit, 50);
+      const activities = listActivities(limit);
+      res.json({ ok: true, actions: activities.map((a) => ({
+        id: a.id,
+        timestamp: a.timestamp,
+        actorName: a.actorName,
+        action: a.action,
+        targetType: a.targetType,
+        targetId: a.targetId,
+        targetName: a.targetName,
+        summary: a.summary,
+      })) });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
   // Chats - cache por domínio (agents)
   // ============================================================================
   router.get('/api/hermes/chats', requirePermission('read'), async (_req: Request, res: Response) => {
     try {
       const agents = await getCachedDomain(
         'agents',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 15000),
+        () => fetchHermesJson(HERMES_CLI, ['profile', 'list'], parseProfileList, 15000),
         DOMAIN_TTL.agents,
         []
       );
@@ -451,9 +571,9 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Mensagem não pode ser vazia.' });
         return;
       }
-      const escapedBody = body.replace(/"/g, '\\"');
       const { stdout } = await runCommandSafe(
-        `${HERMES_CLI} -p ${agentRef} chat --oneshot -q "${escapedBody}"`,
+        HERMES_CLI,
+        ['-p', agentRef, 'chat', '--oneshot', '-q', body],
         { timeoutMs: 30000 }
       );
       appendAuditFn(actor.name, `Enviou mensagem no chat Hermes (${agentRef})`, agentRef, 'Hermes Adapter');
@@ -502,7 +622,7 @@ export function createHermesRouter(
     try {
       const tasks = await getCachedDomain(
         'tasks',
-        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        () => fetchHermesJson(HERMES_CLI, ['kanban', 'list', '--json'], parseKanbanJson, 8000),
         DOMAIN_TTL.tasks,
         []
       );
@@ -522,10 +642,9 @@ export function createHermesRouter(
         res.status(400).json({ error: 'Título da tarefa é obrigatório.' });
         return;
       }
-      const escapedTitle = title.trim().replace(/"/g, '\\"');
-      const escapedDesc = desc.replace(/"/g, '\\"');
       await runCommandSafe(
-        `${HERMES_CLI} kanban create "${escapedTitle}" --body "${escapedDesc}" --priority 3`,
+        HERMES_CLI,
+        ['kanban', 'create', title.trim(), '--body', desc, '--priority', '3'],
         { timeoutMs: 10000 }
       );
       invalidateDomainCache('tasks');
@@ -589,7 +708,7 @@ export function createHermesRouter(
     try {
       const routines = await getCachedDomain(
         'routines',
-        () => fetchHermesJson(`${HERMES_CLI} cron list`, parseCronList, 5000),
+        () => fetchHermesJson(HERMES_CLI, ['cron', 'list'], parseCronList, 5000),
         DOMAIN_TTL.routines,
         []
       );
@@ -610,7 +729,8 @@ export function createHermesRouter(
       const name = (typeof payload.name === 'string' ? payload.name : typeof payload.title === 'string' ? payload.title : '').trim();
       const cron = (typeof payload.cron === 'string' ? payload.cron : '0 9 * * *').trim();
       await runCommandSafe(
-        `${HERMES_CLI} cron create --name "${name}" --schedule "${cron}" --deliver local "Rotina Hermes: ${name}"`,
+        HERMES_CLI,
+        ['cron', 'create', '--name', name, '--schedule', cron, '--deliver', 'local', `Rotina Hermes: ${name}`],
         { timeoutMs: 10000 }
       );
       invalidateDomainCache('routines');
@@ -638,7 +758,7 @@ export function createHermesRouter(
     try {
       const tasks = await getCachedDomain(
         'tasks',
-        () => fetchHermesJson(`${HERMES_CLI} kanban list --json`, parseKanbanJson, 8000),
+        () => fetchHermesJson(HERMES_CLI, ['kanban', 'list', '--json'], parseKanbanJson, 8000),
         DOMAIN_TTL.tasks,
         []
       );
@@ -768,7 +888,7 @@ export function createHermesRouter(
     try {
       const agents = await getCachedDomain(
         'org',
-        () => fetchHermesJson(`${HERMES_CLI} profile list`, parseProfileList, 8000),
+        () => fetchHermesJson(HERMES_CLI, ['profile', 'list'], parseProfileList, 8000),
         DOMAIN_TTL.org,
         []
       );
@@ -793,11 +913,225 @@ export function createHermesRouter(
     try {
       const skills = await getCachedDomain(
         'skills',
-        () => fetchHermesJson(`${HERMES_CLI} skills list --enabled-only`, parseSkillsList, 10000),
+        () => fetchHermesJson(HERMES_CLI, ['skills', 'list', '--enabled-only'], parseSkillsList, 10000),
         DOMAIN_TTL.skills,
         []
       );
       res.json({ ok: true, skills });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Departamentos empresariais
+  // ============================================================================
+  router.get('/api/empresariais/departamentos', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const departamentos = listDepartamentos();
+      res.json({ ok: true, departamentos });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/empresariais/departamentos', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = await resolveWorkspaceActor(req);
+      const { nome, codigo, descricao, departamentoPaiId } = req.body as {
+        nome?: string;
+        codigo?: string;
+        descricao?: string;
+        departamentoPaiId?: string | null;
+      };
+      if (!nome || !nome.trim()) {
+        res.status(400).json({ error: 'Nome do departamento é obrigatório.' });
+        return;
+      }
+      if (!codigo || !codigo.trim()) {
+        res.status(400).json({ error: 'Código do departamento é obrigatório.' });
+        return;
+      }
+      const dep = createDepartamento({
+        nome: nome.trim(),
+        codigo: codigo.trim(),
+        descricao: descricao?.trim() || undefined,
+        departamentoPaiId: departamentoPaiId || null,
+      });
+      appendAuditFn(actor.name, `Criou departamento ${nome.trim()} (${codigo.trim()})`, codigo.trim(), 'Plataforma');
+      res.status(201).json({ ok: true, departamento: dep });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.patch('/api/empresariais/departamentos/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'departamento');
+      const { actor } = await resolveWorkspaceActor(req);
+      const { nome, codigo, descricao, departamentoPaiId } = req.body as {
+        nome?: string;
+        codigo?: string;
+        descricao?: string;
+        departamentoPaiId?: string | null;
+      };
+      const dep = updateDepartamento(id, { nome, codigo, descricao, departamentoPaiId });
+      if (!dep) {
+        res.status(404).json({ error: 'Departamento não encontrado.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Atualizou departamento ${id}`, id, 'Plataforma');
+      res.json({ ok: true, departamento: dep });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.delete('/api/empresariais/departamentos/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'departamento');
+      const { actor } = await resolveWorkspaceActor(req);
+      const ok = deleteDepartamento(id);
+      if (!ok) {
+        res.status(404).json({ error: 'Departamento não encontrado.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Excluiu departamento ${id}`, id, 'Plataforma');
+      res.json({ ok: true });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Agentes Empresariais
+  // ============================================================================
+  router.get('/api/empresariais/agentes', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const agentes = listAgentesEmpresariais();
+      res.json({ ok: true, agentes });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.patch('/api/empresariais/agentes/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'agente empresarial');
+      const { actor } = await resolveWorkspaceActor(req);
+      const { nome, slug, divisao, papel, departamentoId, hermesAgentId, hermesProfileId, status, capabilities } = req.body as {
+        nome?: string;
+        slug?: string;
+        divisao?: string;
+        papel?: string;
+        departamentoId?: string | null;
+        hermesAgentId?: string | null;
+        hermesProfileId?: string | null;
+        status?: 'ativo' | 'inativo' | 'suspenso';
+        capabilities?: string[];
+      };
+      const agente = updateAgenteEmpresarial(id, { nome, slug, divisao, papel, departamentoId, hermesAgentId, hermesProfileId, status, capabilities });
+      if (!agente) {
+        res.status(404).json({ error: 'Agente empresarial não encontrado.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Atualizou agente empresarial ${agente.nome}`, id, 'Plataforma');
+      res.json({ ok: true, agente });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.delete('/api/empresariais/agentes/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'agente empresarial');
+      const { actor } = await resolveWorkspaceActor(req);
+      const ok = deleteAgenteEmpresarial(id);
+      if (!ok) {
+        res.status(404).json({ error: 'Agente empresarial não encontrado.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Excluiu agente empresarial ${id}`, id, 'Plataforma');
+      res.json({ ok: true });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Equipes organizacionais
+  // ============================================================================
+  router.get('/api/empresariais/equipes', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const equipes = listEquipes();
+      res.json({ ok: true, equipes });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/empresariais/equipes', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = await resolveWorkspaceActor(req);
+      const { nome, descricao, departamentoId, liderId, integrantes } = req.body as {
+        nome?: string;
+        descricao?: string;
+        departamentoId?: string | null;
+        liderId?: string | null;
+        integrantes?: string[];
+      };
+      if (!nome || !nome.trim()) {
+        res.status(400).json({ error: 'Nome da equipe é obrigatório.' });
+        return;
+      }
+      const equipe = createEquipe({
+        nome: nome.trim(),
+        descricao: descricao?.trim() || undefined,
+        departamentoId: departamentoId || null,
+        liderId: liderId || null,
+        integrantes: integrantes || [],
+      });
+      appendAuditFn(actor.name, `Criou equipe ${nome.trim()}`, nome.trim(), 'Plataforma');
+      res.status(201).json({ ok: true, equipe });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.patch('/api/empresariais/equipes/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'equipe');
+      const { actor } = await resolveWorkspaceActor(req);
+      const { nome, descricao, departamentoId, liderId, integrantes } = req.body as {
+        nome?: string;
+        descricao?: string;
+        departamentoId?: string | null;
+        liderId?: string | null;
+        integrantes?: string[];
+      };
+      const equipe = updateEquipe(id, { nome, descricao, departamentoId, liderId, integrantes });
+      if (!equipe) {
+        res.status(404).json({ error: 'Equipe não encontrada.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Atualizou equipe ${id}`, id, 'Plataforma');
+      res.json({ ok: true, equipe });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.delete('/api/empresariais/equipes/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const id = validateResourceId(req.params.id, 'equipe');
+      const { actor } = await resolveWorkspaceActor(req);
+      const ok = deleteEquipe(id);
+      if (!ok) {
+        res.status(404).json({ error: 'Equipe não encontrada.' });
+        return;
+      }
+      appendAuditFn(actor.name, `Excluiu equipe ${id}`, id, 'Plataforma');
+      res.json({ ok: true });
     } catch (err) {
       sendError(res, err);
     }

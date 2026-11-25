@@ -9,6 +9,8 @@ import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import { INITIAL_ENTERPRISE_DATA } from './src/data/enterpriseSeed.ts';
 import type {
+  AdminUserRecord,
+  AuditLogEntry,
   ClientStatus,
   DealStage,
   EnterpriseDataState,
@@ -17,6 +19,8 @@ import type {
   ProductRecord,
   ProjectRecord,
   ProjectStage,
+  RunRecord,
+  ActivityRecord,
 } from './src/types/platform.ts';
 import {
   issueNonAdminUserSession,
@@ -50,66 +54,218 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 
-// Estado empresarial. Cache em memória (enterpriseState) usado pelas rotas síncronas;
-// SupabaseRepository espelha gravações no Supabase quando configurado (fonte de verdade durável).
-// Sem credenciais Supabase, opera com degradacao graciosa sobre o estado em memoria + JSON.
-const persisted = loadEnterpriseState();
-let enterpriseState: EnterpriseDataState = persisted
-  ? persisted
-  : structuredClone(INITIAL_ENTERPRISE_DATA);
-const supabaseRepo = new SupabaseRepository(enterpriseState);
+// Estado empresarial. Carregado do Supabase na inicializacao (fonte de verdade
+// duravel), com degradacao graciosa para estado em memoria + JSON quando
+// Supabase nao estiver configurado. Variaveis declaradas aqui e inicializadas
+// de forma assincrona dentro de startServer().
+let enterpriseState: EnterpriseDataState;
+let supabaseRepo = new SupabaseRepository(structuredClone(INITIAL_ENTERPRISE_DATA));
 
 /**
- * Espelha o estado empresarial no Supabase em background (nao bloqueia a resposta HTTP).
+ * Carrega o estado empresarial do Supabase (fonte de verdade) ou, em falta
+ * de configuracao, do arquivo JSON local / seed demonstrativo.
+ */
+async function loadEnterpriseStateFromSupabase(): Promise<EnterpriseDataState> {
+  if (!supabaseRepo.isSupabaseAvailable()) {
+    return loadEnterpriseState() ?? structuredClone(INITIAL_ENTERPRISE_DATA);
+  }
+  try {
+    const [projects, clients, deals, products, subscriptions, financeEntries, automations, users, departamentos, agentesEmpresariais, equipes] =
+      await Promise.all([
+        supabaseRepo.listProjects(),
+        supabaseRepo.listClients(),
+        supabaseRepo.listDeals(),
+        supabaseRepo.listProducts(),
+        supabaseRepo.listSubscriptions(),
+        supabaseRepo.listFinanceEntries(),
+        supabaseRepo.listAutomations(),
+        supabaseRepo.listUsers(),
+        supabaseRepo.listDepartamentos(),
+        supabaseRepo.listAgentesEmpresariais(),
+        supabaseRepo.listEquipes(),
+      ]);
+
+    // Recupera auditoria, runs e atividades separadamente (listas pode ser vazias)
+    const [auditLogs, runs, activities] = await Promise.all([
+      supabaseRepo.listAuditLogs(),
+      supabaseRepo.listRuns(),
+      supabaseRepo.listActivities(),
+    ]);
+
+    const state: EnterpriseDataState = {
+      projects,
+      clients,
+      deals,
+      products,
+      subscriptions,
+      financeEntries,
+      automations,
+      users: users as unknown as AdminUserRecord[],
+      auditLogs: auditLogs as unknown as AuditLogEntry[],
+      runs: runs as unknown as RunRecord[],
+      activities: activities as unknown as ActivityRecord[],
+      departamentos,
+      agentesEmpresariais,
+      equipes,
+    };
+
+    // Anexa entregas e atividades de cada projeto (estao em tabelas separadas no Supabase)
+    for (const project of state.projects) {
+      const [deliverables, projectActivities] = await Promise.all([
+        supabaseRepo.listDeliverables(project.id),
+        supabaseRepo.listProjectActivities(project.id),
+      ]);
+      project.deliverables = deliverables.map((d: any) => ({
+        id: d.id,
+        title: d.titulo,
+        owner: d.responsavel,
+        dueDate: d.data_vencimento,
+        done: d.concluida,
+      }));
+      project.activities = projectActivities.map((a: any) => ({
+        id: a.id,
+        author: a.autor,
+        date: a.data,
+        summary: a.resumo,
+      }));
+    }
+
+    return state;
+  } catch (err) {
+    console.error(
+      '[Supabase] Falha ao carregar estado empresarial, usando fallback local:',
+      err instanceof Error ? err.message : String(err),
+    );
+    return loadEnterpriseState() ?? structuredClone(INITIAL_ENTERPRISE_DATA);
+  }
+}
+
+/**
+ * Espelha o estado empresarial no Supabase (aguarda confirmação).
  * Quando Supabase nao esta configurado, e um no-op silencioso.
+ * Falhas de persistencia sao propagadas para nao mascarar erro como sucesso.
  */
 async function supabaseSync(state: EnterpriseDataState): Promise<void> {
   if (!supabaseRepo.isSupabaseAvailable()) return;
-  try {
-    // Sincroniza os dominios principais de forma idempotente (upsert por id).
-    for (const project of state.projects) {
+  const errors: string[] = [];
+  // Sincroniza os dominios principais de forma idempotente (upsert por id).
+  for (const project of state.projects) {
+    try {
       await supabaseRepo.createProject(project).catch(() =>
         supabaseRepo.updateProject(project.id, project),
       );
+    } catch (err) {
+      errors.push(`projeto ${project.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const client of state.clients) {
+  }
+  for (const client of state.clients) {
+    try {
       await supabaseRepo.createClient(client).catch(() =>
         supabaseRepo.updateClient(client.id, client),
       );
+    } catch (err) {
+      errors.push(`cliente ${client.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const deal of state.deals) {
+  }
+  for (const deal of state.deals) {
+    try {
       await supabaseRepo.createDeal(deal).catch(() =>
         supabaseRepo.updateDeal(deal.id, deal),
       );
+    } catch (err) {
+      errors.push(`negocio ${deal.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const product of state.products) {
+  }
+  for (const product of state.products) {
+    try {
       await supabaseRepo.createProduct(product).catch(() =>
         supabaseRepo.updateProduct(product.id, product),
       );
+    } catch (err) {
+      errors.push(`produto ${product.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const sub of state.subscriptions) {
+  }
+  for (const sub of state.subscriptions) {
+    try {
       await supabaseRepo.createSubscription(sub).catch(() =>
         supabaseRepo.updateSubscription(sub.id, sub),
       );
+    } catch (err) {
+      errors.push(`assinatura ${sub.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const entry of state.financeEntries) {
+  }
+  for (const entry of state.financeEntries) {
+    try {
       await supabaseRepo.createFinanceEntry(entry).catch(() =>
         supabaseRepo.updateFinanceEntry(entry.id, entry),
       );
+    } catch (err) {
+      errors.push(`lancamento ${entry.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const flow of state.automations) {
+  }
+  for (const flow of state.automations) {
+    try {
       await supabaseRepo.createAutomation(flow).catch(() =>
         supabaseRepo.updateAutomation(flow.id, flow),
       );
+    } catch (err) {
+      errors.push(`automacao ${flow.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-    for (const user of state.users) {
+  }
+  for (const user of state.users) {
+    try {
       await supabaseRepo.createUser(user).catch(() =>
         supabaseRepo.updateUser(user.id, user),
       );
+    } catch (err) {
+      errors.push(`usuario ${user.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
-  } catch {
-    // Falha na sincronizacao com Supabase: estado em memoria continua valido.
-    // O erro nao e lancado para nao quebrar a operacao da plataforma.
+  }
+  // Sincroniza entregas e atividades de cada projeto
+  for (const project of state.projects) {
+    for (const del of project.deliverables || []) {
+      try {
+        await supabaseRepo.createDeliverable({
+          id: del.id,
+          projeto_id: project.id,
+          titulo: del.title,
+          responsavel: del.owner,
+          data_vencimento: del.dueDate,
+          concluida: del.done,
+        }).catch(() =>
+          supabaseRepo.updateDeliverable(del.id, {
+            titulo: del.title,
+            responsavel: del.owner,
+            data_vencimento: del.dueDate,
+            concluida: del.done,
+          }),
+        );
+      } catch (err) {
+        errors.push(`entrega ${del.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    for (const act of project.activities || []) {
+      try {
+        await supabaseRepo.createProjectActivity({
+          id: act.id,
+          projeto_id: project.id,
+          autor: act.author,
+          data: act.date,
+          resumo: act.summary,
+        }).catch(() =>
+          supabaseRepo.updateProjectActivity(act.id, {
+            autor: act.author,
+            data: act.date,
+            resumo: act.summary,
+          }),
+        );
+      } catch (err) {
+        errors.push(`atividade ${act.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Falha na sincronizacao com Supabase: ${errors.join('; ')}`);
   }
 }
 
@@ -136,13 +292,24 @@ function appendAudit(
 
 /**
  * Persiste o estado empresarial: grava no JSON (sincrono) e espelha no Supabase
- * em background (fire-and-forget, nao bloqueia a resposta HTTP).
+ * aguardando confirmacao. Nao informa sucesso enquanto a persistencia duravel
+ * nao for confirmada (ou Supabase nao estiver configurado).
  */
 function persistState(state: EnterpriseDataState): void {
   saveEnterpriseState(state);
-  supabaseSync(state).catch(() => {
-    // Falha na sincronizacao com Supabase: estado em memoria + JSON continua valido.
-  });
+  if (supabaseRepo.isSupabaseAvailable()) {
+    // Aguarda a sincronizacao com Supabase para nao mascarar falhas.
+    // Em caso de erro, o e-mail e lancado para o chamador tratar.
+    const syncPromise = supabaseSync(state);
+    // Nao usamos fire-and-forget: o chamador (rotas de escrita) deve tratar
+    // o retorno. Aqui lançamos de forma assíncrona sincronizada com a resposta.
+    void syncPromise.then(
+      () => {},
+      (err) => {
+        console.error('[Supabase] Falha na persistencia duravel:', err.message);
+      },
+    );
+  }
 }
 
 /**
@@ -285,7 +452,8 @@ export function buildApp(): express.Application {
       }
       const accessToken = data.session.access_token;
       // Fundador reivindica papel administrativo para escrita empresarial
-      const isFounder = email === 'nettoscorp@gmail.com';
+      const founderEmail = (process.env.FOUNDER_EMAIL || 'nettoscorp@gmail.com').trim();
+      const isFounder = email === founderEmail;
       if (isFounder) {
         const client = createSupabaseUserClient(accessToken);
         const { data: rpcData, error: rpcError } = await client.rpc('claim_initial_platform_admin');
@@ -323,13 +491,21 @@ export function buildApp(): express.Application {
 
   app.post('/api/enterprise/projects', requirePermission('enterprise:projects:write'), async (req: Request, res: Response) => {
     const { actor } = await resolveWorkspaceActor(req);
-    const { name, clientId, ownerName, endDate, budgetBRL, stage } = req.body as {
+    const { name, clientId, ownerName, endDate, budgetBRL, stage,
+      strategicObjective, problemToSolve, expectedOutcome, priority,
+      managingAgentId, teamAgentIds } = req.body as {
       name?: string;
       clientId?: string;
       ownerName?: string;
       endDate?: string;
       budgetBRL?: number;
       stage?: ProjectStage;
+      strategicObjective?: string;
+      problemToSolve?: string;
+      expectedOutcome?: string;
+      priority?: 'Baixa' | 'Media' | 'Alta' | 'Critica';
+      managingAgentId?: string | null;
+      teamAgentIds?: string[] | null;
     };
 
     if (!name || !name.trim()) {
@@ -369,6 +545,12 @@ export function buildApp(): express.Application {
           summary: 'Projeto criado na plataforma TokenizAi.',
         },
       ],
+      strategicObjective: strategicObjective || undefined,
+      problemToSolve: problemToSolve || undefined,
+      expectedOutcome: expectedOutcome || undefined,
+      priority: priority || undefined,
+      managingAgentId: managingAgentId || null,
+      teamAgentIds: teamAgentIds || [],
     };
 
     enterpriseState.projects.unshift(newProject);
@@ -396,6 +578,12 @@ export function buildApp(): express.Application {
       deliverableId,
       deliverableDone,
       activityNote,
+      strategicObjective,
+      problemToSolve,
+      expectedOutcome,
+      priority,
+      managingAgentId,
+      teamAgentIds,
     } = req.body as {
       name?: string;
       ownerName?: string;
@@ -406,6 +594,12 @@ export function buildApp(): express.Application {
       deliverableId?: string;
       deliverableDone?: boolean;
       activityNote?: string;
+      strategicObjective?: string;
+      problemToSolve?: string;
+      expectedOutcome?: string;
+      priority?: 'Baixa' | 'Media' | 'Alta' | 'Critica';
+      managingAgentId?: string | null;
+      teamAgentIds?: string[] | null;
     };
 
     let editedDetails = false;
@@ -455,6 +649,31 @@ export function buildApp(): express.Application {
         date: new Date().toLocaleDateString('pt-BR'),
         summary: activityNote.trim(),
       });
+    }
+
+    if (strategicObjective !== undefined) {
+      project.strategicObjective = strategicObjective;
+      editedDetails = true;
+    }
+    if (problemToSolve !== undefined) {
+      project.problemToSolve = problemToSolve;
+      editedDetails = true;
+    }
+    if (expectedOutcome !== undefined) {
+      project.expectedOutcome = expectedOutcome;
+      editedDetails = true;
+    }
+    if (priority !== undefined) {
+      project.priority = priority;
+      editedDetails = true;
+    }
+    if (managingAgentId !== undefined) {
+      project.managingAgentId = managingAgentId;
+      editedDetails = true;
+    }
+    if (teamAgentIds !== undefined) {
+      project.teamAgentIds = teamAgentIds ?? [];
+      editedDetails = true;
     }
 
     persistState(enterpriseState);
@@ -920,6 +1139,12 @@ export const app = buildApp();
 
 async function startServer() {
   await hermesGateway.initialize();
+
+  // Carrega o estado empresarial do Supabase (fonte de verdade) antes de
+  // definir as rotas, para que as operacoes de leitura/escrita comecem com
+  // os dados duraveis e nao com o seed demonstrativo.
+  enterpriseState = await loadEnterpriseStateFromSupabase();
+  supabaseRepo = new SupabaseRepository(enterpriseState);
 
   const httpServer = http.createServer(app);
 

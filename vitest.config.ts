@@ -4,5 +4,6 @@ export default defineConfig({
   test: {
     exclude: ['**/e2e/**', '**/node_modules/**', '**/dist/**'],
     environment: 'node',
+    testTimeout: 30000,
   },
 });

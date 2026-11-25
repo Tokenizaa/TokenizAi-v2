@@ -71,6 +71,18 @@ export interface ProjectRecord {
   hermesProjectId?: string;
   deliverables: ProjectDeliverable[];
   activities: ProjectActivity[];
+  // Modelo estratégico empresarial (TokenizAi V2)
+  strategicObjective?: string;
+  problemToSolve?: string;
+  expectedOutcome?: string;
+  successIndicators?: string[];
+  priority?: 'Baixa' | 'Media' | 'Alta' | 'Critica';
+  risksAndDependencies?: string[];
+  managingAgentId?: string | null;
+  teamAgentIds?: string[];
+  strategicMilestones?: string[];
+  linkedDocuments?: string[];
+  decisionHistory?: string[];
 }
 
 export type ClientStatus = 'Ativo' | 'Em Implantação' | 'Em Risco' | 'Inativo';
@@ -199,6 +211,42 @@ export interface AuditLogEntry {
   origin: 'Plataforma' | 'Hermes Adapter' | 'Segurança';
 }
 
+export interface Departamento {
+  id: string;
+  nome: string;
+  codigo: string;
+  descricao?: string;
+  departamentoPaiId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgenteEmpresarial {
+  id: string;
+  nome: string;
+  slug: string;
+  divisao?: string;
+  papel?: string;
+  departamentoId?: string | null;
+  hermesAgentId?: string | null;
+  hermesProfileId?: string | null;
+  status: 'ativo' | 'inativo' | 'suspenso';
+  capabilities: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Equipe {
+  id: string;
+  nome: string;
+  descricao?: string;
+  departamentoId?: string | null;
+  liderId?: string | null;
+  integrantes: string[]; // IDs de agentes_empresariais
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface EnterpriseDataState {
   projects: ProjectRecord[];
   clients: ClientRecord[];
@@ -211,6 +259,9 @@ export interface EnterpriseDataState {
   auditLogs: AuditLogEntry[];
   runs: RunRecord[];
   activities: ActivityRecord[];
+  departamentos: Departamento[];
+  agentesEmpresariais: AgenteEmpresarial[];
+  equipes: Equipe[];
 }
 
 export interface RunRecord {
@@ -474,6 +525,20 @@ export interface HermesGoalDto {
   progressPercent?: number | null;
   ownerAgentId?: string | null;
   parentGoalId?: string | null;
+}
+
+export interface HermesApprovalDto {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'pendente' | 'aprovada' | 'rejeitada' | 'revisao';
+  requestedBy?: string;
+  approverId?: string;
+  decidedAt?: string | null;
+  resourceType?: string;
+  resourceId?: string;
+  votes?: number;
+  createdAt: string;
 }
 
 export interface HermesSkillDto {
