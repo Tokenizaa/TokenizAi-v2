@@ -1,5 +1,7 @@
 # Decisões Arquiteturais — NettosCorp Enterprise
 
+> **ATUALIZAÇÃO — 25/11/2026:** A migração do TokenizAi V2 para integração direta com Hermes substitui qualquer decisão anterior que pressupunha Paperclip como provedor, runtime ou camada de integração. ADR 03 permanece no histórico, mas seus pontos sobre adapters Paperclip não são requisitos vigentes.
+
 > **Versão:** 1.0  \
 > **Data:** 22 de novembro de 2026  \
 > **Status:** ADRs 01, 02, 03 registrados e aprovados \
@@ -73,22 +75,21 @@ Este documento tem por objetivo centralizar todas as decisões arquiteturais (AD
 
 ---
 
-### ADR 03: Integração via Adaptadores, Não Modelo Unificado (22/11/2026)
+### ADR 03: Integração via Adaptadores, Não Modelo Unificado (22/11/2026) — SUPERADO PARCIALMENTE
 
-**Contexto:** Decisão sobre como integrar Agency Agents e Paperclip ao TokenizAi sem criar dependências circulares ou monolito.
+**Contexto histórico:** Decisão original sobre integrar Agency Agents e Paperclip ao TokenizAi. A referência ao Paperclip foi superada pela migração posterior para Hermes direto.
 
 **Decisão:** Usar adaptadores desacoplados por provedor, com contrato definido em vez de um modelo unificado centralizado.
 
 **Consequências:**
 - ✅ Cada provedor tem adapter próprio — isolamento de falhas
 - ✅ Nova integração adicionada sem modificar código existente
-- ⚠️ Necessidade de manter 12+ adapters (Paperclip) + adaptadores IA
+- ⚠️ O plano original previa adapters Paperclip; esse requisito foi cancelado pela migração direta para Hermes.
 - ⚠️ Sobrecarga inicial de configuração
 
-**Status de Aprovação:** ✅ **APROVADO** — Aprovado pelo Founder (Netto Farias) em 22/11/2026  
-**Data:** 22/11/2026  
-**Autoridade:** Netto Farias (Founder, NettosCorp)  
-**Referências:** `01-VISAO-E-DIRETRIZES.md#adr-03-integracao-via-adaptadores`, `10-ROADMAP-DE-INTEGRACAO.md#adr-03-integracao-via-adaptadores`
+**Status:** SUPERADO PELA MIGRAÇÃO DIRETA PARA HERMES — preservar somente como registro histórico. Nenhum adapter ou serviço Paperclip deve ser instalado ou iniciado.  
+**Data da decisão original:** 22/11/2026  
+**Referências:** `ARQUITETURA-HERMES-DIRETO.md`
 
 ---
 
