@@ -28,7 +28,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
       const res = await hermesService.listActivity(100);
       setActivity(res.activity || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar a atividade do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar a atividade dos agentes.');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
     return (
       <EmptyState
         title="Sem atividade registrada"
-        description="A trilha de auditoria do Paperclip não possui eventos recentes para esta empresa."
+        description="Não há eventos recentes na trilha de atividade dos agentes."
       />
     );
   }
@@ -52,7 +52,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Atividade e auditoria (Paperclip)"
+        title="Atividade e auditoria"
         subtitle="Timeline de eventos, ações de agentes e alterações operacionais com identificação do responsável."
         actions={
           <button
@@ -67,7 +67,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
 
       <CollectionToolbar>
         <div className="flex items-center justify-between gap-3 flex-1 min-w-0">
-          <SectionTitle title={`Eventos recentes (${activity.length})`} subtitle="Fonte: endpoint /activity da instância Paperclip." />
+          <SectionTitle title={`Eventos recentes (${activity.length})`} subtitle="Eventos retornados pelo serviço de atividade do runtime Hermes." />
         </div>
       </CollectionToolbar>
 
@@ -92,7 +92,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
       </div>
 
       <p className="text-xs text-ink-subtle">
-        A atividade e auditoria refletem os eventos operacionais do Paperclip. Elas não incluem dados financeiros ou empresariais da TokenizAi.
+        A atividade reflete eventos do runtime dos agentes. Dados financeiros e demais registros empresariais permanecem sob governança da TokenizAi.
       </p>
     </div>
   );
