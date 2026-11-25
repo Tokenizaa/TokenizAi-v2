@@ -4,7 +4,7 @@
 
 > **Versão:** 2.2  \
 > **Data:** 22 de novembro de 2026  \
-> **Status:** **FASE 0 HOMOLOGADA LOCALMENTE — FASE 1 AUTORIZADA**  \
+> **Status:** **INVENTÁRIO HISTÓRICO SUPERADO — REVALIDAR CONTRA A MAIN ATUAL**  \
 > **Responsável:** Hermes
 
 ---
