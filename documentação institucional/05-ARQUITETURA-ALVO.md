@@ -172,8 +172,8 @@
 | **3** | Plugin SDK: `@nettoscorp/plugin-sdk` v2 independente | 1 | Fase 1 |
 | **4** | Frontend Shared: `@nettoscorp/ui-primitives`, `@nettoscorp/frontend-query` | 2 | Fase 1 |
 | **5** | Module Architecture: Federation no server + UI | 3-4 | Fases 1-4 |
-| **6** | Catalog Sync Pipeline: GitHub webhook → Paperclip Skill Catalog | 2 | Fase 1 |
-| **7** | Agent Hire Flow: AA corpus → Paperclip agent provisioning | 2 | Fase 5, 6 |
+| **6** | Catalog Sync Pipeline: GitHub webhook → catálogo próprio TokenizAi → Hermes | 2 | Fase 1 |
+| **7** | Agent Provisioning: Agency Agents corpus → TokenizAi → Hermes | 2 | Fase 5, 6 |
 | **8** | Governance Layer: Authority Engine, Policy Engine, Audit | 3-4 | Fase 5 |
 | **9** | Memory Layer: Vector DB + RAG + Knowledge Graph | 4-6 | Fase 8 |
 | **10** | NEXUS Adoption: Playbooks, Runbooks, Workflow Engine | 3-4 | Fase 8 |
@@ -188,9 +188,9 @@
 |---------|--------|--------------|
 | **Vector DB** | pgvector (PG) vs Pinecone vs Weaviate | pgvector (unified PG, custo zero) |
 | **Knowledge Graph** | Apache Age (PG extension) vs Neo4j | Apache Age (unified PG) |
-| **Workflow Engine** | Paperclip routines + NEXUS vs Temporal vs custom | Paperclip + NEXUS (reutilização) |
+| **Workflow Engine** | Hermes + NEXUS vs Temporal vs custom | Hermes + NEXUS (integração direta) |
 | **API Gateway** | Cloudflare Workers (atual) vs Kong vs custom | Cloudflare Workers (já em TokenizAi) |
-| **Secrets** | 1Password (Paperclip) vs Vault vs AWS Secrets | 1Password (já integrado) |
+| **Secrets** | 1Password vs Vault vs AWS Secrets | 1Password (já integrado) |
 
 ---
 
