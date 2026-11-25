@@ -167,7 +167,7 @@ const result = await agency_agents_delegate({
   slug: "engineering-rust-refactoring-specialist",
   task: "Optimize the hot path in workspace-recovery.ts",
   context: {
-    repo: "paperclip",
+    repo: "paperclip", // EXEMPLO HISTÓRICO — NÃO COPIAR/EXECUTAR; runtime substituído por Hermes
     files: ["server/src/services/workspace-recovery.ts"],
     constraints: "Maintain backward compatibility, zero downtime"
   }
