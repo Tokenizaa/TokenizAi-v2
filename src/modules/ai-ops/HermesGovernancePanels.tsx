@@ -1,13 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  CheckCircle2,
   Clock,
   Play,
   Plus,
   RefreshCw,
   ShieldCheck,
   Wallet,
-  XCircle,
 } from 'lucide-react';
 import { SegmentedTabs, SlideDrawer, StatusText } from '../../components/ui/Primitives';
 import {
@@ -16,7 +14,6 @@ import {
   HermesApi,
 } from '../../services/api';
 import type {
-  HermesApprovalDto,
   HermesBotDto,
   HermesIntegrationStatus,
   HermesCostSummaryDto,
@@ -426,170 +423,27 @@ export const HermesRoutinesPanel: React.FC<{
 };
 
 /* ============================================================================
- * 2. APPROVALS & GOVERNANCE (Human authority preserved)
+ * 2. APPROVALS & GOVERNANCE
  * ========================================================================== */
 export const HermesApprovalsPanel: React.FC<{
   status: HermesIntegrationStatus;
   onNavigate: (sec: NavSectionId) => void;
   onToast: (msg: string) => void;
-}> = ({ status, onNavigate, onToast }) => {
-  const [approvals, setApprovals] = useState<HermesApprovalDto[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [noteById, setNoteById] = useState<Record<string, string>>({});
-
-  const isConnected = status.configured && status.connected;
-
-  const loadApprovals = useCallback(async () => {
-    if (!isConnected) return;
-    setLoading(true);
-    try {
-      const res = await HermesApi.listApprovals();
-      setApprovals(res.approvals || []);
-    } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao consultar aprovações no Hermes.');
-    } finally {
-      setLoading(false);
-    }
-  }, [isConnected, onToast]);
-
-  useEffect(() => {
-    loadApprovals();
-  }, [loadApprovals]);
-
-  const handleDecision = async (
-    id: string,
-    action: 'approve' | 'reject' | 'revision',
-  ) => {
-    const note = (noteById[id] || '').trim();
-    if (action === 'revision' && !note) {
-      onToast('Informe uma justificativa para solicitar revisão.');
-      return;
-    }
-    try {
-      if (action === 'approve') await HermesApi.approveApproval(id, note || undefined);
-      else if (action === 'reject') await HermesApi.rejectApproval(id, note || undefined);
-      else await HermesApi.requestApprovalRevision(id, note);
-
-      await loadApprovals();
-      onToast('Decisão humana registrada no Hermes.');
-    } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Erro ao registrar decisão no Hermes.');
-    }
-  };
-
-  if (!isConnected) {
-    return (
-      <HermesStatusPanel
-        status={status}
-        title="Central de Aprovações & Governança (Hermes)"
-        requiredCapabilities={['approvals:read', 'approvals:manage']}
-        onNavigate={onNavigate}
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-ink-subtle">
-          Aprovações críticas exigem decisão humana explícita e respeitam destinatários definidos no Hermes.
-        </div>
-        <button
-          type="button"
-          onClick={loadApprovals}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Atualizar</span>
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {approvals.map((ap) => {
-          const isPending =
-            ap.status === 'pending' || ap.status === 'revision_requested';
-          return (
-            <div key={ap.id} className="nc-card rounded-2xl p-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-accent dark:text-cyan-300" />
-                  <h3 className="font-display text-sm font-semibold text-ink">
-                    {ap.title}
-                  </h3>
-                </div>
-                <StatusText
-                  label={ap.status}
-                  tone={
-                    ap.status === 'approved'
-                      ? 'nominal'
-                      : ap.status === 'rejected'
-                        ? 'critical'
-                        : 'attention'
-                  }
-                />
-              </div>
-
-              {ap.description && <p className="text-xs text-ink-muted">{ap.description}</p>}
-
-              <div className="text-[11px] font-mono text-ink-subtle flex flex-wrap gap-4">
-                <span>
-                  Solicitante: {ap.requestedByName || ap.requestedByAgentId || 'Agente'}
-                </span>
-                <span>Criada: {formatDateTimeBR(ap.createdAt)}</span>
-              </div>
-
-              {isPending && (
-                <div className="pt-3 border-t border-line flex flex-col sm:flex-row sm:items-center gap-2.5">
-                  <input
-                    type="text"
-                    value={noteById[ap.id] || ''}
-                    onChange={(e) =>
-                      setNoteById({ ...noteById, [ap.id]: e.target.value })
-                    }
-                    placeholder="Observação / justificativa da decisão..."
-                    className="flex-1 px-3 py-2 rounded-lg border border-line-strong bg-canvas text-xs text-ink"
-                  />
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleDecision(ap.id, 'approve')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-xs font-semibold text-emerald-700 dark:text-emerald-300 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Aprovar</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDecision(ap.id, 'revision')}
-                      className="px-3 py-1.5 rounded-lg border border-line-strong text-xs font-semibold text-ink hover:bg-surface-blue cursor-pointer"
-                    >
-                      Pedir revisão
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDecision(ap.id, 'reject')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-500/40 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-500/10 cursor-pointer"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Rejeitar</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {approvals.length === 0 && (
-          <div className="nc-card rounded-2xl p-8 text-center text-xs text-ink-subtle">
-            Nenhuma solicitação de aprovação registrada nesta instância.
-          </div>
-        )}
-      </div>
+}> = ({ status, onNavigate }) => (
+  <div className="nc-card rounded-2xl p-6 space-y-3">
+    <div className="flex items-center gap-2">
+      <ShieldCheck className="w-5 h-5 text-ink-subtle" />
+      <h3 className="font-display text-sm font-semibold text-ink">Governança de aprovações</h3>
     </div>
-  );
-};
-
+    <p className="text-xs leading-relaxed text-ink-muted">
+      O runtime Hermes atualmente não oferece um contrato completo e persistente para listar, detalhar e decidir aprovações. A antiga implementação classificava tarefas pelo título e apresentava ações sem endpoints correspondentes. Essas ações foram desativadas para não simular governança.
+    </p>
+    <div className="flex items-center justify-between gap-3 pt-2 border-t border-line">
+      <span className="text-xs text-ink-subtle">Estado da conexão: {status.connectionLabel}</span>
+      <button type="button" onClick={() => onNavigate('admin')} className="text-xs font-semibold text-accent hover:underline cursor-pointer">Ver diagnóstico do runtime</button>
+    </div>
+  </div>
+);
 /* ============================================================================
  * 3. COSTS, ACTIVITY & AUDIT
  * ========================================================================== */
