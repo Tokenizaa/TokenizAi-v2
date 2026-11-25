@@ -26,20 +26,20 @@ import { AuthApi } from './services/api.ts';
 import { HermesApi, PlatformApi } from './services/api';
 import type { EnterpriseDataState, NavSectionId, HermesOverviewBundle } from './types/platform.ts';
 
-import { DashboardPage } from './modules/ai-workforce/pages/DashboardPage';
+import { DashboardPage } from './modules/ai-ops/pages';
 import { InboxPage } from './modules/ai-workforce/pages/InboxPage';
-import { ChatPage } from './modules/ai-workforce/pages/ChatPage';
-import { AgentsPage } from './modules/ai-workforce/pages/AgentsPage';
+import { ChatPage } from './modules/ai-ops/pages';
+import { AgentsPage } from './modules/ai-ops/pages';
 import { AgentDetailPage } from './modules/ai-workforce/pages/AgentDetailPage';
-import { OrganizationPage } from './modules/ai-workforce/pages/OrganizationPage';
-import { TasksPage } from './modules/ai-workforce/pages/TasksPage';
+import { OrganizationPage } from './modules/ai-ops/pages';
+import { TasksPage } from './modules/ai-ops/pages';
 import { TaskDetailPage } from './modules/ai-workforce/pages/TaskDetailPage';
 import { GoalsPage } from './modules/ai-workforce/pages/GoalsPage';
-import { RunsPage } from './modules/ai-workforce/pages/RunsPage';
-import { RoutinesPage } from './modules/ai-workforce/pages/RoutinesPage';
-import { ApprovalsPage } from './modules/ai-workforce/pages/ApprovalsPage';
+import { RunsPage } from './modules/ai-ops/pages';
+import { RoutinesPage } from './modules/ai-ops/pages';
+import { ApprovalsPage } from './modules/ai-ops/pages';
 import { ApprovalDetailPage } from './modules/ai-workforce/pages/ApprovalDetailPage';
-import { CostsPage } from './modules/ai-workforce/pages/CostsPage';
+import { CostsPage } from './modules/ai-ops/pages';
 import { ActivityPage } from './modules/ai-workforce/pages/ActivityPage';
 import { SkillsPage } from './modules/ai-workforce/pages/SkillsPage';
 import { ConnectorsPage } from './modules/ai-workforce/pages/ConnectorsPage';
@@ -261,7 +261,7 @@ function AppContent({
         } />
 
         {/* WORKFORCE IA */}
-        <Route path="/ia-visao" element={<DashboardPage onRefresh={async () => { window.location.reload(); }} onNavigate={handleNavigate} onToast={showToast} />} />
+        <Route path="/ia-visao" element={<DashboardPage onNavigate={handleNavigate} onToast={showToast} />} />
         <Route path="/ia-inbox" element={<InboxPage onNavigate={handleNavigate} onToast={showToast} />} />
         <Route path="/ia-chat" element={<ChatPage onNavigate={handleNavigate} onToast={showToast} />} />
         <Route path="/ia-agentes" element={<AgentsPage onNavigate={handleNavigate} onToast={showToast} />} />
