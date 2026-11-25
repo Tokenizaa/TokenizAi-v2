@@ -266,14 +266,14 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
         'Hierarquia organizacional construída a partir dos vínculos de reporte disponibilizados pelo Hermes.',
     },
     'ia-tarefas': {
-      title: 'Tasks & Delegações (Issues)',
+      title: 'Tarefas e delegações',
       subtitle:
-        'Central oficial de issues, dependências, comentários, documentos, anexos e interações estruturadas.',
+        'Gestão de tarefas, dependências, comentários, documentos, anexos e interações disponibilizadas pelo runtime.',
     },
     'ia-execucoes': {
       title: 'Execuções & Heartbeats',
       subtitle:
-        'Monitoramento de execuções, logs, eventos, tokens, modelos e cancelamentos suportados.',
+        'Monitoramento de execuções, duração, custos e estados efetivamente disponibilizados pelo Hermes.',
     },
     'ia-rotinas': {
       title: 'Automações & Rotinas',
@@ -343,7 +343,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   onClick={() => onNavigate('ia-tarefas')}
                   className="nc-card rounded-2xl p-5 text-left cursor-pointer"
                 >
-                  <div className="text-xs text-ink-subtle">Issues Abertas</div>
+                  <div className="text-xs text-ink-subtle">Tarefas abertas</div>
                   <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-ink">
                     {issues.filter((i) => i.status !== 'done' && i.status !== 'cancelled').length}
                   </div>
@@ -369,7 +369,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   onClick={() => onNavigate('ia-custos')}
                   className="nc-card rounded-2xl p-5 text-left cursor-pointer"
                 >
-                  <div className="text-xs text-ink-subtle">Custo Apurado ({costs?.currency || 'USD'})</div>
+                  <div className="text-xs text-ink-subtle">Custos reportados ({costs?.currency || 'moeda não informada'})</div>
                   <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-accent dark:text-cyan-300">
                     {formatCents(costs?.totalCostCents, costs?.currency)}
                   </div>
@@ -450,10 +450,10 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
             <div className="px-6 py-4 border-b border-line bg-surface-subtle/35 flex items-center justify-between">
               <div>
                 <h2 className="font-display text-sm font-semibold text-ink">
-                  Matriz de Capacidades Descobertas via OpenAPI
+                  Matriz de capacidades do runtime Hermes
                 </h2>
                 <p className="text-xs text-ink-subtle mt-0.5">
-                  Compatibilidade automática conforme rotas e permissões da instância conectada
+                  Disponibilidade dos recursos informada pelo runtime e pelo contrato de integração
                 </p>
               </div>
               <span className="font-mono text-xs text-ink-subtle">
@@ -466,7 +466,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 <thead>
                   <tr className="border-b border-line text-[11px] font-semibold text-ink-subtle">
                     <th className="py-2.5 px-6">Capacidade</th>
-                    <th className="py-2.5 px-4">Rota Externa</th>
+                    <th className="py-2.5 px-4">Recurso / endpoint</th>
                     <th className="py-2.5 px-4">Método</th>
                     <th className="py-2.5 px-4">Disponibilidade na Versão</th>
                     <th className="py-2.5 px-6 text-right">Autenticação / Estado</th>
@@ -956,7 +956,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   ))}
                 {issues.filter((i) => i.assigneeAgentId === agentDetail.id).length === 0 && (
                   <div className="p-4 text-xs text-ink-subtle text-center border border-line rounded-xl">
-                    Nenhuma issue atribuída a este agente.
+                    Nenhuma tarefa atribuída a este agente.
                   </div>
                 )}
               </div>
