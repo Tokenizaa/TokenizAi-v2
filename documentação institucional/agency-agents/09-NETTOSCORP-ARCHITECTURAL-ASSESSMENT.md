@@ -4,7 +4,7 @@
 
 > **Data:** 21 de novembro de 2026  
 > **Checkout:** `/home/lg/workspace/NettosCorp/NettosCorp/enterprise/agency-agents`  
-> **Contexto:** NettosCorp opera Paperclip (orchestration platform) + Hermes (agent runtime) + DefesaI Saúde (B2C app)
+> **Contexto histórico (21/11/2026):** à época da elaboração, a operação considerava Paperclip como orquestrador junto ao Hermes. Essa arquitetura foi substituída por TokenizAi V2 + Hermes direto; Paperclip não é utilizado.
 
 ---
 
@@ -20,7 +20,7 @@
 | **Reconciliação de estado** | Ledger + 5-state reconcile (CURRENT/OUTDATED/MODIFIED/REMOVED/FOREIGN) | ✅ Alto | Core diferencial — reutilizável |
 | **Governança/autoridade** | Não nativo (catálogo agnóstico) | ❌ Ausente | Precisa camada de RBAC + approval gates |
 | **Memória/aprendizado** | Apenas "Learning & Memory" no prompt | ❌ Prompt-only | Sem persistência real |
-| **Paperclip integration** | Catálogo pode ser fonte de agents Paperclip | ✅ Potencial | Precisa adapter Paperclip ↔ Agency Agents |
+| **Integração Paperclip (CANCELADA)** | Proposta histórica de catálogo | **Não utilizar** | Substituída por integração direta Agency Agents + Hermes |
 
 ---
 
@@ -70,9 +70,9 @@ NettosCorp Governance Layer
 └── Audit Log (all agent actions)
 ```
 
-### 2.3 Paperclip (C)
+### 2.3 Paperclip (C) — análise histórica cancelada
 
-**Como o catálogo funciona junto ao Paperclip?**
+**Como se propunha integrar o catálogo ao Paperclip? (plano cancelado; não executar)**
 
 | Paperclip Need | Agency Agents Capability | Integration Path |
 |----------------|-------------------------|------------------|
@@ -230,7 +230,7 @@ Tokenizaa/agency-agents-app (fork with Tauri app)
 3. **Memória apenas no prompt** — precisa persistência real
 4. **NEXUS methodology ausente no fork** — precisa sync do upstream
 
-**Oportunidade única:** O **reconcile engine (ledger + hash-match)** é diretamente reutilizável no Paperclip para rastrear estado de agents instalados across tools.
+**Conclusão histórica (não executável):** o reconcile engine (ledger + hash-match) pode inspirar implementação própria no TokenizAi; não integrar ao Paperclip.
 
 **Próximo passo:** Recuperar `build-hermes-plugin.py` do upstream e validar integração Hermes end-to-end antes de investir em camadas superiores.
 
