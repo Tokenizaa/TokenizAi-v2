@@ -1,6 +1,8 @@
 # Documentação de Engenharia Reversa — NettosCorp
 
-Este diretório reúne a documentação técnica produzida durante as etapas de engenharia reversa dos dois projetos de referência da NettosCorp:
+> **AVISO OPERACIONAL — 25/11/2026:** TokenizAi V2 migrou do Paperclip para Hermes direto. O Paperclip não é utilizado, não deve ser iniciado e não faz parte da arquitetura operacional atual. A pasta `paperclip/` e todas as menções técnicas a seguir são arquivo de engenharia reversa histórica, mantido exclusivamente para consulta. Nenhuma porta, comando, endpoint, credencial ou procedimento documentado aqui deve ser reutilizado para executar o TokenizAi V2.
+
+Este diretório reúne a documentação técnica produzida durante as etapas de engenharia reversa dos projetos de referência históricos da NettosCorp (não representam dependências atuais do TokenizAi V2):
 
 - **Paperclip** — Plataforma de orquestração de agentes de IA (monorepo Node.js/pnpm)
 - **Agency Agents** — Catálogo de agentes especializados com app Tauri (Rust + Svelte)
@@ -39,7 +41,7 @@ docs/
 
 ---
 
-## Paperclip — 7 Documentos
+## Paperclip — 7 Documentos (ARQUIVO HISTÓRICO; NÃO OPERACIONAL)
 
 | Documento | Descrição |
 |-----------|-----------|
@@ -74,12 +76,12 @@ docs/
 
 ## Principais Conclusões da Investigação
 
-### Paperclip
+### Paperclip — referência histórica
 - Monorepo pnpm com 27 packages, TypeScript strict, Express 5, React 19 (RC), Drizzle ORM
 - 480+ tabelas, 490+ migrations, embedded PostgreSQL para dev
 - 12 adapters ACP para agentes locais/remotos, Plugin SDK v1.0.0, MCP server
 - App Tauri + Svelte 5 para UI desktop
-- Oportunidade clara de extração de `@nettoscorp/shared`, `@nettoscorp/db`, `@nettoscorp/plugin-sdk`
+- As oportunidades de extração registradas à época não são plano ativo nem autorizam integração ou inicialização do Paperclip.
 
 ### Agency Agents
 - 282 agentes Markdown em 21 divisões, catálogo canônico em `msitarzewski/agency-agents` (upstream)
@@ -92,7 +94,7 @@ docs/
 
 ## Regras de Uso
 
-Esta documentação é resultado de **engenharia reversa apenas**. Não modifique os arquivos aqui sem autorização. Para implementar qualquer oportunidade identificada, aguarde a próxima etapa de deliberação arquitetural conjunta.
+Esta documentação é resultado de **engenharia reversa histórica apenas**. As recomendações de integração Paperclip foram superadas pela migração direta para Hermes e não são executáveis. Não modifique os arquivos aqui sem autorização. Para implementar qualquer oportunidade identificada, aguarde a próxima etapa de deliberação arquitetural conjunta.
 
 ---
 
