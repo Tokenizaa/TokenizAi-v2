@@ -1,6 +1,5 @@
 import type {
   HermesBotDto,
-  HermesIssueDto,
   HermesRunDto,
   HermesProjectDto,
   HermesGoalDto,
