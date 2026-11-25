@@ -108,7 +108,7 @@ CREATE TABLE agents (
   display_name        TEXT,                                     -- Nome amigável
   status              TEXT NOT NULL DEFAULT 'provisioned',      -- provisioned|active|suspended|decommissioned
   config              JSONB NOT NULL DEFAULT '{}',              -- Config runtime (model, tools, etc.)
-  runtime_state       JSONB,                                    -- Estado atual (Paperclip agent_runtime_state)
+  runtime_state       JSONB,                                    -- Estado de runtime da referência histórica Paperclip (não contrato atual)
   clearance_level     TEXT NOT NULL,                            -- Herdado do role
   authority           TEXT[] DEFAULT '{}',                      -- Herdado + sobrescrito
   budget_policy_id    UUID REFERENCES budget_policies(id),
@@ -137,7 +137,7 @@ CREATE TABLE agent_config_revisions (
 );
 ```
 
-### 3.3 Agent Runtime State (Paperclip)
+### 3.3 Agent Runtime State (conceito histórico do Paperclip)
 
 ```sql
 CREATE TABLE agent_runtime_state (
@@ -170,7 +170,7 @@ CREATE TABLE agent_division_mapping (
 
 ---
 
-## 4. Entidades de Skills (Paperclip Skill Catalog + Agency Agents)
+## 4. Entidades de Skills (conceito histórico de catálogo + Agency Agents)
 
 ### 4.1 Skill Package
 
@@ -181,9 +181,9 @@ CREATE TABLE skill_packages (
   name                TEXT NOT NULL,
   slug                TEXT NOT NULL,
   version             TEXT NOT NULL,                            -- SemVer
-  source              TEXT NOT NULL,                            -- "agency-agents" | "paperclip" | "custom"
-  source_ref          TEXT,                                     -- Agency Agents slug ou Paperclip skill id
-  manifest            JSONB NOT NULL,                           -- Skill manifest (Paperclip format)
+  source              TEXT NOT NULL,                            -- "agency-agents" | "legacy-paperclip-reference" | "custom"
+  source_ref          TEXT,                                     -- Agency Agents slug ou identificador externo legado (não Paperclip operacional)
+  manifest            JSONB NOT NULL,                           -- manifest próprio versionado (não dependente do formato Paperclip)
   instructions        TEXT,                                     -- Prompt completo (Agency Agents body)
   frontmatter         JSONB,                                    -- Agency Agents frontmatter estendido
   division            TEXT,                                     -- Agency Agents division
@@ -213,7 +213,7 @@ CREATE TABLE skill_versions (
 );
 ```
 
-### 4.3 Skill Install Ledger (Paperclip Reconcile Engine)
+### 4.3 Skill Install Ledger (modelo conceitual de reconciliação, não Paperclip)
 
 ```sql
 CREATE TABLE skill_install_ledger (
@@ -237,7 +237,7 @@ CREATE TABLE skill_install_ledger (
 
 ---
 
-## 5. Entidades de Orquestração (Paperclip + NEXUS)
+## 5. Entidades de Orquestração (Hermes + NEXUS; Paperclip apenas referência histórica)
 
 ### 5.1 Task (Unidade de Trabalho)
 
@@ -310,7 +310,7 @@ CREATE TABLE nexus_pipelines (
 
 ---
 
-## 6. Entidades de Workspace e Execução (Paperclip)
+## 6. Entidades de Workspace e Execução (modelo próprio; referência histórica Paperclip)
 
 ### 6.1 Execution Workspace
 
@@ -369,7 +369,7 @@ CREATE TABLE workspace_restore_points (
 
 ---
 
-## 7. Entidades de Comunicação (Paperclip Chat + Hermes)
+## 7. Entidades de Comunicação (Hermes; referência histórica Paperclip)
 
 ### 7.1 Chat Channel (Multi-provider)
 
@@ -424,7 +424,7 @@ CREATE TABLE chat_deliveries (
 
 ---
 
-## 8. Entidades de Orçamento e Custos (Paperclip)
+## 8. Entidades de Orçamento e Custos (modelo próprio; referência histórica Paperclip)
 
 ### 8.1 Budget Policy
 
@@ -452,7 +452,7 @@ CREATE TABLE cost_events (
   company_id              UUID NOT NULL REFERENCES companies(id),
   agent_id                UUID REFERENCES agents(id),
   task_id                 UUID REFERENCES tasks(id),
-  run_id                  UUID,                                 -- Paperclip run ID
+  run_id                  UUID,                                 -- ID de execução Hermes ou ID interno (não Paperclip)
   category                TEXT NOT NULL,                        -- llm|tool|storage|network|compute
   provider                TEXT,                                 -- anthropic|openai|google|etc.
   model                   TEXT,                                 -- claude-3-5-sonnet|gpt-4o|etc.
@@ -576,9 +576,9 @@ CREATE TABLE knowledge_documents (
 | **Agentes & Roles** | 12 | Paperclip + Agency Agents |
 | **Skills & Catálogo** | 8 | Paperclip + Agency Agents |
 | **Orquestração (Tasks, NEXUS)** | 10 | Paperclip + NEXUS |
-| **Workspaces & Execução** | 8 | Paperclip |
-| **Comunicação (Chat)** | 8 | Paperclip |
-| **Orçamento & Custos** | 6 | Paperclip |
+| **Workspaces & Execução** | 8 | Modelo próprio; referência histórica Paperclip |
+| **Comunicação (Chat)** | 8 | Hermes; referência histórica Paperclip |
+| **Orçamento & Custos** | 6 | Modelo próprio; referência histórica Paperclip |
 | **Auditoria & Governança** | 6 | **Novo** |
 | **Memória & Conhecimento** | 6 | **Novo** |
 | **TOTAL ESTIMADO** | **~72** | (vs 480 Paperclip — consolidado) |
