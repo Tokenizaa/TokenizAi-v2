@@ -1,5 +1,7 @@
 # Arquitetura TokenizAi-v2 — Hermes Direto (sem Paperclip)
 
+> **ARQUITETURA VIGENTE — 25/11/2026:** Esta é a referência para a migração concluída do runtime Paperclip para Hermes direto. Paperclip não deve ser instalado, iniciado, configurado, acessado ou utilizado como fallback. Seções que descrevem fases antigas, arquivos removidos ou compatibilidade temporária são histórico do plano, não tarefas pendentes. A arquitetura atual é comprovada pelo código da `main`, não por checklists antigos.
+
 ## Visão Geral
 
 O TokenizAi-v2 deixa de depender do Paperclip como camada de execução de agentes e passa a integrar o **Hermes diretamente** como runtime de agentes, tarefas, rotinas, aprovações, chat e auditoria. O backend Express continua responsável pelas rotas de enterprise (projetos, clientes, negócios, produtos, assinaturas, finanças) e autenticação Supabase, mas a camada de IA/agentes passa a ser nativa do Hermes.
@@ -153,7 +155,7 @@ Todos os arquivos em `server/integrations/paperclip/` (23 arquivos):
 - Migrar `src/modules/ai-ops/*` e `src/modules/ai-workforce/*`
 - Atualizar tipos em `src/types/platform.ts`
 
-### Fase 4: Remoção Paperclip (1 semana)
+### Fase 4: Remoção Paperclip (HISTÓRICO — concluída na migração)
 - Remover `server/integrations/paperclip/`
 - Remover rotas `/api/paperclip/*`
 - Remover variáveis `PAPERCLIP_*` do .env.example
@@ -174,9 +176,9 @@ Todos os arquivos em `server/integrations/paperclip/` (23 arquivos):
 
 ## Critérios de Aceite
 
-- [ ] `server/integrations/paperclip/` removido completamente
-- [ ] Nenhuma rota `/api/paperclip/*` restante
+- [x] `server/integrations/paperclip/` removido completamente (confirmar sempre contra a árvore atual)
+- [x] Nenhuma rota `/api/paperclip/*` restante (confirmar sempre contra a árvore atual)
 - [ ] Todas as rotas `/api/hermes/*` funcionais
-- [ ] Frontend consome Hermes sem referência a Paperclip
+- [x] Frontend consome Hermes; menções restantes são somente histórico/documentação
 - [ ] `npm run test`, `npm run lint`, `npm run build` passam
 - [ ] Fluxo E2E: entrar → organograma → contratar agente → chat → delegar → concluir
