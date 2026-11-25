@@ -2,7 +2,7 @@
 
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Consolida Paperclip + Agency Agents + TokenizAi  
+> **Status:** **REFERÊNCIA HISTÓRICA SUPERADA** — conceitos estudados; não é plano operacional vigente  
 > **Responsável:** Hermes
 
 ---
