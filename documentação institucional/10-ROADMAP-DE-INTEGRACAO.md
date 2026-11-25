@@ -4,7 +4,7 @@
 
 > **Versão:** 1.2  \
 > **Data:** 22 de novembro de 2026  \
-> **Status:** **FASE 0 HOMOLOGADA LOCALMENTE — FASE 1 AUTORIZADA**  \
+> **Status:** **SUPERADO PELA MIGRAÇÃO DIRETA PARA HERMES — NÃO EXECUTAR COMO ROADMAP VIGENTE**  \
 > **Base:** Arquitetura Alvo (05) + Modelo de Domínio (06) + Segurança (09)  \
 > **Responsável pela execução atual:** Platform / Conselheiro
 
