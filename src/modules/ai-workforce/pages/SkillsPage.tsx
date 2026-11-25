@@ -30,7 +30,7 @@ export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) =
       const res = await hermesService.getSkills();
       setSkills(res.skills || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar as skills da empresa no Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar as skills disponibilizadas pelo runtime Hermes.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) =
     return (
       <EmptyState
         title="Nenhuma skill encontrada"
-        description="A instância Paperclip conectada não retornou skills instaladas para esta empresa."
+        description="O runtime Hermes não retornou skills instaladas ou disponibilizadas para esta organização."
         action={
           <button
             type="button"
@@ -76,8 +76,8 @@ export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) =
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Skills e competências (Paperclip)"
-        subtitle="Skills instaladas na empresa no Paperclip, com origem, versão e status. Fonte: endpoint /companies/{companyId}/skills."
+        title="Skills e competências dos agentes"
+        subtitle="Skills disponibilizadas aos agentes, com origem, versão e status conforme o contrato do runtime Hermes."
         actions={
           <button
             type="button"
@@ -136,7 +136,7 @@ export const SkillsPage: React.FC<SkillsPageProps> = ({ onNavigate, onToast }) =
       </div>
 
       <p className="text-xs text-ink-subtle">
-        As skills são instaladas na empresa Paperclip (fontes GitHub, catálogo, built-in). A criação, edição e importação de skill packages (Skill Studio) dependem dos endpoints expostos pela versão conectada.
+        As skills são disponibilizadas pelo ambiente de execução dos agentes. Criação, edição e importação de pacotes dependem de endpoints específicos ainda não confirmados no contrato Hermes.
       </p>
     </div>
   );
