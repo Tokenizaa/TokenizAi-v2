@@ -92,6 +92,10 @@ jobs:
     env:
       TOKENIZAI_SESSION_SECRET: 'ci-only-session-secret-not-for-production'
       TOKENIZAI_ADMIN_PASSCODE: 'ci-only-admin-passcode-not-for-production'
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
