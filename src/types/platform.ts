@@ -453,25 +453,6 @@ export interface HermesActivityDto {
   countsBySourceKind?: Record<string, number>;
 }
 
-export interface HermesIssueDto {
-  id: string;
-  identifier?: string;
-  title: string;
-  description?: string;
-  status: string;
-  priority?: string;
-  assigneeAgentId?: string | null;
-  assigneeAgentName?: string | null;
-  projectId?: string | null;
-  projectName?: string | null;
-  unresolvedBlockerCount?: number;
-  blockerReason?: string;
-  goalId?: string | null;
-  blockedByIssueIds?: string[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface HermesApprovalDto {
   id: string;
   type?: string;
@@ -535,10 +516,9 @@ export interface HermesOverviewBundle {
   bots: HermesBotDto[];
   agents?: HermesBotDto[];
   tasks: HermesTaskDto[];
-  issues: HermesIssueDto[];
   runs: HermesRunDto[];
-  projects: HermesProjectDto[];
-  goals: HermesGoalDto[];
+  projects?: HermesProjectDto[];
+  goals?: HermesGoalDto[];
   approvals: HermesApprovalDto[];
   routines: HermesRoutineDto[];
   costs: HermesCostSummaryDto | null;
