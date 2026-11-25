@@ -13,7 +13,7 @@
 
 - **Governança rastreável** — toda decisão de agente é auditável, hierárquica e reversível
 - **Identidade institucional** — agentes não são "prompts", são cargos com autoridade, responsabilidade e limites claros
-- **Interoperabilidade real** — mesmo agente roda em Claude Code, Codex, Cursor, Hermes, Paperclip, CLI, sem reescrita
+- **Interoperabilidade real** — mesmo agente roda em Claude Code, Codex, Cursor, Hermes e CLI, sem reescrita
 - **Memória persistente** — aprendizado cross-sessão, cross-agente, cross-organização, com atribuição e controle
 - **Escala operacional** — de 1 a 10.000 agentes, com reconciliação automática de estado
 
@@ -50,10 +50,10 @@
 - **ACP First** — Agent Client Protocol como padrão de comunicação (12 adapters prontos)
 - **MCP Native** — Model Context Protocol para ferramentas externas (STDIO + HTTP)
 - **Sandbox Providers** — 9 providers (Daytona, E2B, Modal, K8s, Cloudflare, etc.) para isolamento
-- **Paperclip Runner** — Execução nativa (copilot, codex, claude) com PRP protocol
+- **Hermes Runtime** — Execução, sessões, tarefas e delegação de agentes pelo runtime Hermes
 
 ### 3.4 Para Comunicação
-- **Chat Channels** — Discord, Slack, GitHub, Telegram, Teams (já no Paperclip)
+- **Chat Channels** — Canais e integrações disponibilizados pelo Hermes ou por adaptadores próprios do TokenizAi
 - **Hermes Gateway** — HTTP/SSE para agentes remotos (plugin Agency Agents)
 - **Structured Handoffs** — Issue ↔ Case ↔ Task ↔ Agent, com evidência e rastreabilidade
 
@@ -124,7 +124,7 @@
 5. Separação entre identidade humana, identidade de agentes, instâncias operacionais e configurações de execução
 6. Modelo de autorização, hierarquia e autoridade institucional
 7. Contratos entre frontend, backend, banco de dados e integrações
-8. Relações com Paperclip e Agency Agents, sem confundir ferramentas externas com domínios proprietários do TokenizAi
+8. Relação histórica com Paperclip e integração atual com Hermes e Agency Agents, sem dependência operacional do Paperclip
 9. Matriz de dependências entre domínios
 10. ADRs e decisões arquiteturais necessárias
 
