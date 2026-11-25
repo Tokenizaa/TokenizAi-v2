@@ -440,7 +440,7 @@ export const INITIAL_ENTERPRISE_DATA: EnterpriseDataState = {
       id: 'auto-01',
       name: 'Contrato Ganho -> Provisionar Onboarding',
       trigger: 'Oportunidade marcada como Ganho no Comercial',
-      action: 'Cria projeto inicial e delega checklist técnico ao Paperclip',
+      action: 'Cria projeto inicial e delega checklist técnico ao Hermes',
       targetAgentName: 'Arquiteto de Implantação',
       active: true,
       runsLast30d: 12,
