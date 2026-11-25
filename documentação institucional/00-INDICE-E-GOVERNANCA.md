@@ -4,12 +4,14 @@
 > **Diretório:** `documentação institucional/`  
 > **Versão:** 2.3  \
 > **Data:** 22 de novembro de 2026  \
-> **Responsável:** Hermes (Chefe de Gabinete Executivo)  \
+ > **Responsável:** Hermes (Chefe de Gabinete Executivo)  \
 > **Autoridade:** Netto Farias (Founder, NettosCorp)
 
 ---
 
 ## 1. Finalidade
+
+> **Aviso de arquitetura vigente (25/11/2026):** TokenizAi V2 migrou do Paperclip para integração direta com Hermes. Paperclip não é runtime, serviço, backend, fonte de dados ou destino de navegação operacional. Toda ocorrência de Paperclip neste diretório é referência histórica, engenharia reversa ou registro de decisões anteriores; não constitui instrução para instalar, iniciar, configurar ou acessar Paperclip.
 
 Este diretório é a **única fonte canônica** de documentação arquitetural e institucional da NettosCorp. Consolida:
 
@@ -99,7 +101,7 @@ Toda afirmação técnica deve citar a origem:
 
 1. **TokenizAi é a plataforma central** — evolui para NettosCorp Enterprise
 2. **Agency Agents fornece inteligência profissional** — catálogo, identidades, metodologia NEXUS
-3. **Paperclip fornece conceitos de organização** — comunicação, hierarquia, operação, reconciliação
+3. **Paperclip é somente referência histórica** — conceitos eventualmente aproveitados devem ser reimplementados no domínio próprio, sem dependência do software Paperclip
 4. **Módulos empresariais existentes são aproveitados** — não reescritos do zero
 5. **Separação clara: perfis, instâncias organizacionais, runtimes** — isolamento por design
 6. **Nenhuma funcionalidade é "concluída" por ter tela ou estrutura** — precisa de testes, homologação, evidência
@@ -139,7 +141,7 @@ Toda afirmação técnica deve citar a origem:
 | **Agency Agents (corpus)** | `4df4038` | ✅ **FASE 0 VALIDADA LOCALMENTE** | 282 agentes, 18 divisões, builder Hermes, scripts de validação, NEXUS e testes automatizados presentes; CI remoto pendente |
 | **Agency Agents (desktop app)** | `6d9a355` | ✅ **FASE 0 VALIDADA LOCALMENTE** | Svelte 5 + Tauri/Rust; PR Check inclui cargo fmt, npm check, npm build; cargo test pendente por build script Tauri |
 | **Agency Agents (upstream)** | `8ae6164` | 🔴 **NÃO AUDITADO LOCAL** | Fonte canônica: catálogo, scripts, NEXUS strategy |
-| **Paperclip** | `cb64a236b` | ✅ **COMPLETA v1.0** | 27 packages, 480 tabelas, 12 adapters, Plugin SDK v1.0, MCP, CI/CD verde |
+| **Paperclip (referência histórica)** | `cb64a236b` | Engenharia reversa arquivada | Não integra a arquitetura operacional do TokenizAi V2 |
 
 ---
 
