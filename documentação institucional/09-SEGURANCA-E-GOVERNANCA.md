@@ -4,7 +4,7 @@
 
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Baseado em requisitos NettosCorp, Supabase Auth/RLS, Hermes e Agency Agents (referências históricas não operacionais)  
+> **Status:** **PROPOSTA HISTÓRICA — REBASELINE NECESSÁRIA** — não representa controles atuais nem deve orientar configuração Paperclip  
 > **Responsável:** Hermes  
 > **Autoridade:** Netto Farias (Founder)
 
