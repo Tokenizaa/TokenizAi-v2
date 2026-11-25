@@ -1,4 +1,6 @@
-# Agency Agents — Avaliação Arquitetural para NettosCorp (09-NETTOSCORP-ARCHITECTURAL-ASSESSMENT)
+# Agency Agents — Avaliação Arquitetural para NettosCorp (ARQUIVO HISTÓRICO)
+
+> **AVALIAÇÃO SUPERADA — 25/11/2026:** Este documento foi produzido quando a operação considerava Paperclip como orquestrador. A migração posterior adotou Hermes diretamente. Todas as integrações, bridges, flows, roles, APIs, gateways, rotinas e planos Paperclip descritos abaixo estão cancelados como arquitetura operacional do TokenizAi V2. Preserve este material apenas como histórico de análise; não implemente nem inicialize Paperclip com base nele.
 
 > **Data:** 21 de novembro de 2026  
 > **Checkout:** `/home/lg/workspace/NettosCorp/NettosCorp/enterprise/agency-agents`  
