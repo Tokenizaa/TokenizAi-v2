@@ -77,7 +77,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
 
   const handleAllocate = async (sp: AgencySpecialist) => {
     if (!canManageAgents) {
-      onToast(`Alocação bloqueada: Paperclip em estado "${hermes.status.connectionLabel}".`);
+      onToast(`Alocação bloqueada: runtime Hermes em estado "${hermes.status.connectionLabel}".`);
       return;
     }
     setHiring(true);
@@ -100,7 +100,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         title="Biblioteca de Especialistas Agency Agents"
-        subtitle="Catálogo consultivo de perfis, competências, ferramentas e runbooks separado dos agentes ativos do Paperclip."
+        subtitle="Catálogo consultivo de perfis, competências, ferramentas e runbooks separado dos agentes ativos no runtime Hermes."
         actions={
           <SegmentedTabs
             active={viewMode}
@@ -119,9 +119,9 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
             <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-ink">
-                Paperclip: {hermes.status.connectionLabel}.
+                Runtime Hermes: {hermes.status.connectionLabel}.
               </span>{' '}
-              A biblioteca Agency Agents permanece acessível para consulta de perfis e runbooks. A alocação para o runtime operacional exige conexão ativa com o Paperclip.
+              A biblioteca Agency Agents permanece acessível para consulta de perfis e runbooks. A alocação exige conexão ativa com o runtime Hermes.
             </div>
           </div>
           <StatusText label={hermes.status.connectionLabel} tone="attention" />
@@ -164,7 +164,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
             { id: 'todos', label: 'Catálogo', count: filtered.length },
             {
               id: 'alocados',
-              label: 'Já alocados no Paperclip',
+              label: 'Já alocados no Hermes',
               count: isConnected ? AGENCY_SPECIALISTS.filter((s) => isAllocated(s)).length : 0,
             },
           ]}
@@ -198,7 +198,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                       {sp.code}
                     </span>
                     <StatusText
-                      label={allocated ? 'Alocado no Paperclip' : 'Catálogo'}
+                      label={allocated ? 'Alocado no Hermes' : 'Catálogo'}
                       tone={allocated ? 'nominal' : 'neutral'}
                     />
                   </div>
@@ -236,8 +236,8 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                       }}
                       title={
                         canManageAgents
-                          ? 'Criar agente no Paperclip a partir deste blueprint'
-                          : `Requer conexão ativa com o Paperclip (${hermes.status.connectionLabel})`
+                          ? 'Criar agente no runtime Hermes a partir deste perfil'
+                          : `Requer conexão ativa com o runtime Hermes (${hermes.status.connectionLabel})`
                       }
                       className="nc-primary-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
                     >
@@ -269,7 +269,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                   <th className="py-3 px-4">Especialista</th>
                   <th className="py-3 px-4">Divisão</th>
                   <th className="py-3 px-4">Competências Principais</th>
-                  <th className="py-3 px-6 text-right">Vínculo Paperclip</th>
+                  <th className="py-3 px-6 text-right">Vínculo com Hermes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line text-sm">
@@ -296,7 +296,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                       </td>
                       <td className="py-3.5 px-6 text-right whitespace-nowrap">
                         {allocated ? (
-                          <StatusText label="Alocado no Paperclip" tone="nominal" />
+                          <StatusText label="Alocado no Hermes" tone="nominal" />
                         ) : (
                           <span className="text-xs text-ink-subtle">Disponível</span>
                         )}
@@ -326,10 +326,10 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
               className="nc-primary-btn px-5 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
             >
               {!canManageAgents
-                ? `Paperclip offline (${hermes.status.connectionLabel})`
+                ? `Hermes offline (${hermes.status.connectionLabel})`
                 : hiring
                   ? 'Alocando...'
-                  : 'Alocar especialista no Paperclip'}
+                  : 'Alocar especialista no Hermes'}
             </button>
           ) : undefined
         }
@@ -341,7 +341,7 @@ export const AgencyLibraryView: React.FC<AgencyLibraryViewProps> = ({
                 Adapter recomendado: <strong className="font-mono text-ink">{selected.recommendedAdapter}</strong>
               </span>
               <StatusText
-                label={isAllocated(selected) ? 'Alocado no Paperclip' : 'Perfil de catálogo'}
+                label={isAllocated(selected) ? 'Alocado no Hermes' : 'Perfil de catálogo'}
                 tone={isAllocated(selected) ? 'nominal' : 'neutral'}
               />
             </div>
