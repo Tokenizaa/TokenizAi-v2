@@ -106,9 +106,9 @@ vibe: Builds responsive, accessible...      # Tagline curta
 
 | Agente | Divisão | Por que é relevante para NettosCorp |
 |--------|---------|-------------------------------------|
-| **agents-orchestrator** | specialized | Orquestração autônoma de pipeline Dev-QA — pode coordenar agentes Paperclip |
+| **agents-orchestrator** | specialized | Orquestração autônoma de pipeline Dev-QA — pode coordenar agentes via Hermes |
 | **specialized-chief-of-staff** | specialized | Alinhamento direto com papel do Hermes como Chefe de Gabinete |
-| **engineering-multi-agent-systems-architect** | engineering | Arquitetura de sistemas multi-agente — core para unificação Paperclip+Hermes |
+| **engineering-multi-agent-systems-architect** | engineering | Arquitetura de sistemas multi-agente — core para coordenação via Hermes |
 | **business-strategist** | specialized | Estratégia de negócio — alinhamento com decisões do fundador |
 | **automation-governance-architect** | specialized | Governança de automação — compliance institucional |
 | **engineering-senior-developer** | engineering | Implementação premium (Laravel/Livewire/FluxUI) — stack NettosCorp Enterprise |
@@ -116,7 +116,7 @@ vibe: Builds responsive, accessible...      # Tagline curta
 | **engineering-code-reviewer** | engineering | Code review automatizado — quality gate NettosCorp |
 | **security-architect** / **security-penetration-tester** | security | Security review — obrigatório no Definition of Done |
 | **engineering-platform-engineer** | engineering | Platform engineering — infra compartilhada |
-| **specialized-mcp-builder** | specialized | MCP builder — integração direta com Paperclip MCP |
+| **specialized-mcp-builder** | specialized | MCP builder — integração com servidores MCP externos, sem dependência Paperclip |
 | **specialized-workflow-architect** | specialized | Workflow architecture — orquestração de processos |
 | **engineering-rapid-prototyper** | engineering | Prototyping rápido — validação de ideias (spike) |
 | **engineering-codebase-archaeologist** (specialized) | specialized | Engenharia reversa — skill core para esta investigação |
