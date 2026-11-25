@@ -1,7 +1,4 @@
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
 
 export interface CommandResult {
   stdout: string;
@@ -57,48 +54,50 @@ export async function runCommand(
 
   let timedOut = false;
 
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const timer = setTimeout(() => {
-      timedOut = true;
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        // Ignora se já terminou.
+  // Timer proprio para matar o processo em caso de timeout. O timeout nativo
+  // do execFile tambem mata o processo, mas precisamos capturar se houve
+  // timeout para decidir se stdout parcial e valido.
+  const timer = setTimeout(() => {
+    timedOut = true;
+    try {
+      child.kill('SIGTERM');
+    } catch {
+      // Ignora se ja terminou.
+    }
+  }, timeoutMs);
+  timer.unref?.();
+
+  // Aguarda o encerramento real do processo filho. Comandos do Hermes CLI
+  // podem manter o processo aberto apos produzir saida; se houver stdout,
+  // consideramos a operacao bem-sucedida mesmo que o processo tenha sido
+  // encerrado pelo timeout.
+  return new Promise<CommandResult>((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    child.on('error', reject);
+    if (child.stdout) child.stdout.on('data', (d) => (stdout += d));
+    if (child.stderr) child.stderr.on('data', (d) => (stderr += d));
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        if (stdout.length > 0) {
+          resolve({ stdout, stderr });
+          return;
+        }
+        reject(new Error(`Command terminated by timeout (signal ${signal})`));
+        return;
       }
-      reject(new Error(`Command timeout after ${timeoutMs}ms`));
-    }, timeoutMs);
-    timer.unref?.();
+      if (code !== 0) {
+        reject(
+          new Error(
+            `Command exited with code ${code}${signal ? ` (signal ${signal})` : ''}`
+          )
+        );
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
   });
-
-  const result = await Promise.race([
-    new Promise<CommandResult>((resolve, reject) => {
-      let stdout = '';
-      let stderr = '';
-      child.on('error', reject);
-      if (child.stdout) child.stdout.on('data', (d) => (stdout += d));
-      if (child.stderr) child.stderr.on('data', (d) => (stderr += d));
-      child.on('close', (code, signal) => {
-        if (timedOut) {
-          // Processo morto pelo timeout: se ja temos stdout, considera sucesso
-          // (comandos do Hermes CLI podem manter processo aberto apos produzir saida).
-          if (stdout.length > 0) {
-            resolve({ stdout, stderr });
-            return;
-          }
-          reject(new Error(`Command terminated by timeout (signal ${signal})`));
-          return;
-        }
-        if (code !== 0) {
-          reject(new Error(`Command exited with code ${code}${signal ? ` (signal ${signal})` : ''}`));
-          return;
-        }
-        resolve({ stdout, stderr });
-      });
-    }),
-    timeoutPromise,
-  ]) as CommandResult;
-
-  return result;
 }
 
 export async function runCommandSafe(
