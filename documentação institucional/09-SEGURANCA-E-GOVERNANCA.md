@@ -143,7 +143,7 @@ allow_delegate(agent, target_agent, task) {
 
 ## 4. Gestão de Segredos e Credenciais
 
-### 4.1 Providers Suportados (Paperclip)
+### 4.1 Providers Suportados — inventário histórico do Paperclip (não operacional)
 
 | Provider | Uso | Integração |
 |----------|-----|------------|
