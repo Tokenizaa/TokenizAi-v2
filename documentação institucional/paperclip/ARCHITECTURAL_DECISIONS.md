@@ -1,5 +1,7 @@
 # Paperclip — Decisões Arquiteturais Identificadas
 
+> **ARQUIVO HISTÓRICO — NÃO OPERACIONAL (25/11/2026):** Este documento descreve exclusivamente o produto Paperclip. TokenizAi V2 migrou para Hermes direto. Nenhuma porta (incluindo 3100), comando, variável de ambiente, endpoint, banco, processo ou interface descritos aqui deve ser usado para executar ou inspecionar TokenizAi V2. Não iniciar nem acessar Paperclip. Este material foi preservado somente para consulta histórica.
+
 > **Data:** 21 de novembro de 2026  
 > **Versão analisada:** 0.3.1  
 > **Base:** Engenharia reversa completa dos 6 documentos anteriores

@@ -1,5 +1,7 @@
 # Engenharia Reversa — Agency Agents
 
+> **NOTA DE MIGRAÇÃO — 25/11/2026:** Referências a Paperclip neste documento e nos materiais associados descrevem oportunidades históricas. A integração operacional escolhida para TokenizAi V2 é Agency Agents + Hermes direto; nenhum plano de integração Paperclip permanece ativo.
+
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
 > **Checkout Local:** `/home/lg/workspace/NettosCorp/NettosCorp/enterprise/agency-agents`  

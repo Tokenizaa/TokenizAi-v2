@@ -1,4 +1,6 @@
-# Agency Agents — Oportunidades de Integração com Paperclip (10-INTEGRATION-OPPORTUNITIES-WITH-PAPERCLIP)
+# Agency Agents — Oportunidades de Integração com Paperclip (ARQUIVO HISTÓRICO)
+
+> **PLANO CANCELADO — 25/11/2026:** Este estudo antecede a migração do TokenizAi para Hermes direto. Todas as oportunidades, diagramas, tarefas, estimativas e fluxos que propõem integração Paperclip↔Agency Agents↔Hermes estão superados e não devem ser executados. Paperclip não é runtime nem dependência operacional. A integração atual do catálogo deve ser feita com TokenizAi V2 e Hermes, conforme contratos efetivamente existentes.
 
 > **Data:** 21 de novembro de 2026  
 > **Base:** Engenharia reversa completa (documentos 00-09) + Contexto Paperclip/Hermes/NettosCorp

@@ -1,8 +1,10 @@
 # Comunicação e Orquestração de Equipes
 
+> **DOCUMENTO SUPERADO — 25/11/2026:** O conteúdo abaixo registra o desenho e a implantação históricos da operação no Paperclip. Após a migração, Paperclip não é runtime, servidor, banco, chat ou sistema de orquestração do TokenizAi. Não iniciar, acessar ou configurar Paperclip com base neste documento. A arquitetura vigente utiliza TokenizAi V2 + Hermes + Supabase. Os registros abaixo são evidência histórica, não estado operacional atual.
+
 > **Versão:** 1.1  
 > **Data:** 22 de novembro de 2026  
-> **Status:** **IMPLEMENTADO** — Estrutura operacional da TokenizAi implantada no Paperclip  
+> **Status:** **HISTÓRICO / SUPERADO** — estrutura que esteve implantada no Paperclip antes da migração  
 > **Responsável:** Hermes (Chefe de Gabinete Executivo)
 
 ---
@@ -14,12 +16,12 @@ A comunicação na NettosCorp Enterprise opera em **três planos integrados**:
 | Plano | Protocolo | Participantes | Latência | Persistência |
 |-------|-----------|---------------|----------|--------------|
 | **Chat Operacional** | WebSocket + REST (Discord, Slack, GitHub, Telegram, Teams) | Humans + Agents | Real-time | PostgreSQL (chat_deliveries) |
-| **Orquestração Interna** | gRPC / Message Queue (Paperclip runtime-api) | Agents ↔ Orchestrator | < 10ms | PostgreSQL (tasks, delegations) |
-| **Delegação Externa** | HTTP/SSE (Hermes Gateway) + ACP stdio | Hermes ↔ Subagents | ~100ms | Hermes context + Paperclip ledger |
+| **Orquestração Interna** | gRPC / Message Queue (runtime-api legado do Paperclip (não utilizar)) | Agents ↔ Orchestrator | < 10ms | PostgreSQL (tasks, delegations) |
+| **Delegação Externa** | HTTP/SSE (Hermes Gateway) + ACP stdio | Hermes ↔ Subagents | ~100ms | Hermes context + ledger legado do Paperclip (não utilizar) |
 
 ---
 
-## 2. Chat Operacional (Paperclip Chat Channels)
+## 2. Chat Operacional — modelo histórico do Paperclip (não utilizar)
 
 ### 2.1 Providers Suportados (EVIDENCIADO)
 
@@ -31,7 +33,7 @@ A comunicação na NettosCorp Enterprise opera em **três planos integrados**:
 | **Telegram** | Bot API + Webhooks | Bot Token | Inline keyboards, commands |
 | **Teams** | Bot Framework | Azure Bot Service | Adaptive cards, messaging extensions |
 
-### 2.2 Arquitetura de Delivery (Paperclip)
+### 2.2 Arquitetura de Delivery — referência histórica Paperclip (não utilizar)
 
 ```
 Inbound Message (Provider WebSocket/Webhook)
@@ -94,7 +96,7 @@ interface ChatMessage {
 
 ---
 
-## 3. Orquestração Interna (Paperclip Runtime)
+## 3. Orquestração Interna — referência histórica Paperclip (não utilizar)
 
 ### 3.1 Task Dispatch Flow
 
@@ -112,7 +114,7 @@ interface ChatMessage {
                     └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
-### 3.2 Runtime API (Paperclip `runtime-api.ts`)
+### 3.2 Runtime API — referência histórica Paperclip (não utilizar)
 
 | Endpoint | Método | Descrição |
 |----------|--------|-----------|
@@ -165,7 +167,7 @@ const result = await agency_agents_delegate({
   slug: "engineering-rust-refactoring-specialist",
   task: "Optimize the hot path in workspace-recovery.ts",
   context: {
-    repo: "paperclip",
+    repo: "paperclip", // EXEMPLO HISTÓRICO — NÃO COPIAR/EXECUTAR; runtime substituído por Hermes
     files: ["server/src/services/workspace-recovery.ts"],
     constraints: "Maintain backward compatibility, zero downtime"
   }
@@ -215,7 +217,7 @@ Result + Evidence integrado ao contexto principal
 
 ### 5.1 Fases do Pipeline (Integrado ao Task Dispatch)
 
-| Fase | Agente NEXUS | Paperclip Equivalente | Trigger |
+| Fase | Agente NEXUS | Equivalente histórico Paperclip (não utilizar) | Trigger |
 |------|--------------|----------------------|---------|
 | **Planning** | `project-manager-senior` | `dispatch_task` → cria task list | Nova spec recebida |
 | **Architecture** | `ArchitectUX` (design/ux-architect) | Cria spec técnica + arquitetura | Task list aprovada |
@@ -223,7 +225,7 @@ Result + Evidence integrado ao contexto principal
 | **QA Loop** | `EvidenceQA` (testing-evidence-collector) | `dispatch_task` → QA agent | Dev completa task |
 | **Integration** | `testing-reality-checker` | Final validation + smoke tests | Todas tasks PASS |
 
-### 5.2 QA Gate (NEXUS → Paperclip)
+### 5.2 QA Gate — integração histórica NEXUS → Paperclip (cancelada)
 
 ```typescript
 interface QAGateResult {
@@ -237,7 +239,7 @@ interface QAGateResult {
   severity: 'critical' | 'major' | 'minor' | 'info';
 }
 
-// No Paperclip Task Dispatcher:
+// Exemplo histórico do Task Dispatcher Paperclip — não utilizar
 async function executeWithNexusQA(taskId: string, agentId: string) {
   const maxRetries = 3; // NEXUS default
 
@@ -280,7 +282,7 @@ async function executeWithNexusQA(taskId: string, agentId: string) {
 
 ---
 
-## 6. Team Presets (Agency Agents → Paperclip Teams)
+## 6. Team Presets — mapeamento histórico Agency Agents → Paperclip (cancelado)
 
 | Preset | Divisões | Agentes-Chave | Uso Típico |
 |--------|----------|---------------|------------|
@@ -318,9 +320,9 @@ async function executeWithNexusQA(taskId: string, agentId: string) {
 
 ---
 
-## 9. Estrutura Operacional Implanta — TokenizAi no Paperclip
+## 9. Estrutura Operacional Histórica — TokenizAi no Paperclip (não operacional)
 
-A estrutura abaixo está **implantada e persistida** no banco de dados do Paperclip (não é proposta).
+A estrutura abaixo foi registrada historicamente no banco do Paperclip antes da migração. Não comprova o estado atual e não deve ser usada operacionalmente.
 
 ### 9.1 Hierarquia da Organização TokenizAi
 
@@ -375,4 +377,4 @@ Todos os 267 agentes possuem documentação individual completa, específica de 
 
 ---
 
-*Documento atualizado para refletir a estrutura operacional real da TokenizAi implantada no Paperclip. Hermes plugin requer fix crítico antes de integração completa.*
+*Registro histórico da estrutura anterior à migração. O modelo Paperclip foi substituído pela integração direta com Hermes; este documento não descreve o runtime atual.*

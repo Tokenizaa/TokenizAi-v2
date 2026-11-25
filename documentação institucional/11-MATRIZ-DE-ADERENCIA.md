@@ -2,7 +2,7 @@
 
 > **Versão:** 2.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **ATUALIZADA COM EVIDÊNCIAS REAIS** — Baseado em auditoria de código do TokenizAi, Agency Agents, Paperclip  
+> **Status:** **BASELINE HISTÓRICA — NÃO REPRESENTA A ARQUITETURA ATUAL** — Baseado em auditoria de código do TokenizAi, Agency Agents, Paperclip  
 > **Responsável:** Hermes
 
 ---
@@ -63,8 +63,8 @@
 | **Catálogo de Agentes** | **AUSENTE** (UI apenas) | ✅ 282 agentes, 21 divisões | ❌ (agents = runtime) | **Catálogo Unificado (AA upstream)** | 🔴 Crítico | `AgencyLibraryModule` apenas UI |
 | **Identidade do Agente** | `AgentBlueprint` (tipo apenas) | Frontmatter rico (name, desc, color, emoji, vibe, tools) | Config JSON + runtime state | **Frontmatter Estendido (nettoscorp:*)** | 🔴 Crítico | `types/enterprise.ts:222-238` |
 | **Metodologia NEXUS** | **AUSENTE** | ⚠️ Parcial (só agents-orchestrator) | ❌ | **NEXUS Completo (playbooks, runbooks)** | 🔴 Crítico | `grep -r "nexus\|NEXUS" src/` → vazio |
-| **Orquestração** | **AUSENTE** | Pipeline Dev-QA (sequencial) | Task dispatch + heartbeat | **NEXUS + Paperclip Dispatch** | 🔴 Crítico | `grep -r "orchestrat\|dispatch" src/` → vazio |
-| **Delegação** | **AUSENTE** (UI apenas) | 4 tools Hermes (quebrado) | Task dispatch + runtime-api | **Hermes Bridge + Paperclip Delegate** | 🔴 Crítico | `OperationalAgentsModule` apenas UI |
+| **Orquestração** | **AUSENTE** | Pipeline Dev-QA (sequencial) | Task dispatch + heartbeat | **Hermes Task Dispatch + NEXUS** | 🔴 Crítico | `grep -r "orchestrat\|dispatch" src/` → vazio |
+| **Delegação** | **AUSENTE** (UI apenas) | 4 tools Hermes (quebrado) | Task dispatch + runtime-api | **Hermes Delegate + TokenizAi Governance** | 🔴 Crítico | `OperationalAgentsModule` apenas UI |
 | **Hire/Provision** | **AUSENTE** (UI apenas) | Install via app/convert.sh | `hireAgent` + install/reconcile | **Unificado: `hireAgent(slug)`** | 🔴 Crítico | `OperationalAgentsModule` apenas UI |
 
 ### 2.5 Orquestração & Workflows
@@ -72,9 +72,9 @@
 | Capacidade | TokenizAi (Real) | Agency Agents | Paperclip | NettosCorp Target | Gap | Evidência TokenizAi |
 |------------|------------------|---------------|-----------|-------------------|-----|---------------------|
 | **Task Dispatch** | **AUSENTE** | Pipeline PM→Arch→Dev→QA | `run-dispatch` + `runtime-api` | **Unificado + NEXUS QA Gates** | 🔴 Crítico | `grep -r "dispatch\|orchestrat" src/` → vazio |
-| **QA Gates** | **AUSENTE** | EvidenceQA (PASS/FAIL + screenshots) | ❌ | **NEXUS QA + Paperclip Evidence** | 🔴 Crítico | `grep -r "qa\|evidence" src/` → vazio |
+| **QA Gates** | **AUSENTE** | EvidenceQA (PASS/FAIL + screenshots) | ❌ | **NEXUS QA + TokenizAi Evidence** | 🔴 Crítico | `grep -r "qa\|evidence" src/` → vazio |
 | **Retry Logic** | **AUSENTE** | Max 3 retries/task | Background workers | **Unificado (configurável)** | 🔴 Crítico | N/A |
-| **Workflows/Routines** | **AUSENTE** | ❌ | ✅ `routines`, `pipelines`, `triggers` | **Paperclip + NEXUS Playbooks** | 🔴 Crítico | N/A |
+| **Workflows/Routines** | **AUSENTE** | ❌ | ✅ `routines`, `pipelines`, `triggers` | **Hermes + NEXUS Playbooks** | 🔴 Crítico | N/A |
 | **Scheduling** | **AUSENTE** | ❌ | Heartbeat + cron | **Unificado** | 🔴 Crítico | N/A |
 | **Escalation** | **AUSENTE** | Max 3 retries → escalate | Auto-brake + recovery | **Unificado + SLA** | 🔴 Crítico | N/A |
 
@@ -94,7 +94,7 @@
 
 | Capacidade | TokenizAi (Real) | Agency Agents | Paperclip | NettosCorp Target | Gap | Evidência TokenizAi |
 |------------|------------------|---------------|-----------|-------------------|-----|---------------------|
-| **Framework** | **React 19** + Vite | Svelte 5 | React 19 | **React 19** (Paperclip) | ✅ Alinhado | `package.json:22-23`, `src/main.tsx` |
+| **Framework** | **React 19** + Vite | Svelte 5 | React 19 | **React 19** (stack atual) | ✅ Alinhado | `package.json:22-23`, `src/main.tsx` |
 | **State Management** | React `useState` + `useEffect` + localStorage | Svelte stores | TanStack Query + 17 Contexts | **TanStack Query + WS Fanout** | ⚠️ Migrar | `App.tsx:58-229`, `enterpriseService.ts` |
 | **UI Components** | React + Tailwind 4 + Lucide | Svelte + Tailwind | Radix + Base UI + Tailwind 4 | **@nettoscorp/ui-primitives (Radix+Tailwind)** | ⚠️ Extrair | `package.json:20,23`, `src/components/` |
 | **Routing** | Hash-based (`window.location.hash`) | SvelteKit | React Router DOM 7 | **React Router + Lazy Modules** | ⚠️ Migrar | `App.tsx:49-55, 97-109` |
@@ -167,13 +167,13 @@
 | **P0** | **Nenhuma autenticação backend** | `server.ts` — sem auth middleware | Fase 1 | 2-3 semanas |
 | **P0** | **Nenhuma persistência real** | `localStorage` + `/tmp` apenas | Fase 1 | 2-3 semanas |
 | **P0** | **Nenhum auth providers** | `server.ts` — sem auth middleware | Fase 1 | 1-2 semanas |
-| **P0** | **Paperclip não configurado** | `enterpriseSeed.ts:771-778`, `server.ts:57` | Fase 0 | 1 semana |
+| **P0 (CANCELADO)** | Integração Paperclip — substituída por Hermes direto | Evidência histórica pré-migração | Encerrado pela migração | — |
 | **P0** | **Supabase não configurado** | `enterpriseSeed.ts:751-760`, `server.ts:56` | Fase 1 | 1 semana |
 | **P0** | **Nenhum ACP adapter** | `grep -r "acp\|adapter" src/` → vazio | Fase 2 | 1-2 semanas |
 | **P0** | **Hermes plugin quebrado** | Agency Agents: `build-hermes-plugin.py` ausente | Fase 0 | 1 semana |
 | **P1** | Foundation Packages (`shared`, `db`, `auth`) | — | Fase 1 | 2-3 semanas |
 | **P1** | Adapters + MCP packages (14) | — | Fase 2 | 1-2 semanas |
-| **P1** | Catalog Sync Pipeline (AA → Paperclip) | — | Fase 6 | 2 semanas |
+| **P1** | Catalog Sync Pipeline (Agency Agents → TokenizAi/Hermes) | — | Fase 6 | 2 semanas |
 | **P1** | Agent Hire Flow (`hireAgent(slug)`) | — | Fase 7 | 2 semanas |
 | **P2** | Governance Layer (Authority + Policy + Audit) | — | Fase 8 | 3-4 semanas |
 | **P2** | Memory Layer (Vector DB + RAG + Graph) | — | Fase 9 | 4-6 semanas |

@@ -1,8 +1,10 @@
-# Evidências e Pendências — Auditoria Técnica NettosCorp Enterprise
+# Evidências e Pendências
+
+> **REGISTRO HISTÓRICO SUPERADO — 25/11/2026:** Este inventário contém evidências e pendências da arquitetura anterior à migração direta para Hermes. Qualquer item que solicite configurar `PAPERCLIP_ENDPOINT`, `PAPERCLIP_API_KEY`, Paperclip Skill Catalog, Agent Hire no Paperclip ou testar serviços Paperclip está CANCELADO. Paperclip não é dependência operacional do TokenizAi V2. As evidências antigas são preservadas apenas para rastreabilidade. — Auditoria Técnica NettosCorp Enterprise
 
 > **Versão:** 2.2  \
 > **Data:** 22 de novembro de 2026  \
-> **Status:** **FASE 0 HOMOLOGADA LOCALMENTE — FASE 1 AUTORIZADA**  \
+> **Status:** **INVENTÁRIO HISTÓRICO SUPERADO — REVALIDAR CONTRA A MAIN ATUAL**  \
 > **Responsável:** Hermes
 
 ---
@@ -87,7 +89,7 @@
 | **P0-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Platform Engineer | Fase 1 |
 | **P0-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Platform Engineer | Fase 1 |
 | **P0-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Platform Engineer | Fase 1 |
-| **P0-04** | **Paperclip não configurado** | TokenizAi | `enterpriseSeed.ts:771-778`, `server.ts:57` | Configurar `PAPERCLIP_ENDPOINT` + `PAPERCLIP_API_KEY` | Platform Engineer | Fase 0 |
+| **P0-15 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | **Não configurar** — substituído por integração direta com Hermes | Encerrado pela migração | Migração Hermes |
 | **P0-05** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760`, `server.ts:56` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Platform Engineer | Fase 0 |
 | **P0-06** | Validação funcional do Hermes Plugin | Agency Agents | Builder, contract check e behavior test presentes; execução ainda não homologada | CI gera o plugin e executa os dois testes; exigir execução verde | Platform | Fase 0 |
 | **P0-07** | Validação dos scripts do Agency Agents | Agency Agents | `lib.sh`, `install.sh`, `lint-agents.sh`, `check-divisions.sh` e `check-tools.sh` presentes no fork | Executar workflows de validação e corrigir falhas reais | Platform | Fase 0 |
@@ -110,11 +112,11 @@
 | **P1-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Fase 1 |
 | **P1-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Fase 1 |
 | **P1-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Fase 1 |
-| **P1-05** | **Paperclip não configurado** | TokenizAi | `enterpriseSeed.ts:771-778` | Configurar `PAPERCLIP_ENDPOINT` + `PAPERCLIP_API_KEY` | Fase 0 |
+| **P1-10 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | Não configurar; integração substituída por Hermes | Migração Hermes |
 | **P1-06** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Fase 0 |
 | **P1-07** | Adapters + MCP packages (14) | — | — | Publicar 12 adapters ACP + MCP server/gateway | Fase 2 |
-| **P1-08** | Catalog Sync Pipeline (AA → Paperclip) | — | — | GitHub webhook → Paperclip Skill Catalog | Fase 6 |
-| **P1-09** | Agent Hire Flow (`hireAgent(slug)`) | — | — | AA corpus → Paperclip agent provisioning | Fase 7 |
+| **P1-08 (SUBSTITUÍDO)** | Catalog Sync Pipeline (Agency Agents → TokenizAi/Hermes) | — | — | Definir e validar integração pelo catálogo próprio e Hermes | Roadmap Hermes |
+| **P1-09 (SUBSTITUÍDO)** | Agent Provisioning (`hireAgent(slug)`) | — | — | Provisionamento controlado pelo TokenizAi e runtime Hermes | Roadmap Hermes |
 
 ---
 
@@ -140,9 +142,9 @@
 | **TokenizAi** | D1 data persistence real | ❓ Não Verificado | Precisa deploy preview + test |
 | **TokenizAi** | Cloudflare KV/D1/R2 bindings | ❓ Não Verificado | Precisa `wrangler.toml` bindings reais |
 | **TokenizAi** | Deploy Cloudflare Pages real | ❓ Não Verificado | Precisa `pnpm run build` + `wrangler pages deploy` |
-| **Paperclip** | Embedded PG behavior under load | ❓ Não Verificado | Precisa load test |
-| **Paperclip** | RLS Policies enforcement real | ❓ Não Verificado | Precisa `ENABLE_RLS_ENFORCEMENT=true` + test |
-| **Paperclip** | MCP Gateway OAuth flow real | ❓ Não Verificado | Precisa client credentials test |
+| **Paperclip (histórico, CANCELADO)** | Embedded PG behavior under load | Não aplicável ao TokenizAi V2 | Não testar nem iniciar Paperclip |
+| **Paperclip (histórico, CANCELADO)** | RLS Policies enforcement real | Não aplicável ao TokenizAi V2 | Não configurar nem testar Paperclip |
+| **Paperclip (histórico, CANCELADO)** | MCP Gateway OAuth flow real | Não aplicável ao TokenizAi V2 | Não configurar nem testar Paperclip |
 | **Agency Agents** | Hermes plugin build + behavior | ⚠️ Implementado, não homologado | Builder, contract check e behavior test estão presentes; CI não iniciou steps |
 | **Agency Agents** | NEXUS playbooks/runbooks completeness | ⚠️ Conteúdo presente, validação pendente | 7 playbooks e 4 runbooks; workflow de consistência sem execução homologada |
 | **Agency Agents** | Hermes plugin end-to-end | ❓ Não Verificado | Precisa plugin instalado no Hermes + test |
@@ -155,12 +157,12 @@
 |---------|--------|---------------------|---------|
 | **Vector DB** | pgvector (PG) vs Pinecone vs Weaviate | **pgvector** (unified PG, custo zero) | Baixo custo, unified stack |
 | **Knowledge Graph** | Apache Age (PG extension) vs Neo4j | **Apache Age** (unified PG) | Baixo custo, unified stack |
-| **Workflow Engine** | Paperclip routines + NEXUS vs Temporal vs custom | **Paperclip + NEXUS** (reutilização) | Reutiliza código existente |
+| **Workflow Engine** | Hermes + NEXUS vs Temporal vs custom | **Hermes + NEXUS** (integração direta; workflows próprios) | Reutiliza código existente |
 | **API Gateway** | Cloudflare Workers (atual) vs Kong vs custom | **Cloudflare Workers** (já em TokenizAi) | Aproveita infra atual |
-| **Secrets** | 1Password (Paperclip) vs Vault vs AWS Secrets | **1Password** (já integrado) | Aproveita integração atual |
-| **Frontend Framework** | React 19 (Paperclip) vs Svelte 5 (TokenizAi/AA) | **React 19** (Paperclip base) | Migração TokenizAi necessária |
-| **Package Manager** | pnpm (Paperclip/AA) vs Bun (TokenizAi) | **pnpm** (monorepo standard) | Migração TokenizAi necessária |
-| **Monorepo Structure** | Single package (TokenizAi) vs 27 packages (Paperclip) | **pnpm workspace** (Paperclip model) | Reestruturação TokenizAi |
+| **Secrets** | 1Password vs Vault vs AWS Secrets | **1Password** (já integrado) | Aproveita integração atual |
+| **Frontend Framework** | React 19 (TokenizAi atual) vs Svelte 5 (Agency Agents) | **React 19** (stack atual do TokenizAi) | Migração TokenizAi necessária |
+| **Package Manager** | pnpm (Agency Agents) vs Bun (TokenizAi) | **pnpm** (monorepo standard) | Migração TokenizAi necessária |
+| **Monorepo Structure** | Single package (TokenizAi) vs monorepo (alternativa arquitetural) | **Avaliar workspace próprio** (sem replicar modelo Paperclip) | Reestruturação TokenizAi |
 
 ---
 
@@ -263,15 +265,15 @@ A Fase 1 autorizada para execução. Objetivo: definir a arquitetura conceitual 
 - Separação entre identidade humana, identidade de agentes, instâncias operacionais e configurações de execução
 - Modelo de autorização, hierarquia e autoridade institucional
 - Contratos entre frontend, backend, banco de dados e integrações
-- Relações com Paperclip e Agency Agents, sem confundir ferramentas externas com domínios proprietários do TokenizAi
+- Relações históricas com Paperclip e integração atual com Agency Agents/Hermes, sem dependência operacional do Paperclip
 - Matriz de dependências entre domínios
 - ADRs e decisões arquiteturais necessárias
 
 ---
 
-### 11. Estrutura Implanta — TokenizAi no Paperclip (Evidência Real)
+### 11. Estrutura Histórica — TokenizAi no Paperclip (NÃO OPERACIONAL)
 
-A estrutura abaixo foi **verificada no banco de dados do Paperclip** e está em operação.
+A estrutura abaixo foi **verificada historicamente** no banco de dados do Paperclip antes da migração. Não está comprovada como estado atual e não deve ser reativada.
 
 | Métrica | Valor | Evidência |
 |---------|-------|-----------|

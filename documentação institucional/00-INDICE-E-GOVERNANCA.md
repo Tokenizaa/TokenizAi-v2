@@ -17,11 +17,13 @@
 
 ## 1. Finalidade
 
+> **Aviso de arquitetura vigente (25/11/2026):** TokenizAi V2 migrou do Paperclip para integração direta com Hermes. Paperclip não é runtime, serviço, backend, fonte de dados ou destino de navegação operacional. Toda ocorrência de Paperclip neste diretório é referência histórica, engenharia reversa ou registro de decisões anteriores; não constitui instrução para instalar, iniciar, configurar ou acessar Paperclip.
+
 Este diretório é a **única fonte canônica** de documentação arquitetural e institucional da NettosCorp. Consolida:
 
 - Engenharia reversa do **TokenizAi** (plataforma atual) — **v2.0 COM EVIDÊNCIAS REAIS**
 - Engenharia reversa do **Agency Agents** (catálogo de especialistas + metodologia NEXUS) — **v1.0 COM EVIDÊNCIAS REAIS**
-- Engenharia reversa do **Paperclip** (plataforma de orquestração) — **v1.0 COM EVIDÊNCIAS REAIS**
+- Arquivo histórico de engenharia reversa do **Paperclip** (não operacional; não integra o TokenizAi V2)
 - Arquitetura alvo da **NettosCorp Enterprise** (plataforma unificada) — **v1.0 PROPOSTA**
 - Modelo de domínio, roadmap, matriz de aderência, evidências e pendências — **v2.0 ATUALIZADO COM EVIDÊNCIAS REAIS**
 
@@ -35,7 +37,7 @@ Este diretório é a **única fonte canônica** de documentação arquitetural e
 | 01 | `01-VISAO-E-DIRETRIZES.md` | Visão institucional, princípios, diretrizes de produto | ✅ Canônico | 1.0 |
 | 02 | `02-ENGENHARIA-REVERSA-TOKENIZAI.md` | **Auditoria completa com evidências reais** do TokenizAi | ✅ Canônico | **2.0** |
 | 03 | `03-ENGENHARIA-REVERSA-AGENCY-AGENTS.md` | Catálogo, identidades, NEXUS, integração Hermes | ✅ Canônico | 1.0 |
-| 04 | `04-ENGENHARIA-REVERSA-PAPERCLIP.md` | Arquitetura, mecanismos, decisões do Paperclip | ✅ Canônico | 1.0 |
+| 04 | `04-ENGENHARIA-REVERSA-PAPERCLIP.md` | Referência histórica do Paperclip — não operacional | Arquivo histórico | 1.0 |
 | 05 | `05-ARQUITETURA-ALVO.md` | Arquitetura da plataforma unificada NettosCorp Enterprise | ✅ Canônico | 1.0 |
 | 06 | `06-MODELO-DE-DOMINIO.md` | Entidades, relacionamentos, modelo de dados unificado | ✅ Canônico | 1.0 |
 | 07 | `07-COMUNICACAO-E-ORQUESTRACAO-DE-EQUIPES.md` | Chat, equipes, delegação, handoffs, orquestração | ✅ Canônico | 1.0 |
@@ -105,7 +107,7 @@ Toda afirmação técnica deve citar a origem:
 
 1. **TokenizAi é a plataforma central** — evolui para NettosCorp Enterprise
 2. **Agency Agents fornece inteligência profissional** — catálogo, identidades, metodologia NEXUS
-3. **Paperclip fornece conceitos de organização** — comunicação, hierarquia, operação, reconciliação
+3. **Paperclip é somente referência histórica** — conceitos eventualmente aproveitados devem ser reimplementados no domínio próprio, sem dependência do software Paperclip
 4. **Módulos empresariais existentes são aproveitados** — não reescritos do zero
 5. **Separação clara: perfis, instâncias organizacionais, runtimes** — isolamento por design
 6. **Nenhuma funcionalidade é "concluída" por ter tela ou estrutura** — precisa de testes, homologação, evidência
@@ -145,7 +147,7 @@ Toda afirmação técnica deve citar a origem:
 | **Agency Agents (corpus)** | `4df4038` | ✅ **FASE 0 VALIDADA LOCALMENTE** | 282 agentes, 18 divisões, builder Hermes, scripts de validação, NEXUS e testes automatizados presentes; CI remoto pendente |
 | **Agency Agents (desktop app)** | `6d9a355` | ✅ **FASE 0 VALIDADA LOCALMENTE** | Svelte 5 + Tauri/Rust; PR Check inclui cargo fmt, npm check, npm build; cargo test pendente por build script Tauri |
 | **Agency Agents (upstream)** | `8ae6164` | 🔴 **NÃO AUDITADO LOCAL** | Fonte canônica: catálogo, scripts, NEXUS strategy |
-| **Paperclip** | `cb64a236b` | ✅ **COMPLETA v1.0** | 27 packages, 480 tabelas, 12 adapters, Plugin SDK v1.0, MCP, CI/CD verde |
+| **Paperclip (referência histórica)** | `cb64a236b` | Engenharia reversa arquivada | Não integra a arquitetura operacional do TokenizAi V2 |
 
 ---
 

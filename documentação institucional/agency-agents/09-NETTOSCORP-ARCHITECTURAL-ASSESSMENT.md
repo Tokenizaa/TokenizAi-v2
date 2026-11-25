@@ -1,8 +1,10 @@
-# Agency Agents — Avaliação Arquitetural para NettosCorp (09-NETTOSCORP-ARCHITECTURAL-ASSESSMENT)
+# Agency Agents — Avaliação Arquitetural para NettosCorp (ARQUIVO HISTÓRICO)
+
+> **AVALIAÇÃO SUPERADA — 25/11/2026:** Este documento foi produzido quando a operação considerava Paperclip como orquestrador. A migração posterior adotou Hermes diretamente. Todas as integrações, bridges, flows, roles, APIs, gateways, rotinas e planos Paperclip descritos abaixo estão cancelados como arquitetura operacional do TokenizAi V2. Preserve este material apenas como histórico de análise; não implemente nem inicialize Paperclip com base nele.
 
 > **Data:** 21 de novembro de 2026  
 > **Checkout:** `/home/lg/workspace/NettosCorp/NettosCorp/enterprise/agency-agents`  
-> **Contexto:** NettosCorp opera Paperclip (orchestration platform) + Hermes (agent runtime) + DefesaI Saúde (B2C app)
+> **Contexto histórico (21/11/2026):** à época da elaboração, a operação considerava Paperclip como orquestrador junto ao Hermes. Essa arquitetura foi substituída por TokenizAi V2 + Hermes direto; Paperclip não é utilizado.
 
 ---
 
@@ -18,7 +20,7 @@
 | **Reconciliação de estado** | Ledger + 5-state reconcile (CURRENT/OUTDATED/MODIFIED/REMOVED/FOREIGN) | ✅ Alto | Core diferencial — reutilizável |
 | **Governança/autoridade** | Não nativo (catálogo agnóstico) | ❌ Ausente | Precisa camada de RBAC + approval gates |
 | **Memória/aprendizado** | Apenas "Learning & Memory" no prompt | ❌ Prompt-only | Sem persistência real |
-| **Paperclip integration** | Catálogo pode ser fonte de agents Paperclip | ✅ Potencial | Precisa adapter Paperclip ↔ Agency Agents |
+| **Integração Paperclip (CANCELADA)** | Proposta histórica de catálogo | **Não utilizar** | Substituída por integração direta Agency Agents + Hermes |
 
 ---
 
@@ -32,7 +34,7 @@
 |---------------|-------------------|-----------|
 | `name` + `description` | Cargo + responsabilidade | Mapear divisões → departamentos NettosCorp |
 | `color` + `emoji` + `vibe` | Visual identity system | Estender com `department`, `clearance_level`, `reports_to` |
-| `tools` (Claude Code list) | Tool access policy | Mapear para Paperclip tool gateway + Hermes tools |
+| `tools` (Claude Code list) | Tool access policy | Mapear para ferramentas autorizadas do Hermes + políticas próprias do TokenizAi |
 | `Instructions Reference` → `ai/agents/*.md` | Conhecimento institucional persistido | Substituir por `nettoscorp://knowledge/<topic>` URIs |
 
 **Recomendação:** Estender frontmatter com campos NettosCorp:
@@ -43,7 +45,7 @@ nettoscorp:
   clearance: "internal"               # public|internal|restricted|classified
   reports_to: "engineering-lead"      # Slug do supervisor
   authority: "execute|approve|escalate"  # Decision limits
-  knowledge_domains: ["rust", "tauri", "paperclip"]  # Para routing
+  knowledge_domains: ["rust", "tauri", "hermes"]  # Para routing
 ```
 
 ### 2.2 Governança (B)
@@ -53,24 +55,24 @@ nettoscorp:
 | Gap Atual | Solução NettosCorp |
 |-----------|-------------------|
 | Sem RBAC | Implementar `clearance` + `authority` no frontmatter + runtime enforcement |
-| Sem approval gates | Integrar com Paperclip `approval` system (já existe) |
+| Sem approval gates | Implementar aprovação no BFF TokenizAi com persistência Supabase |
 | Sem hierarquia operacional | `reports_to` + org chart validation no spawn |
 | Sem protocolos institucionais | `protocol_pack` URI no agente → carrega regras NettosCorp |
-| Sem comunicação inter-agente | Hermes `delegate` + Paperclip `issue`/`case` handoff |
+| Sem comunicação inter-agente | Hermes `delegate` + handoff persistido no domínio próprio do TokenizAi |
 
 **Arquitetura proposta:**
 ```
 NettosCorp Governance Layer
 ├── Agent Registry (extended frontmatter)
 ├── Authority Engine (validates spawn/delegate per clearance)
-├── Approval Gateway (Paperclip integration)
+├── Approval Gateway (TokenizAi BFF + Supabase)
 ├── Protocol Loader (loads nettoscorp://protocol/*)
 └── Audit Log (all agent actions)
 ```
 
-### 2.3 Paperclip (C)
+### 2.3 Paperclip (C) — análise histórica cancelada
 
-**Como o catálogo funciona junto ao Paperclip?**
+**Como se propunha integrar o catálogo ao Paperclip? (plano cancelado; não executar)**
 
 | Paperclip Need | Agency Agents Capability | Integration Path |
 |----------------|-------------------------|------------------|
@@ -173,7 +175,7 @@ NettosCorp Memory Layer
 |------------|---------|--------------|------------|
 | **Fix Hermes Plugin** | 2-3 semanas | Upstream `build-hermes-plugin.py` ou reimpl Rust | 🔴 Crítico |
 | **Extend Frontmatter (NettosCorp fields)** | 1 semana | Schema validation + migration | 🔴 Crítico |
-| **Authority Engine (Paperclip)** | 3-4 semanas | Paperclip RBAC + approval system | 🔴 Crítico |
+| **Authority Engine (TokenizAi + Supabase)** | 3-4 semanas | RBAC próprio + políticas de aprovação no BFF | 🔴 Crítico |
 | **Catalog Sync Pipeline** | 2 semanas | GitHub webhook / polling + diff | 🟡 Alto |
 | **Paperclip Agent Hire Integration** | 2 semanas | Tauri IPC ou REST bridge | 🟡 Alto |
 | **Memory Layer (Supabase)** | 4-6 semanas | Vector DB + RAG pipeline | 🟡 Alto |
@@ -197,7 +199,7 @@ msitarzewski/agency-agents (upstream canonical)
            ▼
 Tokenizaa/agency-agents-app (fork with Tauri app)
     │
-    ├── src-tauri/ (Rust app) ──────────────► NettosCorp Paperclip bridge
+    ├── src-tauri/ (Rust app) ──────────────► TokenizAi/Hermes bridge
     └── src/ (Svelte UI) ──────────────────► NettosCorp Admin UI (optional)
 ```
 
@@ -213,7 +215,7 @@ Tokenizaa/agency-agents-app (fork with Tauri app)
 | Hermes plugin ref | `tools.json:17`, `convert.sh:791-794` |
 | Agents orchestrator | `src-tauri/resources/corpus-baseline/specialized/agents-orchestrator.md` |
 | Install/reconcile | `src-tauri/src/install/mod.rs` |
-| Paperclip context | Memória Hermes (sessão anterior) |
+| Paperclip context | Memória Hermes persistida conforme política do TokenizAi |
 | NettosCorp context | Memória Hermes (sessão anterior) |
 
 ---
@@ -228,7 +230,7 @@ Tokenizaa/agency-agents-app (fork with Tauri app)
 3. **Memória apenas no prompt** — precisa persistência real
 4. **NEXUS methodology ausente no fork** — precisa sync do upstream
 
-**Oportunidade única:** O **reconcile engine (ledger + hash-match)** é diretamente reutilizável no Paperclip para rastrear estado de agents instalados across tools.
+**Conclusão histórica (não executável):** o reconcile engine (ledger + hash-match) pode inspirar implementação própria no TokenizAi; não integrar ao Paperclip.
 
 **Próximo passo:** Recuperar `build-hermes-plugin.py` do upstream e validar integração Hermes end-to-end antes de investir em camadas superiores.
 

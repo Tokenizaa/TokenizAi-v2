@@ -1,4 +1,6 @@
-# Engenharia Reversa — TokenizAi (Plataforma Atual)
+# Engenharia Reversa — TokenizAi
+
+> **BASELINE HISTÓRICA SUPERADA — 25/11/2026:** Esta auditoria descreve uma versão anterior do TokenizAi, na qual Paperclip aparecia como integração não configurada ou dependência planejada. A migração posterior adotou Hermes diretamente. As recomendações de configurar Paperclip, `PAPERCLIP_ENDPOINT` ou adapters Paperclip estão canceladas. Não usar este documento como retrato do código atual sem reauditoria. (Plataforma Atual)
 
 > **Versão:** 2.0  
 > **Data:** 21 de novembro de 2026  
@@ -22,7 +24,7 @@
 | Banco de dados / ORM | **AUSENTE** | Nenhum identificado no código | `grep -r "drizzle\|prisma\|supabase\|d1\|kysely" src/` → vazio |
 | Autenticação / Autorização | **PARCIAL** | RBAC apenas Frontend (localStorage) | `src/domain/permissions.ts`, `src/App.tsx:60` |
 | Persistência real | **AUSENTE** | Apenas localStorage + /tmp | `enterpriseService.ts:17-76`, `server.ts:9,32` |
-| Integração Paperclip | **NÃO CONFIGURADO** | Endpoint vazio, status "não configurado" | `enterpriseSeed.ts:771-778`, `server.ts:57` |
+| Integração Paperclip (LEGADO) | **CANCELADA** | Baseline pré-migração | Substituída pela integração direta com Hermes; não configurar endpoint Paperclip |
 | Integração Supabase | **NÃO CONFIGURADO** | Status "não configurado" | `enterpriseSeed.ts:751-760`, `server.ts:56` |
 | Integração GitHub | **PARCIAL** | API pública apenas (sem token) | `server.ts:63-164`, `enterpriseSeed.ts:761-769` |
 | Integração Gemini | **FUNCIONAL** | `@google/genai` server-side | `server.ts:6,11-24`, `server.ts:166-241` |
@@ -100,7 +102,7 @@ TokenizAi/
 |------------|-------------|-----------|-----------|
 | **Google Gemini** | ✅ **FUNCIONAL** | `server.ts:6,11-24,166-290` | Precisa `GEMINI_API_KEY` válida |
 | **GitHub API** | ⚠️ **PARCIAL** | `server.ts:63-164` | Apenas API pública (sem token = rate limit baixo) |
-| **Paperclip** | ❌ **NÃO CONFIGURADO** | `enterpriseSeed.ts:771-778`, `server.ts:57` | `PAPERCLIP_ENDPOINT` não configurado |
+| **Paperclip (LEGADO)** | **CANCELADO** | Baseline pré-migração | `PAPERCLIP_ENDPOINT` não deve ser configurado; runtime substituído por Hermes |
 | **Supabase** | ❌ **NÃO CONFIGURADO** | `enterpriseSeed.ts:751-760`, `server.ts:56` | `SUPABASE_URL`/`ANON_KEY` não configurados |
 | **GitHub (privado)** | ❌ **NÃO CONFIGURADO** | `server.ts:88-90`, `enterpriseSeed.ts:761-769` | `GITHUB_TOKEN` não configurado |
 | **Gemini API Key** | ⚠️ **PARCIAL** | `server.ts:12-14` | Chave placeholder `MY_GEMINI_API_KEY` |
@@ -238,7 +240,7 @@ Principais tipos definidos (evidenciados):
 | `EnterpriseProject` | Projeto empresarial | 144-168 |
 | `EnterpriseState` | Estado global da app | 352-374 |
 | `AgentBlueprint` | Perfil de agente (283 catálogo) | 222-238 |
-| `OperationalAgentInstance` | Instância Paperclip | 240-254 |
+| `OperationalAgentInstance` | Mapeamento conceitual histórico para instância Paperclip (não operacional) | 240-254 |
 | `GovernanceRecord` | DEC/CNS/DELIB/AUDIT | 292-304 |
 
 ---
@@ -252,12 +254,12 @@ Principais tipos definidos (evidenciados):
 | **Frontend Completo** | **17 módulos React funcionais** | `src/modules/`, `App.tsx` | **APROVEITAR** — base sólida |
 | **Persistência** | **AUSENTE** (localStorage + /tmp) | `enterpriseService.ts`, `server.ts:9` | **CRÍTICO** — Implementar PostgreSQL + Drizzle |
 | **Auth/Authorization** | **Apenas Frontend RBAC** | `permissions.ts`, `App.tsx:60` | **CRÍTICO** — Implementar Auth real (Better Auth) |
-| **Camada de Agentes** | **AUSENTE** (apenas UI) | `OperationalAgentsModule`, `AgencyLibraryModule` | **CRÍTICO** — Integrar Paperclip + ACP |
+| **Camada de Agentes** | **AUSENTE** (apenas UI) | `OperationalAgentsModule`, `AgencyLibraryModule` | **CRÍTICO** — Integrar Hermes + Agency Agents |
 | **Reconciliação** | **AUSENTE** | `grep -r "reconcile\|ledger\|hash" src/` → vazio | **CRÍTICO** — Implementar Ledger + 5-state |
 | **Memória Institucional** | **AUSENTE** | `grep -r "vector\|embedding\|rag" src/` → vazio | **ALTO** — Implementar RAG + Vector DB |
 | **CI/CD** | **AUSENTE** | `.github/workflows/` vazio | **ALTO** — Implementar Turbo + Changesets |
 | **Observabilidade** | **AUSENTE** | `grep -r "sentry\|otel\|tracing" src/` → vazio | **ALTO** — Implementar OTel + Sentry |
-| **Paperclip Integration** | **NÃO CONFIGURADO** | `enterpriseSeed.ts:771-778` | **CRÍTICO** — Implementar Adapter |
+| **Paperclip Integration (LEGADO)** | **CANCELADA** | Baseline pré-migração | **Não implementar** — integração direta com Hermes substitui o desenho anterior |
 | **Supabase** | **NÃO CONFIGURADO** | `enterpriseSeed.ts:751-760` | **CRÍTICO** — Configurar Auth + DB |
 | **Gemini AI** | **FUNCIONAL** (server-side) | `server.ts:166-290` | **APROVEITAR** — Base para AI layer |
 
@@ -281,7 +283,7 @@ Principais tipos definidos (evidenciados):
 
 Esta auditoria **substitui** a versão anterior (v1.0) com evidências reais de código. Todos os gaps anteriormente marcados como "NÃO VERIFICADO" foram **verificados e classificados**.
 
-**Próximo:** Auditoria profunda do **Agency Agents** (fork local) e **Paperclip** para completar a matriz de aderência com evidências reais.
+**Próximo (histórico):** A auditoria de Paperclip foi preservada apenas como referência. A arquitetura vigente deve ser auditada contra Hermes e Supabase.
 
 ---
 

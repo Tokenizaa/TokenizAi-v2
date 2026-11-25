@@ -1,5 +1,7 @@
 # Auditoria de Compliance SOC 2 / ISO 27001 — Fase 8: Governance Layer
 
+> **AVISO DE BASELINE — 25/11/2026:** Auditoria histórica baseada em commit anterior à migração. Referências a `PAPERCLIP_API_KEY` e integrações Paperclip descrevem configuração legada e não devem ser recriadas. Paperclip não participa do runtime atual; revalidar todos os achados contra a `main` atual antes de tratá-los como estado vigente.
+
 > **Versão:** 1.0  
 > **Data:** 22 de novembro de 2026  
 > **Auditor:** ComplianceAuditor (Hermes) — Divisão: Security  
@@ -61,7 +63,7 @@ Toda afirmação de estado atual cita origem no formato `[EVIDENCIADO] arquivo:l
 - Nenhum provedor de identidade (SSO/SAML), nenhum MFA, nenhum gerenciamento de sessão server-side.
 - Estado do backend em arquivos temporários (`/tmp/*.json`) e cache `localStorage` do navegador (12-EVIDENCIAS-E-PENDENCIAS:20–22, 29).
 - 0 usuários em `auth.users` do Supabase; nenhuma identidade organizacional vinculada (13-BASELINE:39, 116).
-- Service accounts via chaves de placeholder em variáveis de ambiente (`server.ts:12–14`, `server.ts:231` Bearer `PAPERCLIP_API_KEY`).
+- Registro histórico pré-migração: havia referência a `PAPERCLIP_API_KEY` em código/configuração antiga. Essa integração foi removida; não criar nem configurar essa variável. A situação atual das service accounts precisa ser verificada na `main` vigente.
 - Não há processo de joiner/mover/leaver, revisão de acesso trimestral nem inventário de credenciais.
 
 **Estado alvo:**
