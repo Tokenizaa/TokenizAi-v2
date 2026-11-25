@@ -55,10 +55,10 @@ export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
       if (action === 'approve') await hermesService.approveApproval(approvalId, note);
       else if (action === 'reject') await hermesService.rejectApproval(approvalId, note);
       else await hermesService.requestApprovalRevision(approvalId, note || '');
-      onToast(`Aprovação ${action === 'revision' ? 'enviada para revisão' : action === 'approve' ? 'aprovada' : 'rejeitada'} no Paperclip.`);
+      onToast(`Aprovação ${action === 'revision' ? 'enviada para revisão' : action === 'approve' ? 'aprovada' : 'rejeitada'} no fluxo de governança da TokenizAi.`);
       await load();
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Paperclip recusou a decisão.');
+      onToast(err instanceof Error ? err.message : 'O serviço de governança recusou a decisão.');
     }
   };
 
