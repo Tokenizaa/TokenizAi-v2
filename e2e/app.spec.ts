@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const ADMIN_EMAIL = 'nettoscorp@gmail.com';
 const ADMIN_PASSWORD = 'Hermes@964212$';
 
-async function login(page) {
+async function login(page: Page) {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
@@ -18,7 +18,7 @@ async function login(page) {
 }
 
 test.describe('Enterprise Routes', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
   });
 
@@ -47,7 +47,7 @@ test.describe('Enterprise Routes', () => {
 });
 
 test.describe('AI Workforce Routes (Consolidated)', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
   });
 
@@ -75,7 +75,7 @@ test.describe('AI Workforce Routes (Consolidated)', () => {
 });
 
 test.describe('Interactive Elements', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
   });
 
@@ -159,7 +159,7 @@ test.describe('Console & Network Health', () => {
 test.describe('Mobile Responsiveness', () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
   });
 
