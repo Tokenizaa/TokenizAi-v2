@@ -1,5 +1,5 @@
 import { HermesApi, PlatformApi } from '../../../services/api';
-import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesApprovalDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto } from '../../../types/platform';
+import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto } from '../../../types/platform';
 import type { WorkforceStatus } from '../types';
 
 /**
@@ -63,20 +63,6 @@ export const hermesService = {
     agentId?: string;
   }) => HermesApi.createRoutine(payload),
 
-  // --- Approvals ---
-  listApprovals: () => HermesApi.listApprovals(),
-  createApproval: (payload: {
-    title: string;
-    description?: string;
-    reason?: string;
-  }) => HermesApi.createApproval(payload),
-  approveApproval: (approvalId: string, note?: string) =>
-    HermesApi.approveApproval(approvalId, note),
-  rejectApproval: (approvalId: string, note?: string) =>
-    HermesApi.rejectApproval(approvalId, note),
-  requestApprovalRevision: (approvalId: string, note: string) =>
-    HermesApi.requestApprovalRevision(approvalId, note),
-
   // --- Costs ---
   getCostsSummary: () => HermesApi.getCostsSummary(),
 
@@ -86,10 +72,6 @@ export const hermesService = {
   // --- Artifacts ---
 
   // --- Goals ---
-
-  // --- Runs ---
-  runRoutine: (routineId: string) => HermesApi.runRoutine(routineId),
-
 
   // --- Org ---
   getOrganization: () => HermesApi.getOrganization(),
