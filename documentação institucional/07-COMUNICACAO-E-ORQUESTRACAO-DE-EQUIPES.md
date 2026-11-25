@@ -1,8 +1,10 @@
 # Comunicação e Orquestração de Equipes
 
+> **DOCUMENTO SUPERADO — 25/11/2026:** O conteúdo abaixo registra o desenho e a implantação históricos da operação no Paperclip. Após a migração, Paperclip não é runtime, servidor, banco, chat ou sistema de orquestração do TokenizAi. Não iniciar, acessar ou configurar Paperclip com base neste documento. A arquitetura vigente utiliza TokenizAi V2 + Hermes + Supabase. Os registros abaixo são evidência histórica, não estado operacional atual.
+
 > **Versão:** 1.1  
 > **Data:** 22 de novembro de 2026  
-> **Status:** **IMPLEMENTADO** — Estrutura operacional da TokenizAi implantada no Paperclip  
+> **Status:** **HISTÓRICO / SUPERADO** — estrutura que esteve implantada no Paperclip antes da migração  
 > **Responsável:** Hermes (Chefe de Gabinete Executivo)
 
 ---
@@ -320,7 +322,7 @@ async function executeWithNexusQA(taskId: string, agentId: string) {
 
 ## 9. Estrutura Operacional Implanta — TokenizAi no Paperclip
 
-A estrutura abaixo está **implantada e persistida** no banco de dados do Paperclip (não é proposta).
+A estrutura abaixo foi registrada historicamente no banco do Paperclip antes da migração. Não comprova o estado atual e não deve ser usada operacionalmente.
 
 ### 9.1 Hierarquia da Organização TokenizAi
 
@@ -375,4 +377,4 @@ Todos os 267 agentes possuem documentação individual completa, específica de 
 
 ---
 
-*Documento atualizado para refletir a estrutura operacional real da TokenizAi implantada no Paperclip. Hermes plugin requer fix crítico antes de integração completa.*
+*Registro histórico da estrutura anterior à migração. O modelo Paperclip foi substituído pela integração direta com Hermes; este documento não descreve o runtime atual.*
