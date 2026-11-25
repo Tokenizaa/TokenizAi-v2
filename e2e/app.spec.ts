@@ -1,34 +1,23 @@
 import { test, expect, type Page } from '@playwright/test';
-import * as fs from 'fs';
-
-const ADMIN_EMAIL = 'nettoscorp@gmail.com';
-const ADMIN_PASSWORD = 'Hermes@964212$';
-
 async function login(page: Page) {
-  // Ler variaveis de ambiente do Supabase (necessarias para login via REST API)
-  const env = fs.readFileSync('.env', 'utf8');
-  const getEnv = (k: string) => {
-    const m = env.match(new RegExp('^' + k + '=(.*)$', 'm'));
-    if (!m) return null;
-    let v = m[1].trim();
-    // Remove aspas ao redor do valor, se houver
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-      v = v.slice(1, -1);
-    }
-    return v;
-  };
-  const supabaseUrl = getEnv('VITE_SUPABASE_URL');
-  const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
+  // Credenciais são injetadas pelo ambiente local ou pelos GitHub Actions Secrets.
+  // Nenhuma senha de usuário pode ser versionada neste arquivo.
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const adminEmail = process.env.E2E_ADMIN_EMAIL;
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY nao encontrada no .env');
+  if (!supabaseUrl || !supabaseAnonKey || !adminEmail || !adminPassword) {
+    throw new Error(
+      'Configure VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, E2E_ADMIN_EMAIL e E2E_ADMIN_PASSWORD no ambiente E2E.',
+    );
   }
 
   // Login direto via REST API do Supabase (evita problemas de sessao persistente
   // no navegador: localStorage/cookies/cache que bloqueiam o signInWithPassword).
   // O endpoint /auth/v1/token requer o header apikey.
   const resp = await page.request.post(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-    data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
+    data: { email: adminEmail, password: adminPassword },
     headers: {
       apikey: supabaseAnonKey,
       'Content-Type': 'application/json',
