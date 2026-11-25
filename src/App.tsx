@@ -329,7 +329,15 @@ function AppContent({
               ? 'Ver Operação Hermes'
               : 'Novo Projeto'
         }
-        onPrimaryAction={() => {}}
+        onPrimaryAction={() => {
+          if (loc.pathname.startsWith('/ia-')) {
+            handleNavigate('biblioteca');
+          } else if (loc.pathname === '/biblioteca') {
+            handleNavigate('ia-visao');
+          } else {
+            setCreateProjectModal(true);
+          }
+        }}
         isDark={isDark}
         onToggleTheme={onToggleTheme}
         user={user}
