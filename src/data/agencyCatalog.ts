@@ -125,7 +125,7 @@ export const AGENCY_SPECIALISTS: AgencySpecialist[] = [
     limitations: [
       'Não executa testes intrusivos em ambientes de clientes sem autorização formal.',
     ],
-    recommendedAdapter: 'paperclip_runner',
+    recommendedAdapter: 'hermes_cli',
   },
   {
     id: 'spec-dad-01',
@@ -230,7 +230,7 @@ export const AGENCY_SPECIALISTS: AgencySpecialist[] = [
     limitations: [
       'Decisões de rollback com perda de dados exigem autorização executiva.',
     ],
-    recommendedAdapter: 'paperclip_runner',
+    recommendedAdapter: 'hermes_cli',
   },
   {
     id: 'spec-fin-01',
