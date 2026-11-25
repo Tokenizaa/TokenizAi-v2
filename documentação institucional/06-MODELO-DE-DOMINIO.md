@@ -4,7 +4,7 @@
 
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Baseado em conceitos de domínio estudados em referências históricas + Agency Agents + TokenizAi  
+> **Status:** **PROPOSTA HISTÓRICA — NÃO É SCHEMA IMPLEMENTADO** — Baseado em conceitos de domínio estudados em referências históricas + Agency Agents + TokenizAi  
 > **Responsável:** Hermes
 
 ---
