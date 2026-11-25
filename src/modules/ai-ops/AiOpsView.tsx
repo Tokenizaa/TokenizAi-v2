@@ -82,7 +82,6 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
     runs = [],
     projects = [],
     goals = [],
-    approvals = [],
     routines = [],
     costs = null,
   } = bundle;
@@ -357,11 +356,11 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   onClick={() => onNavigate('ia-aprovacoes')}
                   className="nc-card rounded-2xl p-5 text-left cursor-pointer"
                 >
-                  <div className="text-xs text-ink-subtle">Aprovações Pendentes</div>
+                  <div className="text-xs text-ink-subtle">Aprovações (não integradas)</div>
                   <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-highlight">
-                    {approvals.filter((a) => a.status === 'pending').length}
+                    —
                   </div>
-                  <div className="text-xs text-ink-muted mt-1">{routines.length} rotina(s) ativa(s)</div>
+                  <div className="text-xs text-ink-muted mt-1">Governança de aprovação indisponível na API Hermes</div>
                 </button>
 
                 <button
