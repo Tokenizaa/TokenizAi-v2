@@ -34,7 +34,7 @@
 |---------------|-------------------|-----------|
 | `name` + `description` | Cargo + responsabilidade | Mapear divisões → departamentos NettosCorp |
 | `color` + `emoji` + `vibe` | Visual identity system | Estender com `department`, `clearance_level`, `reports_to` |
-| `tools` (Claude Code list) | Tool access policy | Mapear para Paperclip tool gateway + Hermes tools |
+| `tools` (Claude Code list) | Tool access policy | Mapear para ferramentas autorizadas do Hermes + políticas próprias do TokenizAi |
 | `Instructions Reference` → `ai/agents/*.md` | Conhecimento institucional persistido | Substituir por `nettoscorp://knowledge/<topic>` URIs |
 
 **Recomendação:** Estender frontmatter com campos NettosCorp:
@@ -45,7 +45,7 @@ nettoscorp:
   clearance: "internal"               # public|internal|restricted|classified
   reports_to: "engineering-lead"      # Slug do supervisor
   authority: "execute|approve|escalate"  # Decision limits
-  knowledge_domains: ["rust", "tauri", "paperclip"]  # Para routing
+  knowledge_domains: ["rust", "tauri", "hermes"]  # Para routing
 ```
 
 ### 2.2 Governança (B)
@@ -55,17 +55,17 @@ nettoscorp:
 | Gap Atual | Solução NettosCorp |
 |-----------|-------------------|
 | Sem RBAC | Implementar `clearance` + `authority` no frontmatter + runtime enforcement |
-| Sem approval gates | Integrar com Paperclip `approval` system (já existe) |
+| Sem approval gates | Implementar aprovação no BFF TokenizAi com persistência Supabase |
 | Sem hierarquia operacional | `reports_to` + org chart validation no spawn |
 | Sem protocolos institucionais | `protocol_pack` URI no agente → carrega regras NettosCorp |
-| Sem comunicação inter-agente | Hermes `delegate` + Paperclip `issue`/`case` handoff |
+| Sem comunicação inter-agente | Hermes `delegate` + handoff persistido no domínio próprio do TokenizAi |
 
 **Arquitetura proposta:**
 ```
 NettosCorp Governance Layer
 ├── Agent Registry (extended frontmatter)
 ├── Authority Engine (validates spawn/delegate per clearance)
-├── Approval Gateway (Paperclip integration)
+├── Approval Gateway (TokenizAi BFF + Supabase)
 ├── Protocol Loader (loads nettoscorp://protocol/*)
 └── Audit Log (all agent actions)
 ```
@@ -175,7 +175,7 @@ NettosCorp Memory Layer
 |------------|---------|--------------|------------|
 | **Fix Hermes Plugin** | 2-3 semanas | Upstream `build-hermes-plugin.py` ou reimpl Rust | 🔴 Crítico |
 | **Extend Frontmatter (NettosCorp fields)** | 1 semana | Schema validation + migration | 🔴 Crítico |
-| **Authority Engine (Paperclip)** | 3-4 semanas | Paperclip RBAC + approval system | 🔴 Crítico |
+| **Authority Engine (TokenizAi + Supabase)** | 3-4 semanas | RBAC próprio + políticas de aprovação no BFF | 🔴 Crítico |
 | **Catalog Sync Pipeline** | 2 semanas | GitHub webhook / polling + diff | 🟡 Alto |
 | **Paperclip Agent Hire Integration** | 2 semanas | Tauri IPC ou REST bridge | 🟡 Alto |
 | **Memory Layer (Supabase)** | 4-6 semanas | Vector DB + RAG pipeline | 🟡 Alto |
@@ -199,7 +199,7 @@ msitarzewski/agency-agents (upstream canonical)
            ▼
 Tokenizaa/agency-agents-app (fork with Tauri app)
     │
-    ├── src-tauri/ (Rust app) ──────────────► NettosCorp Paperclip bridge
+    ├── src-tauri/ (Rust app) ──────────────► TokenizAi/Hermes bridge
     └── src/ (Svelte UI) ──────────────────► NettosCorp Admin UI (optional)
 ```
 
@@ -215,7 +215,7 @@ Tokenizaa/agency-agents-app (fork with Tauri app)
 | Hermes plugin ref | `tools.json:17`, `convert.sh:791-794` |
 | Agents orchestrator | `src-tauri/resources/corpus-baseline/specialized/agents-orchestrator.md` |
 | Install/reconcile | `src-tauri/src/install/mod.rs` |
-| Paperclip context | Memória Hermes (sessão anterior) |
+| Paperclip context | Memória Hermes persistida conforme política do TokenizAi |
 | NettosCorp context | Memória Hermes (sessão anterior) |
 
 ---
