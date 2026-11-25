@@ -4,7 +4,7 @@
 
 > **Versão:** 1.0  
 > **Data:** 21 de novembro de 2026  
-> **Status:** **PROPOSTA** — Aguarda aprovação do Founder  
+> **Status:** **PROPOSTA HISTÓRICA — REBASELINE NECESSÁRIA; NÃO EXECUTAR SEM REVISÃO**  
 > **Base:** TokenizAi + Agency Agents + Hermes (sem dependência Paperclip)  
 > **Responsável:** Hermes
 
