@@ -455,7 +455,6 @@ export default function App() {
           runs: hRes.value.runs || [],
           projects: hRes.value.projects || [],
           goals: hRes.value.goals || [],
-          approvals: hRes.value.approvals || [],
           routines: hRes.value.routines || [],
           costs: hRes.value.costs || null,
           activity: hRes.value.activity || [],
