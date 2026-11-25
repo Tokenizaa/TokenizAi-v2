@@ -32,7 +32,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
       const res = await hermesService.listChats();
       setChats(res.chats || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar as conversas do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar as conversas do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     return (
       <EmptyState
         title="Nenhuma conversa encontrada"
-        description="A instância Paperclip conectada não retornou conversas de agentes para esta empresa."
+        description="A instância Hermes conectada não retornou conversas de agentes para esta empresa."
       />
     );
   }
@@ -75,7 +75,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
     <div className="flex flex-col h-full gap-0">
       <PageHeader
         title="Chat com agentes (Agent Chat)"
-        subtitle="Conversas reais por agente diretamente na estrutura oficial do Paperclip. O envio de mensagem direta depende de sessão de agente autenticada na instância operacional."
+        subtitle="Conversas reais por agente diretamente na estrutura oficial do Hermes. O envio de mensagem direta depende de sessão de agente autenticada na instância operacional."
         actions={
           <button
             type="button"
@@ -141,7 +141,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
               </div>
               <div className="text-base font-semibold text-ink">Selecione uma conversa</div>
               <p className="text-xs text-ink-muted mt-1">
-                Escolha um agente à esquerda para ver seus dados operacionais no Paperclip.
+                Escolha um agente à esquerda para ver seus dados operacionais no Hermes.
               </p>
             </div>
           ) : (
@@ -157,7 +157,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                         {agent?.title || agent?.name || 'Agente'}
                       </div>
                       <div className="text-[10px] text-ink-subtle">
-                        {agent?.role || 'Agente Paperclip'} ·
+                        {agent?.role || 'Agente Hermes'} ·
                         {agent?.status || '—'}
                       </div>
                     </div>
@@ -192,7 +192,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                       </div>
                       <div className="text-sm text-ink">{selectedRef}</div>
                       <div className="text-xs text-ink-muted">
-                        Fonte: endpoint de conversas da instância Paperclip
+                        Fonte: endpoint de conversas da instância Hermes
                       </div>
                     </div>
                     <div className="nc-card rounded-2xl p-4 space-y-3">
@@ -233,11 +233,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onNavigate, onToast }) => {
                         Envio de mensagem direta indisponível neste modo
                       </div>
                       <div className="text-xs text-amber-800 dark:text-amber-300 mt-1">
-                        O endpoint de envio de chat do Paperclip exige uma sessão de agente autenticada
+                        O endpoint de envio de chat do Hermes exige uma sessão de agente autenticada
                         (task run), que não está disponível no modo local_trusted sem bearer. As
                         conversas acima são reais e vêm da instância conectada. Para trocar mensagens
                         vinculadas a uma tarefa, use os comentários na página de detalhe da tarefa
-                        (endpoint de comentários da issue relacionada).
+                        (endpoint de comentários da tarefa relacionada).
                       </div>
                     </div>
                   </div>
