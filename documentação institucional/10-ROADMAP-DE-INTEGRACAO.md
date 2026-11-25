@@ -106,11 +106,11 @@
 
 | Task | Descrição |
 |------|-----------|
-| Extrair `@paperclipai/plugin-sdk` → `@nettoscorp/plugin-sdk` v2.0.0 | Independente, sem dependências Paperclip |
+| Criar SDK de plugins próprio (somente se necessário) → `@nettoscorp/plugin-sdk` | Implementação independente; não importar nem extrair SDK Paperclip |
 | Atualizar sandbox providers para novo SDK | 9 providers |
 | Documentação + examples + testing harness | Docs + CI |
 
-**Critério de Aceite:** SDK v2.0.0 publicado, plugin example compila e carrega no runtime próprio, sem Paperclip.
+**Critério de Aceite:** SDK próprio (se aprovado) compila e carrega sem dependências externas do Paperclip.
 
 ### Fase 4: Frontend Shared (2 semanas)
 
