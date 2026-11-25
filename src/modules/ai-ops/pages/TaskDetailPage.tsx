@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ListTodo, MessageSquare, Activity, Paperclip as AttachmentIcon, RefreshCw, Share2 } from 'lucide-react';
+import { RefreshCw, Share2 } from 'lucide-react';
 import { PageHeader, SegmentedTabs, StatusText } from '../../../components/ui/Primitives';
 import {
   SectionTitle,
