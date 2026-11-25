@@ -19,9 +19,9 @@
 | **2** | **Adapters & MCP** | 1-2 sem | Publicar 12 adapters ACP + MCP server/gateway | 14 packages publicados |
 | **3** | **Plugin SDK v2** | 1 sem | `@nettoscorp/plugin-sdk` independente + sandbox providers | Package + docs + examples |
 | **4** | **Frontend Shared** | 2 sem | `@nettoscorp/ui-primitives`, `@nettoscorp/frontend-query` | Design system + query client |
-| **5** | **Module Architecture** | 3-4 sem | Federation no server + UI (TokenizAi + Paperclip) | Arquitetura modular funcional |
-| **6** | **Catalog Sync Pipeline** | 2 sem | GitHub webhook → Paperclip Skill Catalog (AA upstream) | Sync automático + diff UI |
-| **7** | **Agent Hire Flow** | 2 sem | AA corpus → Paperclip agent provisioning | `hireAgent(slug)` funcional |
+| **5** | **Module Architecture** | 3-4 sem | Federation no server + UI (proposta histórica; integração Paperclip cancelada) | Arquitetura modular funcional |
+| **6** | **Catalog Sync Pipeline** | 2 sem | GitHub webhook → catálogo próprio TokenizAi (Paperclip cancelado) | Sync automático + diff UI |
+| **7** | **Agent Hire Flow** | 2 sem | AA corpus → TokenizAi + Hermes (Paperclip cancelado) | `hireAgent(slug)` funcional |
 | **8** | **Governance Layer** | 3-4 sem | Authority Engine, Policy Engine, Audit Trail | RBAC + ABAC + Immutable audit |
 | **9** | **Memory & Knowledge Layer** | 4-6 sem | Vector DB + RAG + Knowledge Graph + Attribution | Long-term memory funcional |
 | **10** | **NEXUS Adoption** | 3-4 sem | Playbooks, Runbooks, Workflow Engine | Pipeline Dev-QA automatizado |
@@ -79,7 +79,7 @@
 
 | Package | Conteúdo | Esforço | Dependências |
 |---------|----------|---------|--------------|
-| `@nettoscorp/shared` | Types, Zod schemas, constants, utils (de `@paperclipai/shared` + Agency Agents frontmatter) | 1 sem | — |
+| `@nettoscorp/shared` | Types, Zod schemas, constants, utils (de schemas próprios + Agency Agents frontmatter (sem dependência Paperclip)) | 1 sem | — |
 | `@nettoscorp/db` | Drizzle schema base (companies, users, roles, memberships, agents, skills) + migrations + embedded PG | 1-2 sem | `@nettoscorp/shared` |
 | `@nettoscorp/auth` | Better Auth config base + RBAC helpers + clearance/authority types | 1 sem | `@nettoscorp/shared`, `@nettoscorp/db` |
 
@@ -89,18 +89,18 @@
 
 | Package | Conteúdo | Esforço |
 |---------|----------|---------|
-| `@nettoscorp/adapter-claude` | Wrapper do `@paperclipai/adapter-claude-local` | 0.5 sem |
-| `@nettoscorp/adapter-codex` | Wrapper do `@paperclipai/adapter-codex-local` | 0.5 sem |
-| `@nettoscorp/adapter-cursor` | Wrapper do `@paperclipai/adapter-cursor-local` + cloud | 0.5 sem |
-| `@nettoscorp/adapter-gemini` | Wrapper do `@paperclipai/adapter-gemini-local` | 0.5 sem |
-| `@nettoscorp/adapter-copilot` | Wrapper do `@paperclipai/adapter-copilot` | 0.5 sem |
-| `@nettoscorp/adapter-qwen` | Wrapper do `@paperclipai/adapter-qwen` | 0.5 sem |
-| `@nettoscorp/adapter-opencode` | Wrapper do `@paperclipai/adapter-opencode-local` | 0.5 sem |
+| `@nettoscorp/adapter-claude` | Adaptador independente para Claude (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-codex` | Adaptador independente para Codex (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-cursor` | Adaptador independente para Cursor (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-gemini` | Adaptador independente para Gemini (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-copilot` | Adaptador independente para Copilot (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-qwen` | Adaptador independente para Qwen (não usar pacote Paperclip) | 0.5 sem |
+| `@nettoscorp/adapter-opencode` | Adaptador independente para OpenCode (não usar pacote Paperclip) | 0.5 sem |
 | `@nettoscorp/adapter-hermes` | **Novo** — Hermes Gateway adapter (fix Fase 0) | 1 sem |
-| `@nettoscorp/mcp-server` | Wrapper do `@paperclipai/mcp-server` | 0.5 sem |
+| `@nettoscorp/mcp-server` | Servidor MCP independente (não usar pacote Paperclip) | 0.5 sem |
 | `@nettoscorp/mcp-gateway` | Wrapper do `public-mcp` HTTP/SSE | 0.5 sem |
 
-**Critério de Aceite:** 12 adapters + 2 MCP packages publicados, integração testada com Paperclip server.
+**Critério de Aceite:** 12 adapters + 2 MCP packages publicados, integração Hermes validada; Paperclip server fora do escopo e cancelado.
 
 ### Fase 3: Plugin SDK v2 (1 semana)
 
@@ -110,7 +110,7 @@
 | Atualizar sandbox providers para novo SDK | 9 providers |
 | Documentação + examples + testing harness | Docs + CI |
 
-**Critério de Aceite:** SDK v2.0.0 publicado, plugin example compila e carrega no Paperclip server.
+**Critério de Aceite:** SDK v2.0.0 publicado, plugin example compila e carrega no runtime próprio, sem Paperclip.
 
 ### Fase 4: Frontend Shared (2 semanas)
 
@@ -130,9 +130,9 @@
 | **Module Federation (UI)** | Lazy-loaded feature modules: `agents`, `skills`, `chat`, `workspaces`, `admin` |
 | **Module Contract** | Interface `Module { routes, services, ui, migrations, config }` |
 | **Shared Kernel** | `@nettoscorp/*` packages como dependencies de módulos |
-| **Migration Strategy** | Paperclip `server/src/services/*` → módulos; TokenizAi `server.ts` → módulo `gateway` |
+| **Migration Strategy** | serviços TokenizAi atuais → módulos próprios; BFF TokenizAi permanece independente |
 
-**Critério de Aceite:** Paperclip server carrega módulos dinamicamente; TokenizAi roda como módulo `gateway`.
+**Critério de Aceite:** TokenizAi carrega seus módulos sem depender de Paperclip.
 
 ### Fase 6: Catalog Sync Pipeline (2 semanas)
 
@@ -157,7 +157,7 @@
 | **Tool Provisioning** | Auto-install em tools configuradas (ACP/MCP) |
 | **Budget Binding** | Auto-vincula `budget_policy` baseado no role |
 
-**Critério de Aceite:** `hireAgent("engineering-senior-developer")` cria agent no Paperclip com config completa, instala em 3+ tools.
+**Critério de Aceite:** `hireAgent("engineering-senior-developer")` provisiona agente via integração Hermes e catálogo próprio, instala em 3+ tools.
 
 ### Fase 8: Governance Layer (3-4 semanas)
 
@@ -189,7 +189,7 @@
 |------------|-----------|
 | **Playbook Engine** | YAML/JSON playbooks reutilizáveis (não hardcoded) |
 | **Runbook Engine** | Incident response runbooks com automação |
-| **Workflow Engine** | Routines + triggers + SLA + escalation (Paperclip + NEXUS) |
+| **Workflow Engine** | Routines + triggers + SLA + escalation (Hermes + NEXUS) |
 | **Metrics Dashboard** | First-pass rate, avg retries, cycle time, QA coverage |
 
 **Critério de Aceite:** Pipeline Dev-QA automatizado com playbooks reutilizáveis, métricas visíveis.
@@ -226,8 +226,8 @@
 | **M1: Foundation Ready** | Semana 4 | 3 foundation packages publicados |
 | **M2: Adapters + MCP Ready** | Semana 6 | 14 packages publicados |
 | **M3: Plugin SDK + Frontend Ready** | Semana 8 | 5 packages publicados |
-| **M4: Module Architecture** | Semana 12 | Paperclip + TokenizAi modular |
-| **M5: Catalog Sync + Agent Hire** | Semana 16 | AA → Paperclip flow funcional |
+| **M4: Module Architecture** | Semana 12 | TokenizAi modular sem Paperclip |
+| **M5: Catalog Sync + Agent Hire** | Semana 16 | Agency Agents → TokenizAi/Hermes funcional |
 | **M6: Governance + Memory** | Semana 24 | Authority Engine + RAG operacional |
 | **M7: NEXUS + CI/CD** | Semana 30 | Pipeline automatizado + métricas |
 | **M8: Go-Live** | Semana 32-34 | Homologação assinada, Go-Live |
@@ -239,7 +239,7 @@
 | Risco | Impacto | Mitigação |
 |-------|---------|-----------|
 | Upstream `msitarzewski/agency-agents` muda API | Fase 0, 6 atrasam | Pin commit `8ae6164`; sync controlado |
-| Paperclip React 19/Express 5 breaking | Fase 5, 11 atrasam | Lock versions; test matrix |
+| Compatibilidade do legado Paperclip (não aplicável ao runtime atual) | Fase 5, 11 atrasam | Lock versions; test matrix |
 | OPA/Rego learning curve | Fase 8 atrasa | Treinamento + templates prontos |
 | Vector DB performance | Fase 9 escala | pgvector primeiro; migra se necessário |
 | Founder availability para approvals | Todas fases | Agendar reviews semanais fixos |
