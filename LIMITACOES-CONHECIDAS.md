@@ -1,8 +1,8 @@
 # LIMITAÇÕES CONHECIDAS — TokenizAi V2
 
 > **Status:** Documentadas como limitação conhecida (não bugs)  
-> **Origem:** Endpoints não expostos pela versão conectada do Hermes/Paperclip  
-> **Resolução:** Aguardar exposição de novos endpoints na API Hermes
+> **Origem:** Limitações verificadas no contrato da integração Hermes atual  
+> **Resolução:** Evoluir os contratos Hermes ou a camada BFF do TokenizAi. Paperclip não é runtime operacional e não deve ser iniciado, consultado ou usado como workaround.
 
 ---
 
@@ -11,8 +11,8 @@
 **Página:** `/ia-conectores` (ConnectorsPage)  
 **Sintoma:** Página exibe "Não exposto pela versão conectada"  
 **Causa Raiz:** Hermes API não expõe endpoint de listagem/gerenciamento de conectores  
-**Evidência:** `ConnectorsPage.tsx:25-27` - "A versão conectada do Paperclip não expõe um endpoint dedicado de listagem de conectores na matriz de capacidades"  
-**Workaround:** Gerenciar conectores diretamente no Paperclip (porta 3100)  
+**Evidência:** `ConnectorsPage.tsx` — a integração Hermes atual não oferece endpoint/capacidade de listagem de conectores.  
+**Workaround:** Não há workaround operacional disponível. Não utilizar Paperclip nem acessar a antiga porta 3100.  
 **Endpoint Necessário:** `GET /api/hermes/connectors` + capacidades `connectors:read`, `connectors:manage`
 
 ---
@@ -40,8 +40,8 @@
 
 **Página:** `/ia-chat` (ChatPage)  
 **Sintoma:** "Envio de mensagem direta indisponível neste modo"  
-**Causa Raiz:** Envio de mensagem requer sessão de agente autenticada (task run) no Paperclip, não apenas referência de agente  
-**Arquitetura:** Paperclip separa "chat de agente" (requer run ativa) de "chat de usuário"  
+**Causa Raiz:** Envio de mensagem requer sessão de agente autenticada (task run) no Hermes, não apenas referência de agente  
+**Arquitetura:** O contrato atual do Hermes exige uma execução autenticada para envio de mensagem direta  
 **Endpoint Atual:** `POST /api/hermes/chats/:agentRef` - funciona apenas para agentes com run ativa  
 **Endpoint Necessário:** Suporte a chat assíncrono ou criação de run sob demanda
 
@@ -89,7 +89,7 @@
 
 ---
 
-## LIM-007 — Métricas Paperclip no ExecutiveView
+## LIM-007 — Métricas operacionais no ExecutiveView
 
 **Componente:** `ExecutiveView` (`/executivo`)  
 **Sintoma:** Métricas mostram "—" quando Hermes desconectado ou bundle null  
@@ -123,6 +123,8 @@
 4. **Adicionar testes de integração** quando endpoints forem expostos
 
 ---
+
+> **Regra operacional:** Nenhuma limitação deste documento autoriza iniciar Paperclip. Toda integração de agentes é exclusivamente via Hermes.
 
 **Última Atualização:** 2026-11-25  
 **Versão Hermes Conectada:** Verificar em `/admin` > Integração Hermes  
