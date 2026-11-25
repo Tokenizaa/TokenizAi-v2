@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw } from 'lucide-react';
 import { PageHeader, StatusText } from '../../../components/ui/Primitives';
+import { EmptyState, ErrorState, LoadingState } from '../../ai-workforce/components';
 import { hermesService } from '../../ai-workforce/services/hermes';
 import type { HermesApprovalDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
@@ -20,33 +21,34 @@ const statusTone = (st: string) => {
 
 export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
   approvalId: approvalIdProp,
-  onNavigate,
   onToast,
 }) => {
   const { approvalId: approvalIdFromUrl } = useParams<{ approvalId: string }>();
   const approvalId = approvalIdProp ?? approvalIdFromUrl ?? '';
-  if (!approvalId) {
-    return null;
-  }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [approval, setApproval] = useState<HermesApprovalDto | null>(null);
 
   const load = useCallback(async () => {
+    if (!approvalId) {
+      setError('O identificador da aprovação não foi informado.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const res = await hermesService.getApproval(approvalId);
-      setApproval(res.approval || null);
+      const result = await hermesService.listApprovals();
+      setApproval(result.approvals.find((item) => item.id === approvalId) || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar os detalhes da aprovação.');
+      setError(err instanceof Error ? err.message : 'Falha ao consultar as aprovações do Hermes.');
     } finally {
       setLoading(false);
     }
   }, [approvalId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const decide = async (action: 'approve' | 'reject' | 'revision', note?: string) => {
@@ -55,22 +57,29 @@ export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
       if (action === 'approve') await hermesService.approveApproval(approvalId, note);
       else if (action === 'reject') await hermesService.rejectApproval(approvalId, note);
       else await hermesService.requestApprovalRevision(approvalId, note || '');
-      onToast(`Aprovação ${action === 'revision' ? 'enviada para revisão' : action === 'approve' ? 'aprovada' : 'rejeitada'} no fluxo de governança da TokenizAi.`);
+      onToast(action === 'revision' ? 'Revisão solicitada.' : action === 'approve' ? 'Aprovação registrada.' : 'Rejeição registrada.');
       await load();
     } catch (err) {
       onToast(err instanceof Error ? err.message : 'O serviço de governança recusou a decisão.');
     }
   };
 
-  if (loading) return <div className="py-10 text-center"><div className="w-8 h-8 border-3 border-line-strong border-t-accent rounded-full animate-spin mx-auto mb-3" /><p className="text-xs text-ink-subtle">Carregando aprovação…</p></div>;
-  if (error) return <div className="py-10 text-center text-xs text-ink-muted">{error}</div>;
-  if (!approval) return <div className="py-10 text-center text-xs text-ink-subtle">Aprovação não encontrada.</div>;
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState title="Não foi possível carregar a aprovação" message={error} onRetry={load} />;
+  if (!approval) {
+    return (
+      <EmptyState
+        title="Aprovação não encontrada"
+        description="A consulta real de aprovações do Hermes não retornou um registro com este identificador."
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title={approval.title}
-        subtitle={`${approval.status} · ${approval.createdAt || '—'}`}
+        subtitle={`${approval.status} · ${approval.createdAt || 'Data não informada'}`}
         actions={
           <button
             type="button"
@@ -98,7 +107,7 @@ export const ApprovalDetailPage: React.FC<ApprovalDetailPageProps> = ({
             <div className="font-mono text-ink">{approval.requestedByName || '—'}</div>
           </div>
           <div>
-            <div className="text-ink-subtle">Issue relacionada</div>
+            <div className="text-ink-subtle">Tarefa relacionada</div>
             <div className="font-mono text-ink">{approval.issueId || '—'}</div>
           </div>
           {approval.decidedAt && (
