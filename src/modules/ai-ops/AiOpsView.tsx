@@ -77,14 +77,14 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
 }) => {
   const {
     status,
-    agents = bundle.bots,
-    issues,
-    runs,
-    projects,
-    goals,
-    approvals,
-    routines,
-    costs,
+    agents = bundle.bots || [],
+    tasks = [],
+    runs = [],
+    projects = [],
+    goals = [],
+    approvals = [],
+    routines = [],
+    costs = null,
   } = bundle;
   const hermesStatus = status as unknown as HermesIntegrationStatus;
   const isConnected =
@@ -345,10 +345,10 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 >
                   <div className="text-xs text-ink-subtle">Tarefas abertas</div>
                   <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-ink">
-                    {issues.filter((i) => i.status !== 'done' && i.status !== 'cancelled').length}
+                    {tasks.filter((i) => i.status !== 'done' && i.status !== 'cancelled').length}
                   </div>
                   <div className="text-xs text-highlight mt-1">
-                    {issues.filter((i) => i.status === 'blocked').length} bloqueada(s)
+                    {tasks.filter((i) => i.status === 'blocked').length} bloqueada(s)
                   </div>
                 </button>
 
@@ -522,7 +522,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
           agents={agents}
           initialAgentRef={chatInitialRef}
           onNavigate={onNavigate}
-          onOpenIssue={openTaskDetail}
+          
           onToast={onToast}
         />
       )}
@@ -837,7 +837,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 {
                   id: 'tarefas',
                   label: 'Tarefas',
-                  count: issues.filter((i) => i.assigneeAgentId === agentDetail.id).length,
+                  count: tasks.filter((i) => i.assigneeAgentId === agentDetail.id).length,
                 },
                 {
                   id: 'execucoes',
@@ -936,7 +936,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
 
             {agentDrawerTab === 'tarefas' && (
               <div className="space-y-2.5">
-                {issues
+                {tasks
                   .filter((i) => i.assigneeAgentId === agentDetail.id)
                   .map((i) => (
                     <button
@@ -947,14 +947,14 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                     >
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-mono text-accent dark:text-cyan-300">
-                          {i.identifier || i.id}
+                          {i.id}
                         </span>
                         <StatusText label={i.status} tone="attention" />
                       </div>
                       <div className="text-sm font-medium text-ink">{i.title}</div>
                     </button>
                   ))}
-                {issues.filter((i) => i.assigneeAgentId === agentDetail.id).length === 0 && (
+                {tasks.filter((i) => i.assigneeAgentId === agentDetail.id).length === 0 && (
                   <div className="p-4 text-xs text-ink-subtle text-center border border-line rounded-xl">
                     Nenhuma tarefa atribuída a este agente.
                   </div>
