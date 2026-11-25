@@ -89,10 +89,12 @@ export function formatDateTimeBR(isoDate?: string | null): string {
 }
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const token = await getAccessToken();
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });

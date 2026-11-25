@@ -433,28 +433,43 @@ export default function App() {
   }, []);
 
   const loadAll = useCallback(async () => {
+    setError(null);
+    setLoading(true);
     try {
-      setError(null);
-      const [entRes, hRes] = await Promise.all([
+      // Cada domínio é carregado de forma independente: a falha de um
+      // não impede o carregamento do outro (resiliência parcial).
+      const [entRes, hRes] = await Promise.allSettled([
         PlatformApi.getEnterpriseState(),
         HermesApi.getOverviewBundle(),
       ]);
-      setEnterprise(entRes.data);
-      setHermes({
-        status: hRes.status,
-        bots: hRes.bots || [],
-        tasks: hRes.tasks || [],
-        issues: hRes.issues || [],
-        runs: hRes.runs || [],
-        projects: hRes.projects || [],
-        goals: hRes.goals || [],
-        approvals: hRes.approvals || [],
-        routines: hRes.routines || [],
-        costs: hRes.costs || null,
-        activity: hRes.activity || [],
-        chats: hRes.chats || [],
-        skills: hRes.skills || [],
-      });
+
+      if (entRes.status === 'fulfilled' && entRes.value.data) {
+        setEnterprise(entRes.value.data);
+      }
+
+      if (hRes.status === 'fulfilled' && hRes.value) {
+        setHermes({
+          status: hRes.value.status,
+          bots: hRes.value.bots || [],
+          tasks: hRes.value.tasks || [],
+          issues: hRes.value.issues || [],
+          runs: hRes.value.runs || [],
+          projects: hRes.value.projects || [],
+          goals: hRes.value.goals || [],
+          approvals: hRes.value.approvals || [],
+          routines: hRes.value.routines || [],
+          costs: hRes.value.costs || null,
+          activity: hRes.value.activity || [],
+          chats: hRes.value.chats || [],
+          skills: hRes.value.skills || [],
+        });
+      }
+
+      // Reporta erro apenas quando ambos falharam (nenhum dado disponível).
+      if (entRes.status === 'rejected' && hRes.status === 'rejected') {
+        const first = entRes.reason instanceof Error ? entRes.reason : new Error(String(entRes.reason));
+        setError(first.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar dados da plataforma.');
     } finally {

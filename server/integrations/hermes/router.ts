@@ -130,7 +130,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/refresh', requireAdminAuth, async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const status = await hermesGateway.refresh();
       invalidateDomainCache('overview');
       invalidateDomainCache('agents');
@@ -238,7 +238,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/runs', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { agentId, agentName, taskId, triggerSource, costCents, currency } = req.body as {
         agentId?: string;
         agentName?: string;
@@ -293,8 +293,8 @@ export function createHermesRouter(
     res.json({ ok: true, token: result.token, expiresAt: result.expiresAt, actor: result.actor });
   });
 
-  router.post('/api/hermes/admin/auth/logout', (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  router.post('/api/hermes/admin/auth/logout', async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     logoutAdminToken(req.headers.authorization);
     if (actor.authenticated) {
       appendAuditFn(actor.name, 'Encerrou sessão autenticada', 'Hermes Adapter', 'Segurança');
@@ -335,7 +335,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/agents/hire', requirePermission('admin:integration'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { slug, name, division, model } = req.body as {
         slug?: string;
         name?: string;
@@ -374,7 +374,7 @@ export function createHermesRouter(
   router.patch('/api/hermes/agents/:agentId', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { title, role, status } = req.body as { title?: string; role?: string; status?: string };
       appendAuditFn(actor.name, `Atualizou Bot Hermes ${agentId}`, agentId, 'Hermes Adapter');
       createActivity({
@@ -394,7 +394,7 @@ export function createHermesRouter(
   router.delete('/api/hermes/agents/:agentId', requireAdminAuth, async (req: Request, res: Response) => {
     try {
       const agentId = validateResourceId(req.params.agentId, 'agente');
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       if (req.headers['x-confirm-destructive'] !== 'TERMINATE_AGENT') {
         res.status(400).json({ error: 'Confirmação explícita obrigatória para encerramento do agente.' });
         return;
@@ -445,7 +445,7 @@ export function createHermesRouter(
   router.post('/api/hermes/chats/:agentRef', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
       const agentRef = validateResourceId(req.params.agentRef, 'conversa com agente');
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { body } = req.body as { body?: string };
       if (!body || typeof body !== 'string' || !body.trim()) {
         res.status(400).json({ error: 'Mensagem não pode ser vazia.' });
@@ -514,7 +514,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/tasks', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const payload = pickFields(req.body, TASK_ALLOWED_FIELDS);
       const title = typeof payload.title === 'string' ? payload.title : '';
       const desc = typeof payload.description === 'string' ? payload.description : '';
@@ -562,7 +562,7 @@ export function createHermesRouter(
   router.patch('/api/hermes/tasks/:taskId', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
       const taskId = validateResourceId(req.params.taskId, 'tarefa');
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const payload = pickFields(req.body, TASK_ALLOWED_FIELDS);
       invalidateDomainCache('tasks');
       invalidateDomainCache('overview');
@@ -601,7 +601,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/routines', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const payload = pickFields(req.body, ROUTINE_ALLOWED_FIELDS);
       if (typeof payload.name !== 'string' && typeof payload.title !== 'string') {
         res.status(400).json({ error: 'Nome da rotina é obrigatório.' });
@@ -651,7 +651,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/approvals', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { title, description, reason } = req.body as { title?: string; description?: string; reason?: string };
       if (!title || !title.trim()) {
         res.status(400).json({ error: 'Título da aprovação é obrigatório.' });
@@ -734,7 +734,7 @@ export function createHermesRouter(
 
   router.post('/api/hermes/activity', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
     try {
-      const { actor } = resolveWorkspaceActor(req);
+      const { actor } = await resolveWorkspaceActor(req);
       const { action, targetType, targetId, targetName, summary } = req.body as {
         action?: string;
         targetType?: string;

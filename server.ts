@@ -233,8 +233,8 @@ export function buildApp(): express.Application {
     }
   });
 
-  app.post('/api/auth/session', (req: Request, res: Response) => {
-    const { actor, invalidToken } = resolveWorkspaceActor(req);
+  app.post('/api/auth/session', async (req: Request, res: Response) => {
+    const { actor, invalidToken } = await resolveWorkspaceActor(req);
     if (invalidToken) {
       res.status(401).json({ error: 'Token de sessão inválido ou expirado.', code: 'INVALID_SESSION_TOKEN' });
       return;
@@ -305,8 +305,8 @@ export function buildApp(): express.Application {
     }
   });
 
-  app.post('/api/auth/logout', (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/auth/logout', async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     logoutAdminToken(req.headers.authorization);
     if (actor.authenticated) {
       appendAudit(actor.name, 'Encerrou sessão operacional', actor.email, 'Segurança');
@@ -321,8 +321,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, data: enterpriseState });
   });
 
-  app.post('/api/enterprise/projects', requirePermission('enterprise:projects:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/projects', requirePermission('enterprise:projects:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { name, clientId, ownerName, endDate, budgetBRL, stage } = req.body as {
       name?: string;
       clientId?: string;
@@ -377,8 +377,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, project: newProject });
   });
 
-  app.patch('/api/enterprise/projects/:id', requirePermission('enterprise:projects:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/projects/:id', requirePermission('enterprise:projects:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { id } = req.params;
     const project = enterpriseState.projects.find((p) => p.id === id);
     if (!project) {
@@ -461,8 +461,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, project });
   });
 
-  app.post('/api/enterprise/clients', requirePermission('enterprise:crm:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/clients', requirePermission('enterprise:crm:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { name, segment, cnpj, primaryContact, email, phone, accountManager } = req.body as {
       name?: string;
       segment?: string;
@@ -506,8 +506,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, client: newClient });
   });
 
-  app.patch('/api/enterprise/clients/:id', requirePermission('enterprise:crm:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/clients/:id', requirePermission('enterprise:crm:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const client = enterpriseState.clients.find((c) => c.id === req.params.id);
     if (!client) {
       res.status(404).json({ error: 'Cliente não encontrado.' });
@@ -550,8 +550,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, client });
   });
 
-  app.post('/api/enterprise/clients/:id/interactions', requirePermission('enterprise:crm:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/clients/:id/interactions', requirePermission('enterprise:crm:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const client = enterpriseState.clients.find((c) => c.id === req.params.id);
     if (!client) {
       res.status(404).json({ error: 'Cliente não encontrado.' });
@@ -577,8 +577,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, client });
   });
 
-  app.patch('/api/enterprise/users/:id', requirePermission('admin:integration'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/users/:id', requirePermission('admin:integration'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const user = enterpriseState.users.find((u) => u.id === req.params.id);
     if (!user) {
       res.status(404).json({ error: 'Usuário não encontrado.' });
@@ -595,8 +595,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, user });
   });
 
-  app.post('/api/enterprise/reset', requirePermission('admin:integration'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/reset', requirePermission('admin:integration'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     if (req.headers['x-confirm-destructive'] !== 'RESET_ENTERPRISE_DATA') {
       res.status(400).json({ error: 'Confirmação explícita obrigatória para restaurar a base empresarial.' });
       return;
@@ -607,8 +607,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true });
   });
 
-  app.post('/api/enterprise/deals', requirePermission('enterprise:crm:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/deals', requirePermission('enterprise:crm:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { title, clientId, valueBRL, stage, nextStep } = req.body as {
       title?: string;
       clientId?: string;
@@ -651,8 +651,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, deal });
   });
 
-  app.patch('/api/enterprise/deals/:id', requirePermission('enterprise:crm:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/deals/:id', requirePermission('enterprise:crm:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const deal = enterpriseState.deals.find((d) => d.id === req.params.id);
     if (!deal) {
       res.status(404).json({ error: 'Oportunidade não encontrada.' });
@@ -713,8 +713,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, deal });
   });
 
-  app.post('/api/enterprise/products', requirePermission('enterprise:finance:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/products', requirePermission('enterprise:finance:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { name, category, billingModel, priceBRL, marginPercent, description } = req.body as {
       name?: string;
       category?: ProductCategory;
@@ -745,8 +745,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, product: prod });
   });
 
-  app.patch('/api/enterprise/products/:id', requirePermission('enterprise:finance:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/products/:id', requirePermission('enterprise:finance:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const prod = enterpriseState.products.find((p) => p.id === req.params.id);
     if (!prod) {
       res.status(404).json({ error: 'Produto ou serviço não encontrado.' });
@@ -775,8 +775,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, product: prod });
   });
 
-  app.patch('/api/enterprise/subscriptions/:id', requirePermission('enterprise:finance:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/subscriptions/:id', requirePermission('enterprise:finance:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const sub = enterpriseState.subscriptions.find((s) => s.id === req.params.id);
     if (!sub) {
       res.status(404).json({ error: 'Assinatura não encontrada.' });
@@ -820,8 +820,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, subscription: sub });
   });
 
-  app.post('/api/enterprise/finance', requirePermission('enterprise:finance:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/finance', requirePermission('enterprise:finance:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { description, counterparty, category, type, status, amountBRL, date } = req.body as Partial<FinanceEntry>;
     if (!description || !description.trim() || !amountBRL || Number(amountBRL) <= 0) {
       res.status(400).json({ error: 'Descrição e valor positivo são obrigatórios.' });
@@ -843,8 +843,8 @@ export function buildApp(): express.Application {
     res.status(201).json({ ok: true, entry });
   });
 
-  app.patch('/api/enterprise/finance/:id', requirePermission('enterprise:finance:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/finance/:id', requirePermission('enterprise:finance:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const entry = enterpriseState.financeEntries.find((f) => f.id === req.params.id);
     if (!entry) {
       res.status(404).json({ error: 'Lançamento financeiro não encontrado.' });
@@ -864,8 +864,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, entry });
   });
 
-  app.patch('/api/enterprise/automations/:id', requirePermission('hermes:ops:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.patch('/api/enterprise/automations/:id', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const flow = enterpriseState.automations.find((a) => a.id === req.params.id);
     if (!flow) {
       res.status(404).json({ error: 'Fluxo de automação não encontrado.' });
@@ -879,8 +879,8 @@ export function buildApp(): express.Application {
     res.json({ ok: true, automation: flow });
   });
 
-  app.post('/api/enterprise/automations', requirePermission('hermes:ops:write'), (req: Request, res: Response) => {
-    const { actor } = resolveWorkspaceActor(req);
+  app.post('/api/enterprise/automations', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    const { actor } = await resolveWorkspaceActor(req);
     const { name, trigger, action, targetAgentName } = req.body as {
       name?: string;
       trigger?: string;

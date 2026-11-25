@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
+import { validateSupabaseToken, isPlatformAdmin } from '../../supabase.ts';
 
 export type TokenizAiRole =
   | 'Diretoria Executiva'
@@ -124,29 +125,54 @@ export function verifyAdminBearerToken(authHeader?: string): boolean {
   return Boolean(record && record.isAdmin && record.role === 'Diretoria Executiva');
 }
 
-export function resolveWorkspaceActor(req: Request): {
+export async function resolveWorkspaceActor(req: Request): Promise<{
   actor: WorkspaceActor;
   invalidToken: boolean;
-} {
+}> {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice('Bearer '.length).trim();
+    
+    // 1. Tenta validar como token workspace (formato HMAC interno)
     const record = verifyBearerToken(authHeader);
-    if (!record) {
+    if (record) {
       return {
-        actor: { ...UNAUTHENTICATED_ACTOR, role: 'Auditor', name: 'Não autenticado' },
-        invalidToken: true,
+        actor: {
+          userId: record.userId,
+          name: record.name,
+          email: record.email,
+          role: record.role,
+          isAdmin: record.isAdmin,
+          authenticated: true,
+        },
+        invalidToken: false,
       };
     }
+
+    // 2. Falha no token workspace: tenta validar como Supabase JWT
+    try {
+      const sbUser = await validateSupabaseToken(token);
+      const admin = isPlatformAdmin(sbUser);
+      const role: TokenizAiRole = admin ? 'Diretoria Executiva' : 'Auditor';
+      return {
+        actor: {
+          userId: sbUser.id,
+          name: sbUser.email?.split('@')[0] || 'Usuário',
+          email: sbUser.email ?? '',
+          role,
+          isAdmin: admin,
+          authenticated: true,
+        },
+        invalidToken: false,
+      };
+    } catch {
+      // Não é um Supabase JWT válido
+    }
+
+    // 3. Nem workspace token nem Supabase JWT válido
     return {
-      actor: {
-        userId: record.userId,
-        name: record.name,
-        email: record.email,
-        role: record.role,
-        isAdmin: record.isAdmin,
-        authenticated: true,
-      },
-      invalidToken: false,
+      actor: { ...UNAUTHENTICATED_ACTOR, role: 'Auditor', name: 'Não autenticado' },
+      invalidToken: true,
     };
   }
 
@@ -181,8 +207,8 @@ export function hasPermission(actor: WorkspaceActor, permission: PlatformPermiss
 }
 
 export function requirePermission(permission: PlatformPermission) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    const { actor, invalidToken } = resolveWorkspaceActor(req);
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const { actor, invalidToken } = await resolveWorkspaceActor(req);
     if (invalidToken) {
       res.status(401).json({
         error: 'Token de sessão inválido ou expirado.',
@@ -352,8 +378,8 @@ export function logoutAdminToken(authHeader?: string): void {
   activeTokens.delete(token);
 }
 
-export function requireAdminAuth(req: Request, res: Response, next: NextFunction): void {
-  const { actor, invalidToken } = resolveWorkspaceActor(req);
+export async function requireAdminAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { actor, invalidToken } = await resolveWorkspaceActor(req);
   if (invalidToken || !actor.authenticated || !actor.isAdmin || actor.role !== 'Diretoria Executiva') {
     res.status(actor.authenticated && !invalidToken ? 403 : 401).json({
       error: actor.authenticated && !invalidToken

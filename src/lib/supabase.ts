@@ -21,16 +21,36 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
   },
 });
 
+/** Aguarda a sessao do Supabase ficar disponivel no cliente (com retry). */
+async function waitForSession(maxAttempts = 3, delayMs = 500): Promise<{ data: { session: { access_token: string } | null } } | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const result = await supabase.auth.getSession();
+      if (result.data?.session?.access_token) return result;
+    } catch {}
+    if (i < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
+}
+
 /**
  * Retorna o access token da sessao atual, se houver.
+ * Tenta aguardar a sessao ficar disponivel (race condition apos onAuthStateChange).
+ * Em ambiente de navegador (E2E), faz fallback para token injetado via
+ * window.__e2eAccessToken quando a sessao do cliente nao esta pronta.
  */
 export async function getAccessToken(): Promise<string | null> {
   try {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? null;
-  } catch {
-    return null;
+    const result = await waitForSession();
+    if (result?.data.session?.access_token) return result.data.session.access_token;
+  } catch {}
+  // Fallback E2E: token injetado diretamente no window pelo teste.
+  if (typeof window !== 'undefined') {
+    return (window as any).__e2eAccessToken ?? null;
   }
+  return null;
 }
 
 export interface AppUser {
