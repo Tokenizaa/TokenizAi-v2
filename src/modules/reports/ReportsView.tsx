@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, SegmentedTabs, StatusText } from '../../components/ui/Primitives';
 import { formatBRL, formatCents, formatDateBR } from '../../services/api';
-import type { EnterpriseDataState, HermesBotDto, HermesOverviewBundle } from '../../types/platform';
+import type { EnterpriseDataState, HermesOverviewBundle } from '../../types/platform';
 
 interface ReportsViewProps {
   enterprise: EnterpriseDataState;
@@ -108,9 +108,9 @@ const REPORT_DEFS: ReportDefinition[] = [
   {
     id: 'ia-orcamento',
     category: 'Operações de IA',
-    title: 'Consumo Paperclip & Eficiência por Agente',
+    title: 'Consumo Hermes & Eficiência por Agente',
     purpose: 'Utilização de teto mensal, tarefas ativas e custo por agente ou diretoria.',
-    period: 'Mensal Paperclip',
+    period: 'Dados reportados pelo runtime',
     updatedAt: 'Sincronizado agora',
     icon: Bot,
   },
@@ -153,10 +153,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     const activeMrr = enterprise.subscriptions
       .filter((s) => s.status === 'Ativa' || s.status === 'Em Teste')
       .reduce((a, s) => a + s.mrrBRL, 0);
-    const isPcConnected = hermes.status.configured && hermes.status.connected;
-    const pcCurrency = hermes.costs?.currency || 'USD';
-    const pcSpentCents = hermes.costs?.totalCostCents ?? 0;
-    const pcBudgetCents = hermes.costs?.budgetMonthlyCents ?? 0;
+    const isHermesConnected = hermes.status.configured && hermes.status.connected;
+    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
+    const runtimeSpentCents = hermes.costs?.totalCostCents;
 
     return {
       'exec-consolidado': { kpiLabel: 'Receita Mensal Equiv.', kpiValue: formatBRL(productMonthly) },
@@ -166,10 +165,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       'cli-receita': { kpiLabel: 'LTV Consolidado', kpiValue: formatBRL(totalLtv) },
       'sub-recorrencia': { kpiLabel: 'MRR Adimplente', kpiValue: formatBRL(activeMrr) },
       'ia-orcamento': {
-        kpiLabel: isPcConnected ? `Uso Paperclip (${pcCurrency})` : 'Status Paperclip',
-        kpiValue: isPcConnected
-          ? `${pcBudgetCents > 0 ? Math.round((pcSpentCents / pcBudgetCents) * 100) : 0}% (${formatCents(pcSpentCents, pcCurrency)})`
-          : hermes.status.connectionLabel,
+        kpiLabel: isHermesConnected ? `Consumo Hermes (${runtimeCurrency})` : 'Status do runtime',
+        kpiValue: !isHermesConnected
+          ? hermes.status.connectionLabel
+          : runtimeSpentCents == null
+            ? 'Não reportado'
+            : `${formatCents(runtimeSpentCents, runtimeCurrency)}${hermes.costs?.budgetMonthlyCents != null && hermes.costs.budgetMonthlyCents > 0 ? ` · ${Math.round((runtimeSpentCents / hermes.costs.budgetMonthlyCents) * 100)}% do orçamento` : ''}`, 
       },
     } satisfies Record<ReportId, { kpiLabel: string; kpiValue: string }>;
   }, [enterprise, hermes]);
@@ -328,28 +329,24 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       };
     }
 
-    // ia-orcamento (values stored in native cents from Paperclip without fictional BRL conversion)
-    const roles = ['Todos', ...Array.from(new Set(hermes.bots.map((a: HermesBotDto) => a.role)))];
-    const rows = hermes.bots
-      .filter((a: HermesBotDto) => subFilter === 'Todos' || a.role === subFilter)
-      .map((a: HermesBotDto) => {
-        const spentCents = 0;
-        const budgetCents = 0;
-        return {
-          id: a.id,
-          label: a.title || a.name,
-          meta: `${a.role || ''}`,
-          primary: metricMode === 'principal' ? budgetCents : spentCents,
-          secondary: spentCents,
-          extra: a.status,
-        };
-      });
-    const pcCurr = hermes.costs?.currency || 'USD';
+    // Os custos por agente vêm exclusivamente do resumo de custos informado pelo runtime Hermes.
+    const agentCosts = hermes.costs?.byAgent || [];
+    const agentNames = ['Todos', ...Array.from(new Set(agentCosts.map((item) => item.agentName)))];
+    const rows = agentCosts
+      .filter((item) => subFilter === 'Todos' || item.agentName === subFilter)
+      .map((item) => ({
+        id: item.agentId,
+        label: item.agentName,
+        meta: item.model || 'Modelo não informado',
+        primary: item.costCents,
+        secondary: item.runsCount ?? 0,
+        extra: `${item.runsCount ?? '—'} execução(ões)`,
+      }));
+    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
     return {
-      filterOptions: roles,
-      primaryLabel:
-        metricMode === 'principal' ? `Teto Mensal (${pcCurr})` : `Consumo Realizado (${pcCurr})`,
-      secondaryLabel: `Gasto Atual (${pcCurr})`,
+      filterOptions: agentNames,
+      primaryLabel: `Consumo apurado (${runtimeCurrency})`,
+      secondaryLabel: 'Execuções',
       rows,
     };
   }, [activeReportId, enterprise, hermes, periodParam, subFilter, metricMode]);
@@ -402,10 +399,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
   // DETAIL REPORT VIEW
   if (activeDef && reportData) {
-    const isPaperclipReport = activeDef.id === 'ia-orcamento';
-    const pcCurrency = hermes.costs?.currency || 'USD';
+    const isHermesCostReport = activeDef.id === 'ia-orcamento';
+    const runtimeCurrency = hermes.costs?.currency || 'moeda não informada';
     const formatMetricValue = (val: number) =>
-      isPaperclipReport ? formatCents(val, pcCurrency) : formatBRL(val);
+      isHermesCostReport ? formatCents(val, runtimeCurrency) : formatBRL(val);
+    const formatSecondaryValue = (val: number) =>
+      isHermesCostReport ? new Intl.NumberFormat('pt-BR').format(val) : formatMetricValue(val);
     const maxVal = Math.max(...reportData.rows.map((r) => Math.max(r.primary, r.secondary)), 1);
     const totalPrimary = reportData.rows.reduce((a, r) => a + r.primary, 0);
     const totalSecondary = reportData.rows.reduce((a, r) => a + r.secondary, 0);
@@ -494,7 +493,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <div>
               <div className="text-[11px] text-ink-subtle">{reportData.secondaryLabel}</div>
               <div className="font-display text-lg font-semibold font-mono tabular-nums text-highlight">
-                {formatMetricValue(totalSecondary)}
+                {formatSecondaryValue(totalSecondary)}
               </div>
             </div>
           </div>
@@ -530,7 +529,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <span className="font-medium text-ink truncate">{row.label}</span>
                   <span className="font-mono tabular-nums text-ink-muted shrink-0">
                     {formatMetricValue(row.primary)}{' '}
-                    <span className="text-ink-subtle">/ {formatMetricValue(row.secondary)}</span>
+                    <span className="text-ink-subtle">/ {formatSecondaryValue(row.secondary)}</span>
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -551,8 +550,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             ))}
             {reportData.rows.length === 0 && (
               <div className="py-6 text-center text-xs text-ink-subtle">
-                {isPaperclipReport
-                  ? `Nenhum dado operacional do Paperclip disponível (${hermes.status.connectionLabel}).`
+                {isHermesCostReport
+                  ? `Nenhum custo por agente foi reportado pelo runtime Hermes (${hermes.status.connectionLabel}).`
                   : 'Nenhum registro encontrado para os filtros selecionados.'}
               </div>
             )}
@@ -581,7 +580,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                       {formatMetricValue(row.primary)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono text-xs tabular-nums text-ink-muted">
-                      {formatMetricValue(row.secondary)}
+                      {formatSecondaryValue(row.secondary)}
                     </td>
                     <td className="py-3.5 px-6 text-right text-xs text-ink-subtle whitespace-nowrap">
                       {row.extra}
