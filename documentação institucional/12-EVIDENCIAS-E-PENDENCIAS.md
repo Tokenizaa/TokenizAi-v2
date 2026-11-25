@@ -142,9 +142,9 @@
 | **TokenizAi** | D1 data persistence real | ❓ Não Verificado | Precisa deploy preview + test |
 | **TokenizAi** | Cloudflare KV/D1/R2 bindings | ❓ Não Verificado | Precisa `wrangler.toml` bindings reais |
 | **TokenizAi** | Deploy Cloudflare Pages real | ❓ Não Verificado | Precisa `pnpm run build` + `wrangler pages deploy` |
-| **Paperclip** | Embedded PG behavior under load | ❓ Não Verificado | Precisa load test |
-| **Paperclip** | RLS Policies enforcement real | ❓ Não Verificado | Precisa `ENABLE_RLS_ENFORCEMENT=true` + test |
-| **Paperclip** | MCP Gateway OAuth flow real | ❓ Não Verificado | Precisa client credentials test |
+| **Paperclip (histórico, CANCELADO)** | Embedded PG behavior under load | Não aplicável ao TokenizAi V2 | Não testar nem iniciar Paperclip |
+| **Paperclip (histórico, CANCELADO)** | RLS Policies enforcement real | Não aplicável ao TokenizAi V2 | Não configurar nem testar Paperclip |
+| **Paperclip (histórico, CANCELADO)** | MCP Gateway OAuth flow real | Não aplicável ao TokenizAi V2 | Não configurar nem testar Paperclip |
 | **Agency Agents** | Hermes plugin build + behavior | ⚠️ Implementado, não homologado | Builder, contract check e behavior test estão presentes; CI não iniciou steps |
 | **Agency Agents** | NEXUS playbooks/runbooks completeness | ⚠️ Conteúdo presente, validação pendente | 7 playbooks e 4 runbooks; workflow de consistência sem execução homologada |
 | **Agency Agents** | Hermes plugin end-to-end | ❓ Não Verificado | Precisa plugin instalado no Hermes + test |
@@ -265,7 +265,7 @@ A Fase 1 autorizada para execução. Objetivo: definir a arquitetura conceitual 
 - Separação entre identidade humana, identidade de agentes, instâncias operacionais e configurações de execução
 - Modelo de autorização, hierarquia e autoridade institucional
 - Contratos entre frontend, backend, banco de dados e integrações
-- Relações com Paperclip e Agency Agents, sem confundir ferramentas externas com domínios proprietários do TokenizAi
+- Relações históricas com Paperclip e integração atual com Agency Agents/Hermes, sem dependência operacional do Paperclip
 - Matriz de dependências entre domínios
 - ADRs e decisões arquiteturais necessárias
 
