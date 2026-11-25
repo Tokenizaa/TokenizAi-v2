@@ -89,6 +89,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, unit-tests]
     timeout-minutes: 30
+    env:
+      TOKENIZAI_SESSION_SECRET: 'ci-only-session-secret-not-for-production'
+      TOKENIZAI_ADMIN_PASSCODE: 'ci-only-admin-passcode-not-for-production'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -112,10 +115,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Start production server
-        run: |
-          TOKENIZAI_SESSION_SECRET=${{ secrets.TOKENIZAI_SESSION_SECRET }} \
-          TOKENIZAI_ADMIN_PASSCODE=${{ secrets.TOKENIZAI_ADMIN_PASSCODE }} \
-          npm run start &
+        run: npm run start &
         env:
           PORT: 3000
 
