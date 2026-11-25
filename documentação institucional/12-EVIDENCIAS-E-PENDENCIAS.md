@@ -1,4 +1,6 @@
-# Evidências e Pendências — Auditoria Técnica NettosCorp Enterprise
+# Evidências e Pendências
+
+> **REGISTRO HISTÓRICO SUPERADO — 25/11/2026:** Este inventário contém evidências e pendências da arquitetura anterior à migração direta para Hermes. Qualquer item que solicite configurar `PAPERCLIP_ENDPOINT`, `PAPERCLIP_API_KEY`, Paperclip Skill Catalog, Agent Hire no Paperclip ou testar serviços Paperclip está CANCELADO. Paperclip não é dependência operacional do TokenizAi V2. As evidências antigas são preservadas apenas para rastreabilidade. — Auditoria Técnica NettosCorp Enterprise
 
 > **Versão:** 2.2  \
 > **Data:** 22 de novembro de 2026  \
@@ -87,7 +89,7 @@
 | **P0-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Platform Engineer | Fase 1 |
 | **P0-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Platform Engineer | Fase 1 |
 | **P0-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Platform Engineer | Fase 1 |
-| **P0-04** | **Paperclip não configurado** | TokenizAi | `enterpriseSeed.ts:771-778`, `server.ts:57` | Configurar `PAPERCLIP_ENDPOINT` + `PAPERCLIP_API_KEY` | Platform Engineer | Fase 0 |
+| **P0-04 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | **Não configurar** — substituído por integração direta com Hermes | Encerrado pela migração | Migração Hermes |
 | **P0-05** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760`, `server.ts:56` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Platform Engineer | Fase 0 |
 | **P0-06** | Validação funcional do Hermes Plugin | Agency Agents | Builder, contract check e behavior test presentes; execução ainda não homologada | CI gera o plugin e executa os dois testes; exigir execução verde | Platform | Fase 0 |
 | **P0-07** | Validação dos scripts do Agency Agents | Agency Agents | `lib.sh`, `install.sh`, `lint-agents.sh`, `check-divisions.sh` e `check-tools.sh` presentes no fork | Executar workflows de validação e corrigir falhas reais | Platform | Fase 0 |
@@ -110,7 +112,7 @@
 | **P1-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Fase 1 |
 | **P1-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Fase 1 |
 | **P1-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Fase 1 |
-| **P1-05** | **Paperclip não configurado** | TokenizAi | `enterpriseSeed.ts:771-778` | Configurar `PAPERCLIP_ENDPOINT` + `PAPERCLIP_API_KEY` | Fase 0 |
+| **P1-05 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | Não configurar; integração substituída por Hermes | Migração Hermes |
 | **P1-06** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Fase 0 |
 | **P1-07** | Adapters + MCP packages (14) | — | — | Publicar 12 adapters ACP + MCP server/gateway | Fase 2 |
 | **P1-08** | Catalog Sync Pipeline (AA → Paperclip) | — | — | GitHub webhook → Paperclip Skill Catalog | Fase 6 |
@@ -269,9 +271,9 @@ A Fase 1 autorizada para execução. Objetivo: definir a arquitetura conceitual 
 
 ---
 
-### 11. Estrutura Implanta — TokenizAi no Paperclip (Evidência Real)
+### 11. Estrutura Histórica — TokenizAi no Paperclip (NÃO OPERACIONAL)
 
-A estrutura abaixo foi **verificada no banco de dados do Paperclip** e está em operação.
+A estrutura abaixo foi **verificada historicamente** no banco de dados do Paperclip antes da migração. Não está comprovada como estado atual e não deve ser reativada.
 
 | Métrica | Valor | Evidência |
 |---------|-------|-----------|
