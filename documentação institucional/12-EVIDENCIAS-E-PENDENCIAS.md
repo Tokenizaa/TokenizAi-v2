@@ -89,7 +89,7 @@
 | **P0-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Platform Engineer | Fase 1 |
 | **P0-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Platform Engineer | Fase 1 |
 | **P0-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Platform Engineer | Fase 1 |
-| **P0-04 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | **Não configurar** — substituído por integração direta com Hermes | Encerrado pela migração | Migração Hermes |
+| **P0-15 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | **Não configurar** — substituído por integração direta com Hermes | Encerrado pela migração | Migração Hermes |
 | **P0-05** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760`, `server.ts:56` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Platform Engineer | Fase 0 |
 | **P0-06** | Validação funcional do Hermes Plugin | Agency Agents | Builder, contract check e behavior test presentes; execução ainda não homologada | CI gera o plugin e executa os dois testes; exigir execução verde | Platform | Fase 0 |
 | **P0-07** | Validação dos scripts do Agency Agents | Agency Agents | `lib.sh`, `install.sh`, `lint-agents.sh`, `check-divisions.sh` e `check-tools.sh` presentes no fork | Executar workflows de validação e corrigir falhas reais | Platform | Fase 0 |
@@ -112,7 +112,7 @@
 | **P1-02** | **Nenhuma autenticação backend** | TokenizAi | `server.ts` — sem auth middleware | Implementar Better Auth + JWT + sessions | Fase 1 |
 | **P1-03** | **Nenhuma persistência real** | TokenizAi | `localStorage` + `/tmp` apenas | PostgreSQL + Drizzle + migrations + RLS | Fase 1 |
 | **P1-04** | **Nenhum auth providers** | TokenizAi | `server.ts` — sem auth middleware | Better Auth + GitHub/Google/Slack OAuth | Fase 1 |
-| **P1-05 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | Não configurar; integração substituída por Hermes | Migração Hermes |
+| **P1-10 (CANCELADO)** | Integração Paperclip não configurada | TokenizAi | Evidência histórica pré-migração | Não configurar; integração substituída por Hermes | Migração Hermes |
 | **P1-06** | **Supabase não configurado** | TokenizAi | `enterpriseSeed.ts:751-760` | Configurar `SUPABASE_URL` + `SUPABASE_ANON_KEY` | Fase 0 |
 | **P1-07** | Adapters + MCP packages (14) | — | — | Publicar 12 adapters ACP + MCP server/gateway | Fase 2 |
 | **P1-08 (SUBSTITUÍDO)** | Catalog Sync Pipeline (Agency Agents → TokenizAi/Hermes) | — | — | Definir e validar integração pelo catálogo próprio e Hermes | Roadmap Hermes |
