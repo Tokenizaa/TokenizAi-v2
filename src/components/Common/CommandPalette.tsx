@@ -3,7 +3,7 @@ import { ArrowRight, Search, X } from 'lucide-react';
 import { AGENCY_SPECIALISTS } from '../../data/agencyCatalog';
 import type {
   EnterpriseDataState,
-  HermesIssueDto,
+  HermesTaskDto,
   HermesProjectDto,
   HermesBotDto,
   NavSectionId,
@@ -15,7 +15,7 @@ interface CommandPaletteProps {
   onClose: () => void;
   enterprise: EnterpriseDataState;
   bots: HermesBotDto[];
-  issues?: HermesIssueDto[];
+  tasks?: HermesTaskDto[];
   projects?: HermesProjectDto[];
   onNavigate: (section: NavSectionId) => void;
 }
@@ -32,7 +32,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onClose,
   enterprise,
   bots,
-  issues = [],
+  tasks = [],
   projects = [],
   onNavigate,
 }) => {
@@ -114,15 +114,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         }
       }
 
-      for (const iss of issues) {
+      for (const task of tasks) {
         if (
-          iss.title.toLowerCase().includes(q) ||
-          iss.id.toLowerCase().includes(q)
+          task.title.toLowerCase().includes(q) ||
+          task.id.toLowerCase().includes(q)
         ) {
           list.push({
-            id: `h-iss-${iss.id}`,
-            label: iss.title,
-            context: `Tarefa Hermes · ${iss.status}`,
+            id: `h-task-${task.id}`,
+            label: task.title,
+            context: `Tarefa Hermes · ${task.status}`,
             section: 'ia-tarefas',
           });
         }
@@ -152,7 +152,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
 
     return list.slice(0, 12);
-  }, [query, enterprise, bots, issues, projects]);
+  }, [query, enterprise, bots, tasks, projects]);
 
   if (!open) return null;
 
