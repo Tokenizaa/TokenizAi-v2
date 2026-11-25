@@ -42,7 +42,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
       const res = await hermesService.listRuns(filters);
       setRuns(res.runs || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar as execuções do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar as execuções do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Execuções &amp; heartbeats (Paperclip)"
+        title="Execuções &amp; heartbeats (Hermes)"
         subtitle="Monitoramento de execuções, logs, eventos, tokens, modelos e cancelamentos suportados."
         actions={
           <button
@@ -126,7 +126,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
             <div className="min-w-0 flex-1">
               <div className="font-medium text-ink">{run.agentName || 'Agente'} · {run.model || '—'}</div>
               <div className="text-[11px] text-ink-muted">
-                Issue: {run.issueIdentifier || '—'} · Provider: {run.provider || '—'}
+                Tarefa: {run.taskId || '—'} · Provedor: {run.provider || '—'}
               </div>
               <div className="mt-1 text-[11px] text-ink-muted">
                 {run.startedAt || '—'} → {run.finishedAt || '—'} ·
@@ -136,7 +136,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
             <div className="flex items-center gap-2">
               <StatusBadge status={run.status} size="sm" />
               <span className="font-mono text-[11px] text-ink-muted">
-                {run.costCents != null ? (run.costCents / 100).toFixed(4) : '0'} USD
+                {run.costCents != null ? (run.costCents / 100).toFixed(4) + ' ' + (run.currency || 'USD') : 'Não apurado'}
               </span>
             </div>
           </div>
@@ -149,7 +149,7 @@ export const RunsPage: React.FC<RunsPageProps> = ({ onNavigate, onToast }) => {
       </div>
 
       <p className="text-xs text-ink-subtle">
-        Os dados de execução vêm do histórico de runs do Paperclip. Cancelamento de execução ativa está disponível quando suportado pela instância.
+        Os dados de execução vêm do histórico de runs do Hermes. Cancelamento de execução ativa está disponível quando suportado pela instância.
       </p>
     </div>
   );
