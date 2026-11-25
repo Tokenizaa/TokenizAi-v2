@@ -29,7 +29,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
       const res = await hermesService.listRoutines();
       setRoutines(res.routines || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar as rotinas do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar as rotinas do Hermes.');
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
   const runManually = async (routineId: string) => {
     try {
       await hermesService.runRoutine(routineId);
-      onToast('Rotina executada manualmente no Paperclip.');
+      onToast('Rotina executada manualmente no Hermes.');
       await load();
     } catch (err) {
       onToast(err instanceof Error ? err.message : 'Falha ao executar a rotina.');
@@ -55,7 +55,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
     return (
       <EmptyState
         title="Nenhuma rotina encontrada"
-        description="A instância Paperclip conectada não possui rotinas agendadas para esta empresa."
+        description="A instância Hermes conectada não possui rotinas agendadas para esta empresa."
       />
     );
   }
@@ -63,8 +63,8 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Rotinas e automações (Paperclip)"
-        subtitle="Rotinas agendadas, gatilhos webhook/api e histórico de execuções diretamente no Paperclip."
+        title="Rotinas e automações (Hermes)"
+        subtitle="Rotinas agendadas, gatilhos webhook/api e histórico de execuções diretamente no Hermes."
         actions={
           <button
             type="button"
@@ -107,7 +107,7 @@ export const RoutinesPage: React.FC<RoutinesPageProps> = ({ onNavigate, onToast 
       </div>
 
       <p className="text-xs text-ink-subtle">
-        A execução manual de rotinas é uma operação de escrita sobre o Paperclip. Gatilhos e agendamentos são gerenciados diretamente na instância operacional.
+        A execução manual de rotinas é uma operação de escrita sobre o Hermes. Gatilhos e agendamentos são gerenciados diretamente na instância operacional.
       </p>
     </div>
   );
