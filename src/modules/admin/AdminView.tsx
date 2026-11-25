@@ -62,7 +62,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         actor: authRes.actor,
       });
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Falha ao consultar diagnóstico Paperclip.');
+      onToast(err instanceof Error ? err.message : 'Falha ao consultar diagnóstico Hermes.');
     }
   }, [onToast]);
 
@@ -288,7 +288,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
             )}
 
-            {/* Admin session gate for protected POST /api/integrations/paperclip/refresh */}
+            {/* Admin session gate for protected POST /api/integrations/hermes/refresh */}
             <div className="p-4 rounded-xl bg-surface-subtle/60 border border-line flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="text-xs font-semibold text-ink inline-flex items-center gap-1.5 flex-wrap">
@@ -351,12 +351,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="p-4 rounded-xl bg-surface-subtle/50 border border-line text-xs text-ink-muted space-y-2">
               <div className="font-semibold text-ink">Variáveis de ambiente esperadas no servidor backend:</div>
               <div className="font-mono text-[11px] space-y-1 text-ink-subtle">
-                <div>PAPERCLIP_API_URL=https://sua-instancia-paperclip</div>
-                <div>PAPERCLIP_API_KEY=*** (token Bearer no servidor)</div>
-                <div>PAPERCLIP_COMPANY_ID=id-da-organizacao</div>
-                <div>PAPERCLIP_REQUEST_TIMEOUT_MS=30000</div>
-                <div>PAPERCLIP_SYNC_INTERVAL_MS=15000</div>
-                <div>TOKENIZAI_ADMIN_PASSCODE=*** (opcional para proteger refresh administrativo)</div>
+                <div>TOKENIZAI_ADMIN_PASSCODE=*** (proteção de ações administrativas)</div>
+                <div>TOKENIZAI_SESSION_SECRET=*** (assinatura de sessões)</div>
+                <div>TOKENIZAI_BOOTSTRAP_TOKEN=*** (bootstrap administrativo)</div>
               </div>
             </div>
           </section>
@@ -366,10 +363,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="font-display text-sm font-semibold text-ink">
-                    Matriz de Capacidades OpenAPI & Permissões ({status.availableCapabilities.length})
+                    Matriz de Capacidades Hermes & Permissões ({status.availableCapabilities.length})
                   </h3>
                   <p className="text-xs text-ink-subtle mt-0.5">
-                    Detectado dinamicamente via GET /api/openapi.json e respostas reais da API Paperclip.
+                    Detectado pelo adaptador Hermes a partir dos recursos e permissões efetivamente disponíveis.
                   </p>
                 </div>
               </div>
@@ -462,7 +459,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div>
               <div className="text-sm font-semibold text-ink">Ambiente Demonstrativo</div>
               <div className="text-xs text-ink-subtle mt-0.5">
-                Restaure projetos, clientes, lançamentos e fila Paperclip ao estado padrão da sessão.
+                Restaure projetos, clientes, lançamentos e fila operacional de agentes ao estado demonstrativo da sessão.
                 {!adminAuth.authenticated && ' Requer sessão administrativa ativa em Integrações.'}
               </div>
             </div>
