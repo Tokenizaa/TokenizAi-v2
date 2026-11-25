@@ -179,15 +179,15 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       await onRefresh();
       onToast(
         action === 'wakeup'
-          ? 'Wakeup enviado ao Paperclip.'
+          ? 'Solicitação de ativação enviada ao runtime Hermes.'
           : action === 'heartbeat'
-            ? 'Heartbeat acionado no Paperclip.'
+            ? 'Heartbeat solicitado ao runtime Hermes.'
             : action === 'pause'
-              ? 'Agente pausado no Paperclip.'
-              : 'Agente retomado no Paperclip.',
+              ? 'Agente pausado no runtime Hermes.'
+              : 'Agente retomado no runtime Hermes.',
       );
     } catch (err) {
-      onToast(err instanceof Error ? err.message : 'Paperclip recusou a operação no agente.');
+      onToast(err instanceof Error ? err.message : 'O runtime Hermes recusou a operação no agente.');
     } finally {
       setBusyId(null);
     }
@@ -231,7 +231,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 {node.title || node.name}
               </div>
               <div className="text-xs text-ink-subtle truncate">
-                {node.role || 'Membro Paperclip'}
+                {node.role || 'Agente da organização'}
                 {node.team ? ` · ${node.team}` : ''}
                 {node.children ? node.children.length > 0 ? ` · ${node.children.length} subordinado(s)` : '' : ''}
               </div>
@@ -246,24 +246,24 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
 
   const headers: Record<AiOpsSectionId, { title: string; subtitle: string }> = {
     'ia-visao': {
-      title: 'Operações de IA — Visão Geral (Paperclip)',
+      title: 'Operações de IA — Visão Geral',
       subtitle:
-        'Estado da integração oficial, capacidades OpenAPI detectadas, projetos operacionais e metas do Paperclip.',
+        'Estado do runtime Hermes, capacidades disponíveis, projetos operacionais e metas vinculadas à operação de agentes.',
     },
     'ia-chat': {
       title: 'Chat com Agentes (Agent Chat)',
       subtitle:
-        'Conversas reais por agente e usuário diretamente na estrutura oficial do Paperclip.',
+        'Conversas por agente e usuário executadas pelo runtime Hermes.',
     },
     'ia-agentes': {
-      title: 'Agentes Operacionais (Paperclip)',
+      title: 'Agentes Operacionais',
       subtitle:
-        'Instâncias ativas governadas pelo Paperclip, separadas do catálogo consultivo Agency Agents.',
+        'Agentes vinculados à organização TokenizAi e executados pelo runtime Hermes, separados do catálogo de especialistas Agency Agents.',
     },
     'ia-equipes': {
       title: 'Equipes & Organograma Oficial',
       subtitle:
-        'Hierarquia construída dinamicamente a partir dos vínculos reportsTo e endpoint /org do Paperclip.',
+        'Hierarquia organizacional construída a partir dos vínculos de reporte disponibilizados pelo Hermes.',
     },
     'ia-tarefas': {
       title: 'Tasks & Delegações (Issues)',
@@ -276,9 +276,9 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
         'Monitoramento de execuções, logs, eventos, tokens, modelos e cancelamentos suportados.',
     },
     'ia-rotinas': {
-      title: 'Automações & Rotinas (Paperclip)',
+      title: 'Automações & Rotinas',
       subtitle:
-        'Rotinas agendadas, gatilhos webhook/api e histórico de execuções diretamente no Paperclip.',
+        'Rotinas agendadas, gatilhos e histórico de execuções disponibilizados pelo runtime Hermes.',
     },
     'ia-aprovacoes': {
       title: 'Aprovações & Governança',
@@ -304,7 +304,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-line-strong bg-surface hover:bg-surface-blue text-xs font-semibold text-ink cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Sincronizar Paperclip</span>
+            <span>Atualizar dados</span>
           </button>
         }
       />
@@ -329,7 +329,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   onClick={() => onNavigate('ia-agentes')}
                   className="nc-card rounded-2xl p-5 text-left cursor-pointer"
                 >
-                  <div className="text-xs text-ink-subtle">Agentes no Paperclip</div>
+                  <div className="text-xs text-ink-subtle">Agentes no runtime</div>
                   <div className="mt-1.5 font-display text-2xl font-semibold font-mono tabular-nums text-ink">
                     {agents.length}
                   </div>
@@ -377,20 +377,20 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 </button>
               </section>
 
-              {/* Separate Paperclip Operational Projects & Goals */}
+              {/* Projetos operacionais e metas vinculados ao runtime */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <section className="nc-card rounded-2xl p-5 space-y-4">
                   <div className="flex items-center justify-between border-b border-line pb-3">
                     <div className="flex items-center gap-2">
                       <FolderGit2 className="w-4 h-4 text-accent dark:text-cyan-300" />
                       <h2 className="font-display text-sm font-semibold text-ink">
-                        Projetos Operacionais (Paperclip)
+                        Projetos Operacionais
                       </h2>
                     </div>
                     <span className="font-mono text-xs text-ink-subtle">{projects.length}</span>
                   </div>
                   <p className="text-[11px] text-ink-subtle">
-                    Domínio operacional exclusivo do Paperclip (independente dos projetos empresariais da TokenizAi).
+                    Projetos utilizados na execução de agentes, separados dos projetos empresariais gerenciados pela TokenizAi.
                   </p>
                   <div className="divide-y divide-line">
                     {projects.map((p) => (
@@ -404,7 +404,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                     ))}
                     {projects.length === 0 && (
                       <div className="py-4 text-xs text-ink-subtle text-center">
-                        Nenhum projeto operacional cadastrado no Paperclip.
+                        Nenhum projeto operacional retornado pelo runtime Hermes.
                       </div>
                     )}
                   </div>
@@ -436,7 +436,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                     ))}
                     {goals.length === 0 && (
                       <div className="py-4 text-xs text-ink-subtle text-center">
-                        Nenhuma meta operacional cadastrada no Paperclip.
+                        Nenhuma meta operacional retornada pelo runtime Hermes.
                       </div>
                     )}
                   </div>
@@ -582,10 +582,10 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 <div className="nc-card rounded-2xl p-10 text-center space-y-2">
                   <Bot className="w-6 h-6 text-accent dark:text-cyan-300 mx-auto" />
                   <div className="font-display text-base font-semibold text-ink">
-                    Nenhum agente encontrado nesta empresa Paperclip
+                    Nenhum agente encontrado nesta organização
                   </div>
                   <p className="text-xs text-ink-subtle">
-                    Ajuste os filtros ou cadastre/aloque agentes na instância Paperclip conectada.
+                    Ajuste os filtros ou vincule agentes à organização TokenizAi por meio dos fluxos disponíveis.
                   </p>
                 </div>
               ) : (
@@ -616,7 +616,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                                 <h3 className="font-display text-base font-semibold text-ink truncate">
                                   {ag.title || ag.name}
                                 </h3>
-                                <p className="text-xs text-ink-subtle truncate">{ag.role || 'Agente Paperclip'}</p>
+                                <p className="text-xs text-ink-subtle truncate">{ag.role || 'Agente Hermes'}</p>
                               </div>
                             </div>
                             <StatusText label={ag.status} tone={agentStatusTone(ag.status)} />
@@ -712,7 +712,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
               <div className="flex items-center justify-between">
                 <div className="text-xs text-ink-subtle inline-flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5 text-accent dark:text-cyan-300" />
-                  <span>Estrutura hierárquica construída diretamente de /org e dos campos reportsTo do Paperclip</span>
+                  <span>Estrutura hierárquica baseada nos vínculos organizacionais retornados pelo Hermes</span>
                 </div>
                 <button
                   type="button"
@@ -727,7 +727,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
 
               {orgTree.length === 0 ? (
                 <div className="nc-card rounded-2xl p-8 text-center text-xs text-ink-subtle">
-                  Nenhum vínculo hierárquico retornado pela instância Paperclip até o momento.
+                  Nenhum vínculo hierárquico foi retornado pelo runtime Hermes.
                 </div>
               ) : (
                 <div className="space-y-3">{orgTree.map((root) => renderOrgBranch(root, 0))}</div>
@@ -774,14 +774,14 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
       )}
 
       {/* ======================================================================== */}
-      {/* AGENT DETAIL DRAWER (REAL PAPERCLIP AGENT PROFILE)                       */}
+      {/* PAINEL DE DETALHES DO AGENTE (PERFIL DO RUNTIME HERMES)                       */}
       {/* ======================================================================== */}
       <SlideDrawer
         open={Boolean(selectedAgentId && agentDetail)}
         onClose={() => setSelectedAgentId(null)}
         wide
         title={agentDetail?.title || agentDetail?.name || ''}
-        subtitle={agentDetail ? `${agentDetail.role || 'Agente Paperclip'} · ID ${agentDetail.id}` : undefined}
+        subtitle={agentDetail ? `${agentDetail.role || 'Agente Hermes'} · ID ${agentDetail.id}` : undefined}
       >
         {agentDetail && (
           <div className="space-y-6">
@@ -893,7 +893,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
               <div className="space-y-3">
                 <h4 className="text-xs font-semibold text-ink-subtle inline-flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Capabilities registradas no Paperclip</span>
+                  <span>Capacidades informadas pelo runtime Hermes</span>
                 </h4>
                 {agentDetail.capabilities && agentDetail.capabilities.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
