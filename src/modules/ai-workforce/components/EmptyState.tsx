@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -24,11 +23,4 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     {description && <p className="text-sm text-ink-muted max-w-sm">{description}</p>}
     {action && <div className="mt-4">{action}</div>}
   </div>
-);
-
-export const PaperclipEmptyState: React.FC<EmptyStateProps> = (props) => (
-  <EmptyState
-    icon={props.icon ?? <AlertCircle className="w-5 h-5" />}
-    {...props}
-  />
 );
