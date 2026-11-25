@@ -1,5 +1,7 @@
 # Roadmap de Integração
 
+> **ROADMAP SUPERADO — 25/11/2026:** Este plano foi elaborado quando Paperclip era considerado possível camada de orquestração. A migração posterior adotou Hermes diretamente. Todas as fases, tarefas, critérios, dependências, estimativas e comandos abaixo que mencionem Paperclip, Paperclip Server, Paperclip Skill Catalog, Paperclip Agent Hire ou `@paperclipai/*` estão CANCELADOS como plano de execução. Não implementar, instalar, iniciar ou configurar Paperclip com base neste documento. Para trabalho atual, consultar `ARQUITETURA-HERMES-DIRETO.md` e o estado real do código.
+
 > **Versão:** 1.2  \
 > **Data:** 22 de novembro de 2026  \
 > **Status:** **FASE 0 HOMOLOGADA LOCALMENTE — FASE 1 AUTORIZADA**  \
@@ -8,7 +10,7 @@
 
 ---
 
-## 1. Visão Geral das Fases
+## 1. Visão Geral (registro histórico; não executar tarefas Paperclip) das Fases
 
 | Fase | Nome | Duração | Objetivo Principal | Entregável Chave |
 |------|------|---------|-------------------|------------------|
