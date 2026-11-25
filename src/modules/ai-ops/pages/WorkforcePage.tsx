@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AiOpsView } from '../AiOpsView';
 import { hermesService } from '../../ai-workforce/services/hermes';
 import type { HermesOverviewBundle } from '../../../types/platform';
+import { LoadingState, ErrorState } from '../../ai-workforce/components';
 
 export interface WorkforcePageProps {
   onNavigate: (id: string) => void;
@@ -47,7 +48,9 @@ function WorkforcePageBase({ section, onNavigate, onToast }: WorkforcePageProps 
     load();
   }, [load]);
 
-  if (loading || !bundle || error) return null;
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState title="Não foi possível carregar os dados do Paperclip" message={error} onRetry={load} />;
+  if (!bundle) return <ErrorState title="Sem dados do Paperclip" message="O bundle de visão geral não foi retornado." onRetry={load} />;
 
   return <AiOpsView section={section} bundle={bundle} onRefresh={load} onNavigate={onNavigate} onToast={onToast} />;
 }

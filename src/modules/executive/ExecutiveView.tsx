@@ -48,6 +48,22 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
   hermes,
   onNavigate,
 }) => {
+  // Handle case where hermes bundle is not yet loaded or failed
+  if (!hermes || !hermes.status) {
+    return (
+      <div className="space-y-7">
+        <PageHeader
+          title="Cockpit executivo"
+          subtitle="A empresa, o portfólio de produtos e a operação de agentes em uma única visão."
+        />
+        <div className="nc-card rounded-2xl p-8 text-center space-y-4">
+          <div className="w-12 h-12 border-3 border-line-strong border-t-accent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-ink-muted">Carregando dados da operação Hermes…</p>
+        </div>
+      </div>
+    );
+  }
+
   const connectionReady =
     hermes.status.configured && hermes.status.connected;
 

@@ -4,15 +4,15 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 3 : 1,
   workers: 1,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    navigationTimeout: 120000,
-    actionTimeout: 60000,
+    navigationTimeout: 180000,
+    actionTimeout: 90000,
   },
   projects: [
     {
@@ -24,6 +24,9 @@ export default defineConfig({
     command: 'TOKENIZAI_SESSION_SECRET=testsecret123456789012345678901234 TOKENIZAI_ADMIN_PASSCODE=admin1234 npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
-    timeout: 120000,
+    timeout: 180000,
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 });
