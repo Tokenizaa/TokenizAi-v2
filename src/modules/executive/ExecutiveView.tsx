@@ -150,7 +150,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
             {connectionReady ? operationalMetrics.activeAgents : '—'}
           </p>
           <p className="mt-1 text-xs text-ink-muted">
-            {connectionReady ? 'Estado reportado pelo Paperclip' : 'Aguardando conexão Paperclip'}
+            {connectionReady ? 'Estado reportado pelo runtime Hermes' : 'Aguardando conexão com Hermes'}
           </p>
         </button>
 
@@ -166,7 +166,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
           <p className="mt-3 font-display text-2xl font-semibold tabular-nums text-ink">
             {connectionReady ? operationalMetrics.openTasks : '—'}
           </p>
-          <p className="mt-1 text-xs text-ink-muted">Fila operacional do Paperclip</p>
+          <p className="mt-1 text-xs text-ink-muted">Fila operacional de agentes no Hermes</p>
         </button>
 
         <button
@@ -285,7 +285,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
               <p className="mt-1 text-xs text-ink-muted">
                 {connectionReady
                   ? 'A fila de atenção não apresenta bloqueios ou aprovações pendentes.'
-                  : 'Conecte o Paperclip para carregar os sinais operacionais.'}
+                  : 'Conecte o runtime Hermes para carregar os sinais de execução.'}
               </p>
             </div>
           )}
@@ -327,7 +327,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
           <div className="mt-5 border-t border-line pt-4">
             <p className="text-xs font-medium text-ink">Projetos e entregas</p>
             <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-              Acompanhe o desenvolvimento dos produtos e os vínculos operacionais com o Paperclip.
+              Acompanhe o desenvolvimento dos produtos e os vínculos operacionais com os agentes Hermes.
             </p>
             <button
               type="button"
