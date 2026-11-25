@@ -23,7 +23,6 @@ interface HermesChatPanelProps {
   agents: HermesBotDto[];
   initialAgentRef?: string | null;
   onNavigate: (sec: NavSectionId) => void;
-  onOpenIssue?: (issueId: string) => void;
   onToast: (msg: string) => void;
 }
 
@@ -40,7 +39,6 @@ export const HermesChatPanel: React.FC<HermesChatPanelProps> = ({
   agents,
   initialAgentRef,
   onNavigate,
-  onOpenIssue,
   onToast,
 }) => {
   const isConnected = status.configured && status.connected;
