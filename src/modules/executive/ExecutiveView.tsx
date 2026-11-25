@@ -75,7 +75,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
       (task) => !['done', 'completed', 'cancelled', 'canceled'].includes(task.status.toLowerCase()),
     ).length;
     const blockedTasks = hermes.tasks.filter(
-      (task) => task.status === 'blocked' || (0) > 0,
+      (task) => task.status === 'blocked',
     ).length;
     return { activeAgents, openTasks, blockedTasks };
   }, [hermes]);
@@ -84,7 +84,7 @@ export const ExecutiveView: React.FC<ExecutiveViewProps> = ({
     const items: Priority[] = [];
 
     for (const task of hermes.tasks) {
-      if (task.status === 'blocked' || (0) > 0) {
+      if (task.status === 'blocked') {
         items.push({
           id: `blocked-${task.id}`,
           area: 'Operações de IA',
