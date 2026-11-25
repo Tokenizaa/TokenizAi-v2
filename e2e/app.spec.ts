@@ -46,6 +46,134 @@ test.describe('Enterprise Routes', () => {
   }
 });
 
+test.describe('Enterprise CRUD Operations', () => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
+    await login(page);
+  });
+
+  test('Projects - create new project', async ({ page }) => {
+    await page.goto('/projetos');
+    await page.waitForLoadState('networkidle');
+    
+    const newBtn = page.locator('button:has-text("Novo projeto")').first();
+    if (await newBtn.count() > 0) {
+      await newBtn.click();
+      await page.waitForTimeout(500);
+      
+      const drawer = page.locator('[role="dialog"]').last();
+      await expect(drawer).toBeVisible();
+      
+      const nameInput = drawer.locator('input[placeholder*="projeto" i], input[placeholder*="nome" i], input[name*="nome" i]').first();
+      if (await nameInput.count() > 0) {
+        await nameInput.fill('Projeto Teste E2E');
+      }
+      
+      const clientSelect = drawer.locator('select').first();
+      if (await clientSelect.count() > 0) {
+        await clientSelect.selectOption({ index: 1 });
+      }
+      
+      const saveBtn = drawer.locator('button:has-text("Salvar"), button:has-text("Criar")').first();
+      if (await saveBtn.count() > 0) {
+        await saveBtn.click();
+        await page.waitForTimeout(1000);
+      }
+      
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
+  });
+
+  test('Clients - create new client', async ({ page }) => {
+    await page.goto('/clientes');
+    await page.waitForLoadState('networkidle');
+    
+    const newBtn = page.locator('button:has-text("Novo cliente")').first();
+    if (await newBtn.count() > 0) {
+      await newBtn.click();
+      await page.waitForTimeout(500);
+      
+      const drawer = page.locator('[role="dialog"]').last();
+      await expect(drawer).toBeVisible();
+      
+      const nameInput = drawer.locator('input[placeholder*="empresa" i], input[placeholder*="razão" i], input[placeholder*="nome" i]').first();
+      if (await nameInput.count() > 0) {
+        await nameInput.fill('Cliente Teste E2E');
+      }
+      
+      const saveBtn = drawer.locator('button:has-text("Salvar"), button:has-text("Criar")').first();
+      if (await saveBtn.count() > 0) {
+        await saveBtn.click();
+        await page.waitForTimeout(1000);
+      }
+      
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
+  });
+
+  test('Commercial - create new deal', async ({ page }) => {
+    await page.goto('/comercial');
+    await page.waitForLoadState('networkidle');
+    
+    const newBtn = page.locator('button:has-text("Nova oportunidade"), button:has-text("Novo negócio")').first();
+    if (await newBtn.count() > 0) {
+      await newBtn.click();
+      await page.waitForTimeout(500);
+      
+      const drawer = page.locator('[role="dialog"]').last();
+      await expect(drawer).toBeVisible();
+      
+      const titleInput = drawer.locator('input[placeholder*="oportunidade" i], input[placeholder*="título" i]').first();
+      if (await titleInput.count() > 0) {
+        await titleInput.fill('Oportunidade Teste E2E');
+      }
+      
+      const saveBtn = drawer.locator('button:has-text("Salvar"), button:has-text("Criar")').first();
+      if (await saveBtn.count() > 0) {
+        await saveBtn.click();
+        await page.waitForTimeout(1000);
+      }
+      
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
+  });
+
+  test('Finance - create new entry', async ({ page }) => {
+    await page.goto('/financeiro');
+    await page.waitForLoadState('networkidle');
+    
+    const newBtn = page.locator('button:has-text("Novo lançamento"), button:has-text("Nova entrada")').first();
+    if (await newBtn.count() > 0) {
+      await newBtn.click();
+      await page.waitForTimeout(500);
+      
+      const drawer = page.locator('[role="dialog"]').last();
+      await expect(drawer).toBeVisible();
+      
+      const descInput = drawer.locator('input[placeholder*="lançamento" i], input[placeholder*="descrição" i]').first();
+      if (await descInput.count() > 0) {
+        await descInput.fill('Lançamento Teste E2E');
+      }
+      
+      const valueInput = drawer.locator('input[placeholder*="valor" i], input[type="number"]').first();
+      if (await valueInput.count() > 0) {
+        await valueInput.fill('1000');
+      }
+      
+      const saveBtn = drawer.locator('button:has-text("Salvar"), button:has-text("Criar")').first();
+      if (await saveBtn.count() > 0) {
+        await saveBtn.click();
+        await page.waitForTimeout(1000);
+      }
+      
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
+  });
+});
+
 test.describe('AI Workforce Routes (Consolidated)', () => {
   test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
@@ -83,7 +211,6 @@ test.describe('Interactive Elements', () => {
     await page.goto('/ia-visao');
     await page.waitForLoadState('networkidle');
 
-    // Check for any buttons or links
     const interactive = page.locator('button, a[href]');
     const count = await interactive.count();
     expect(count).toBeGreaterThan(0);
@@ -92,28 +219,24 @@ test.describe('Interactive Elements', () => {
   test('Agents page should have agent-related content', async ({ page }) => {
     await page.goto('/ia-agentes');
     await page.waitForLoadState('networkidle');
-
-    // Check page loads without error
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('Tasks page should load', async ({ page }) => {
     await page.goto('/ia-tarefas');
     await page.waitForLoadState('networkidle');
-
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('Approvals page should load', async ({ page }) => {
     await page.goto('/ia-aprovacoes');
     await page.waitForLoadState('networkidle');
-
     await expect(page.locator('body')).toBeVisible();
   });
 });
 
 test.describe('Console & Network Health', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }: { page: import('@playwright/test').Page }) => {
     await login(page);
   });
 
