@@ -4,7 +4,7 @@
 > **Diretório:** `documentação institucional/`  
 > **Versão:** 2.3  \
 > **Data:** 22 de novembro de 2026  \
- > **Responsável:** Hermes (Chefe de Gabinete Executivo)  \
+> **Responsável:** Hermes (Chefe de Gabinete Executivo)  \
 > **Autoridade:** Netto Farias (Founder, NettosCorp)
 
 ---
