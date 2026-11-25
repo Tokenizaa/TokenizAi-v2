@@ -85,7 +85,8 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
     routines = [],
     costs = null,
   } = bundle;
-  const hermesStatus = status as unknown as HermesIntegrationStatus;
+  const capabilities = status.availableCapabilities || [];
+  const hermesStatus = status as HermesIntegrationStatus;
   const isConnected =
     hermesStatus.configured && hermesStatus.connected;
 
@@ -456,8 +457,8 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                 </p>
               </div>
               <span className="font-mono text-xs text-ink-subtle">
-                {status.availableCapabilities.filter((c) => Boolean(c.availableInVersion)).length} /{' '}
-                {status.availableCapabilities.length} ativas
+                {capabilities.filter((c) => Boolean(c.availableInVersion)).length} /{' '}
+                {capabilities.length} ativas
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -472,7 +473,7 @@ export const AiOpsView: React.FC<AiOpsViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line text-xs">
-                  {status.availableCapabilities.map((cap) => (
+                  {capabilities.map((cap) => (
                     <tr key={cap.key}>
                       <td className="py-3 px-6">
                         <div className="font-mono font-semibold text-ink">{cap.key}</div>
