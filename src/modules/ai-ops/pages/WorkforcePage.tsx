@@ -38,7 +38,7 @@ function WorkforcePageBase({ section, onNavigate, onToast }: WorkforcePageProps 
       const res = await hermesService.getOverviewBundle();
       setBundle(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao carregar o bundle do Paperclip.');
+      setError(err instanceof Error ? err.message : 'Falha ao carregar os dados do runtime Hermes.');
     } finally {
       setLoading(false);
     }
@@ -49,8 +49,8 @@ function WorkforcePageBase({ section, onNavigate, onToast }: WorkforcePageProps 
   }, [load]);
 
   if (loading) return <LoadingState />;
-  if (error) return <ErrorState title="Não foi possível carregar os dados do Paperclip" message={error} onRetry={load} />;
-  if (!bundle) return <ErrorState title="Sem dados do Paperclip" message="O bundle de visão geral não foi retornado." onRetry={load} />;
+  if (error) return <ErrorState title="Não foi possível carregar os dados do runtime Hermes" message={error} onRetry={load} />;
+  if (!bundle) return <ErrorState title="Sem dados do runtime Hermes" message="O bundle de visão geral não foi retornado." onRetry={load} />;
 
   return <AiOpsView section={section} bundle={bundle} onRefresh={load} onNavigate={onNavigate} onToast={onToast} />;
 }
