@@ -85,7 +85,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate, onToast 
               </div>
             </div>
             <div className="text-[11px] font-mono text-ink-muted text-right">
-              {event.issueId ? `Issue: ${event.issueId}` : '—'}
+              {event.issueId ? `Tarefa: ${event.issueId}` : '—'}
             </div>
           </div>
         ))}
