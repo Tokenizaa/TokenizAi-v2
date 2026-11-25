@@ -453,21 +453,6 @@ export interface HermesActivityDto {
   countsBySourceKind?: Record<string, number>;
 }
 
-export interface HermesApprovalDto {
-  id: string;
-  type?: string;
-  title: string;
-  description?: string;
-  status: string;
-  requestedByName?: string | null;
-  requestedByAgentId?: string | null;
-  createdAt?: string;
-  approverUserId?: string | null;
-  issueId?: string | null;
-  decisionNote?: string | null;
-  decidedAt?: string | null;
-}
-
 export interface HermesProjectDto {
   id: string;
   name: string;
@@ -519,7 +504,6 @@ export interface HermesOverviewBundle {
   runs: HermesRunDto[];
   projects?: HermesProjectDto[];
   goals?: HermesGoalDto[];
-  approvals: HermesApprovalDto[];
   routines: HermesRoutineDto[];
   costs: HermesCostSummaryDto | null;
   activity: HermesActivityDto[];
