@@ -8,7 +8,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
-} from '../components';
+} from '../../ai-workforce/components';
 import { HermesApi } from '../../../services/api';
 import type { HermesBotDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';

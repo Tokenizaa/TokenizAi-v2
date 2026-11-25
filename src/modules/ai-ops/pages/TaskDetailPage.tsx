@@ -7,8 +7,8 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
-} from '../components';
-import { hermesService } from '../services/hermes';
+} from '../../ai-workforce/components';
+import { hermesService } from '../../ai-workforce/services/hermes';
 import type { HermesIssueDto, HermesChatMessageDto, HermesRunDto, HermesAttachmentDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
 

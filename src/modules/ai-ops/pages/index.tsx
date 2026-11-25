@@ -1,6 +1,9 @@
 import React from 'react';
 import { WorkforcePage } from './WorkforcePage';
 import type { WorkforcePageProps } from './WorkforcePage';
+import { AgentDetailPage } from './AgentDetailPage';
+import { TaskDetailPage } from './TaskDetailPage';
+import { ApprovalDetailPage } from './ApprovalDetailPage';
 
 export const DashboardPage: React.FC<WorkforcePageProps> = (props) => (
   <WorkforcePage section="ia-visao" {...props} />
@@ -37,3 +40,6 @@ export const ApprovalsPage: React.FC<WorkforcePageProps> = (props) => (
 export const CostsPage: React.FC<WorkforcePageProps> = (props) => (
   <WorkforcePage section="ia-custos" {...props} />
 );
+
+// Páginas de detalhe com parâmetros de rota (não usam WorkforcePage base)
+export { AgentDetailPage, TaskDetailPage, ApprovalDetailPage };

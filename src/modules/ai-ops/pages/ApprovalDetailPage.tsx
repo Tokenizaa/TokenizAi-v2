@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, RefreshCw } from 'lucide-react';
 import { PageHeader, StatusText } from '../../../components/ui/Primitives';
-import { hermesService } from '../services/hermes';
+import { hermesService } from '../../ai-workforce/services/hermes';
 import type { HermesApprovalDto } from '../../../types/platform';
 import { useParams } from 'react-router-dom';
 
