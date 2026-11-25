@@ -520,4 +520,47 @@ export const INITIAL_ENTERPRISE_DATA: EnterpriseDataState = {
   runs: [],
 
   activities: [],
+
+  departamentos: [
+    {
+      id: 'dep-01',
+      nome: 'Diretoria Executiva',
+      codigo: 'DIR',
+      descricao: 'Liderança estratégica e governança corporativa',
+      departamentoPaiId: null,
+      createdAt: '2026-11-01T00:00:00Z',
+      updatedAt: '2026-11-01T00:00:00Z',
+    },
+    {
+      id: 'dep-02',
+      nome: 'Engenharia de Software',
+      codigo: 'ENG',
+      descricao: 'Desenvolvimento de produtos e plataformas',
+      departamentoPaiId: null,
+      createdAt: '2026-11-01T00:00:00Z',
+      updatedAt: '2026-11-01T00:00:00Z',
+    },
+    {
+      id: 'dep-03',
+      nome: 'Operações & SRE',
+      codigo: 'OPS',
+      descricao: 'Operações, infraestrutura e confiabilidade',
+      departamentoPaiId: null,
+      createdAt: '2026-11-01T00:00:00Z',
+      updatedAt: '2026-11-01T00:00:00Z',
+    },
+    {
+      id: 'dep-04',
+      nome: 'Comercial & Revenue Ops',
+      codigo: 'COM',
+      descricao: 'Vendas, receita e operações comerciais',
+      departamentoPaiId: null,
+      createdAt: '2026-11-01T00:00:00Z',
+      updatedAt: '2026-11-01T00:00:00Z',
+    },
+  ],
+
+  agentesEmpresariais: [],
+
+  equipes: [],
 };

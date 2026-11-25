@@ -1,0 +1,18 @@
+# wrangler.toml — TokenizAi v2
+# Cloudflare Pages deployment para tokenizai.defesai.com.br
+
+name = "tokenizai"
+compatibility_date = "2026-11-25"
+
+[observability]
+enabled = true
+
+[pages]
+build_command = "npm run build"
+build_output_directory = "dist"
+pages_build_output_dir = "dist"
+destination_names = ["tokenizai.defesai.com.br"]
+
+[vars]
+ENVIRONMENT = "production"
+APP_NAME = "TokenizAi"

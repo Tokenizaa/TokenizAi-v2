@@ -1,0 +1,19 @@
+- generic [ref=f8e6]:
+  - generic [ref=f8e7]:
+    - generic [ref=f8e8]: T
+    - heading "Entrar na plataforma" [level=2] [ref=f8e10]
+    - paragraph [ref=f8e11]: TokenizAi — Gestão Empresarial e Operações de IA
+  - generic [ref=f8e12]:
+    - generic [ref=f8e13]:
+      - generic [ref=f8e14]: E-mail
+      - textbox "seu@email.com" [ref=f8e15]
+    - generic [ref=f8e16]:
+      - generic [ref=f8e17]: Senha
+      - textbox [ref=f8e18]
+    - button "Entrar" [ref=f8e19] [cursor=pointer]
+    - paragraph [ref=f8e23]:
+      - text: Nao tem uma conta?
+      - button "Criar conta" [ref=f8e24]
+    - paragraph [ref=f8e25]:
+      - button "Esqueceu a senha?" [ref=f8e26]
+  - generic [ref=f8e27]: A primeira conta confirmada com o e-mail autorizado e promovida a administradora geral da plataforma automaticamente.

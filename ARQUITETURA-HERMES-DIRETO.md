@@ -1,5 +1,11 @@
 # Arquitetura TokenizAi-v2 — Hermes Direto (sem Paperclip)
 
+> [!IMPORTANT]
+> **Runtime oficial = Hermes na porta 3000.** Este documento registra o plano de migração Paperclip → Hermes.
+> A migração foi **concluída** nos commits `e4da7c1`, `140026d`, `aea0a25` e `9667f62`.
+> As seções com verbos no futuro ("remover", "migrar", "manter rotas temporariamente") e os checkboxes não marcados são **registro histórico do planejamento**, não pendências operacionais.
+> **Não inicie Paperclip nem use a porta 3100** para executar ou inspecionar o TokenizAi V2 — use somente `npm run dev` (porta 3000).
+
 ## Visão Geral
 
 O TokenizAi-v2 deixa de depender do Paperclip como camada de execução de agentes e passa a integrar o **Hermes diretamente** como runtime de agentes, tarefas, rotinas, aprovações, chat e auditoria. O backend Express continua responsável pelas rotas de enterprise (projetos, clientes, negócios, produtos, assinaturas, finanças) e autenticação Supabase, mas a camada de IA/agentes passa a ser nativa do Hermes.

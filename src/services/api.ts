@@ -5,6 +5,7 @@ import type {
   EnterpriseDataState,
   FinanceEntry,
   HermesActivityDto,
+  HermesApprovalDto,
   HermesBotDto,
   HermesCapability,
   HermesChatMessageDto,
@@ -85,7 +86,10 @@ export function formatDateTimeBR(isoDate?: string | null): string {
 }
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const token = await getAccessToken();
+  const supabaseToken = await getAccessToken();
+  const adminToken = getAdminBearerToken();
+  // Prioriza o token admin se disponível (passcode/login-admin), senão usa o JWT Supabase
+  const token = adminToken || supabaseToken;
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -571,6 +575,26 @@ export const HermesApi = {
       `/api/hermes/activity/agent-actions?limit=${limit}`,
     ),
 
+  // Approvals (governança)
+  listApprovals: () =>
+    request<{ ok: boolean; approvals: HermesApprovalDto[] }>(
+      '/api/hermes/approvals',
+    ),
+  approveApproval: (approvalId: string) =>
+    request<{ ok: boolean; approval: HermesApprovalDto }>(
+      `/api/hermes/approvals/${encodeURIComponent(approvalId)}/approve`,
+      { method: 'POST' },
+    ),
+  rejectApproval: (approvalId: string) =>
+    request<{ ok: boolean; approval: HermesApprovalDto }>(
+      `/api/hermes/approvals/${encodeURIComponent(approvalId)}/reject`,
+      { method: 'POST' },
+    ),
+  requestApprovalRevision: (approvalId: string) =>
+    request<{ ok: boolean; approval: HermesApprovalDto }>(
+      `/api/hermes/approvals/${encodeURIComponent(approvalId)}/revision`,
+      { method: 'POST' },
+    ),
 
 };
 

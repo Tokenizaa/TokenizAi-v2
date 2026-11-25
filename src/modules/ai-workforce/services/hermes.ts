@@ -1,5 +1,5 @@
 import { HermesApi, PlatformApi } from '../../../services/api';
-import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto } from '../../../types/platform';
+import type { HermesIntegrationStatus, HermesBotDto, HermesOverviewBundle, HermesChatThreadDto, HermesChatMessageDto, HermesTaskDto, HermesRunDto, HermesRoutineDto, HermesCostSummaryDto, HermesActivityDto, HermesSkillDto, HermesApprovalDto } from '../../../types/platform';
 import type { WorkforceStatus } from '../types';
 
 /**
@@ -68,6 +68,12 @@ export const hermesService = {
 
   // --- Activity ---
   listActivity: (limit = 50) => HermesApi.listActivity(limit),
+
+  // --- Approvals (governança) ---
+  listApprovals: () => HermesApi.listApprovals(),
+  approveApproval: (approvalId: string) => HermesApi.approveApproval(approvalId),
+  rejectApproval: (approvalId: string) => HermesApi.rejectApproval(approvalId),
+  requestApprovalRevision: (approvalId: string) => HermesApi.requestApprovalRevision(approvalId),
 
   // --- Artifacts ---
 

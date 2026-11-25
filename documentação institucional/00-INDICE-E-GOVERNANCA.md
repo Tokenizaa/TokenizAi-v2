@@ -7,6 +7,12 @@
 > **Responsável:** Hermes (Chefe de Gabinete Executivo)  \
 > **Autoridade:** Netto Farias (Founder, NettosCorp)
 
+> [!IMPORTANT]
+> **Separação entre histórico e operação vigente (revisão 2026-11-25).**
+> Os documentos 02 a 14 desta pasta são **engenharia reversa histórica e propostas arquiteturais** de referência (TokenizAi, Agency Agents e Paperclip), produzidos antes da migração. Afirmações como "Paperclip não configurado", "implementado no Paperclip", "PAPERCLIP_ENDPOINT" ou "integração testada com Paperclip server" descrevem o estado daquele período e **não refletem o TokenizAi V2 atual**.
+> O **runtime operacional oficial do TokenizAi V2 é o Hermes**, executado pelo backend Express na **porta 3000** (`npm run dev`). A migração Paperclip → Hermes foi concluída nos commits `e4da7c1`, `140026d`, `aea0a25` e `9667f62`. Não existe dependência, pacote, env var, rota ou serviço Paperclip no código atual.
+> **Não inicie Paperclip nem use a porta 3100 para executar ou inspecionar a aplicação.** Para estado operacional vigente, consulte `ARQUITETURA-HERMES-DIRETO.md` e `LIMITACOES-CONHECIDAS.md` na raiz do repositório.
+
 ---
 
 ## 1. Finalidade

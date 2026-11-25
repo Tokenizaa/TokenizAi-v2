@@ -1,5 +1,8 @@
 # Documentação de Engenharia Reversa — NettosCorp
 
+> [!IMPORTANT]
+> **Escopo histórico.** Todo o conteúdo desta pasta é engenharia reversa e proposta arquitetural de referência, produzida **antes** da migração do TokenizAi V2 para o Hermes. O Paperclip descrito aqui é **legado**: o runtime operacional oficial da aplicação é o **Hermes na porta 3000** (`npm run dev`). Não inicie Paperclip (inclusive na porta 3100) para executar ou inspecionar o TokenizAi V2. Para o estado vigente, veja `ARQUITETURA-HERMES-DIRETO.md` e `LIMITACOES-CONHECIDAS.md` na raiz.
+
 Este diretório reúne a documentação técnica produzida durante as etapas de engenharia reversa dos dois projetos de referência da NettosCorp:
 
 - **Paperclip** — Plataforma de orquestração de agentes de IA (monorepo Node.js/pnpm)
