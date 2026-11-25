@@ -352,7 +352,7 @@ function AppContent({
             onClose={() => setSearchOpen(false)}
             enterprise={enterprise!}
             bots={hermes?.bots || []}
-            issues={hermes?.issues || []}
+            tasks={hermes?.tasks || []}
             projects={hermes?.projects || []}
             onNavigate={handleNavigate}
           />
@@ -452,7 +452,6 @@ export default function App() {
           status: hRes.value.status,
           bots: hRes.value.bots || [],
           tasks: hRes.value.tasks || [],
-          issues: hRes.value.issues || [],
           runs: hRes.value.runs || [],
           projects: hRes.value.projects || [],
           goals: hRes.value.goals || [],
