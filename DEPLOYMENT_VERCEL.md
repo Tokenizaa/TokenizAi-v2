@@ -14,15 +14,14 @@ Configurar nos ambientes Production, Preview e Development conforme o uso:
 | Variável | Finalidade | Exposição |
 |---|---|---|
 | `SUPABASE_URL` | URL do projeto Supabase correto da TokenizAi | Backend |
-| `SUPABASE_ANON_KEY` | Chave publicável/anon para validar sessões e criar clientes de usuário | Backend |
+| `SUPABASE_ANON_KEY` | Chave publicável/anon para validar sessões e criar clientes; o Vite injeta somente essa chave no bundle do frontend | Backend e bundle público |
 | `SUPABASE_SERVICE_ROLE_KEY` | Acesso privilegiado do repositório empresarial | Backend, segredo |
 | `VITE_SUPABASE_URL` | URL do Supabase usada pelo frontend | Navegador |
-| `VITE_SUPABASE_ANON_KEY` | Chave publicável usada pelo frontend | Navegador |
 | `TOKENIZAI_SESSION_SECRET` | Assinatura de sessões operacionais | Backend, segredo |
 | `TOKENIZAI_ADMIN_PASSCODE` | Proteção das operações administrativas legadas | Backend, segredo |
 | `FOUNDER_EMAIL` | Identidade autorizada do fundador | Backend |
 
-**Nunca** cadastrar `SUPABASE_SERVICE_ROLE_KEY`, `TOKENIZAI_SESSION_SECRET` ou `TOKENIZAI_ADMIN_PASSCODE` com prefixo `VITE_`.
+**Nunca** cadastrar `SUPABASE_SERVICE_ROLE_KEY`, `TOKENIZAI_SESSION_SECRET` ou `TOKENIZAI_ADMIN_PASSCODE` com prefixo `VITE_`. Não é necessário criar `VITE_SUPABASE_ANON_KEY`: o `vite.config.ts` injeta apenas `SUPABASE_ANON_KEY`, que é uma chave publicável, sem expor a service role.
 
 ## Comportamento de segurança
 
