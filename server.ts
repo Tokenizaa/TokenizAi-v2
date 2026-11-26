@@ -56,10 +56,18 @@ const PORT = Number(process.env.PORT || 3000);
 
 // Estado empresarial. Carregado do Supabase na inicializacao (fonte de verdade
 // duravel), com degradacao graciosa para estado em memoria + JSON quando
-// Supabase nao estiver configurado. Variaveis declaradas aqui e inicializadas
-// de forma assincrona dentro de startServer().
+// Supabase nao estiver configurado. Inicializado no escopo de nivel superior
+// (top-level await) para funcionar tanto no servidor standalone (startServer)
+// quanto em serverless/Vercel, sem depender de http.listen().
 let enterpriseState: EnterpriseDataState;
 let supabaseRepo = new SupabaseRepository(structuredClone(INITIAL_ENTERPRISE_DATA));
+
+// Carrega o estado empresarial uma vez por cold start.
+// loadEnterpriseStateFromSupabase ja possui fallback interno (JSON local / seed)
+// quando o Supabase nao esta disponivel, de modo que esta importacao nao falha
+// por falta de configuracao de backend.
+enterpriseState = await loadEnterpriseStateFromSupabase();
+supabaseRepo = new SupabaseRepository(enterpriseState);
 
 /**
  * Carrega o estado empresarial do Supabase (fonte de verdade) ou, em falta
@@ -1173,9 +1181,11 @@ async function startServer() {
   });
 }
 
-// Inicia o servidor apenas fora do ambiente de teste (vitest importa `app` diretamente,
-// sem precisar abrir a porta HTTP).
-if (!process.env.VITEST) {
+// Inicia o servidor apenas fora de ambiente de teste e de serverless.
+// - vitest importa `app` diretamente, sem abrir a porta HTTP.
+// - Em Vercel Functions nao existe http.listen(): o entrypoint e
+//   api/[...path].ts, que exporta `app` como handler e nao chama startServer().
+if (!process.env.VITEST && !process.env.VERCEL && !process.env.SERVERLESS) {
   startServer().catch((err) => {
     console.error('[TokenizAi] Erro fatal ao iniciar servidor:', err);
     process.exit(1);

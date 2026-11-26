@@ -66,9 +66,21 @@ export function loadEnterpriseState(): EnterpriseDataState | null {
 }
 
 export function saveEnterpriseState(state: EnterpriseDataState): void {
-  // Sempre salva no JSON (fonte de verdade local imediata)
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+  // Gravacao local no JSON e melhor esforco. Em ambientes serverless (Vercel)
+  // o sistema de arquivos e somente-leitura, entao a gravacao local pode falhar
+  // (EROFS). Nao deixamos isso quebrar a requisicao: a fonte de verdade duravel
+  // e o Supabase, que e sincronizado logo abaixo independentemente do JSON.
+  let localWritten = false;
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    localWritten = true;
+  } catch (err) {
+    console.error(
+      '[Persistence] Gravacao local no JSON indisponível (ambiente somente-leitura), continuando apenas com Supabase:',
+      err instanceof Error ? err.message : String(err),
+    );
+  }
 
   // Sincroniza com Supabase (aguarda confirmacao; falhas sao reportadas, nao silenciadas)
   if (isSupabaseAvailable()) {

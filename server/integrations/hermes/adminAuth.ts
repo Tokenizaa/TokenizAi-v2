@@ -61,7 +61,22 @@ function requireEnvSessionSecret(): string {
   return secret.trim();
 }
 
-const SESSION_SECRET = requireEnvSessionSecret();
+/**
+ * Chave de sessão usada para assinar tokens de workspace internos (HMAC).
+ * Inicializada de forma preguiçosa: importar este módulo nunca deve falhar
+ * por falta de variável de ambiente (isso quebraria o cold start do
+ * serverless/Vercel). A exceção só é lançada quando uma operação realmente
+ * precisa assinar/verificar um token (issueToken/verifyBearerToken).
+ */
+let SESSION_SECRET: string | null = null;
+
+function requireSessionSecret(): string {
+  if (SESSION_SECRET === null) {
+    SESSION_SECRET = requireEnvSessionSecret();
+  }
+  return SESSION_SECRET;
+}
+
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 8;
 
 let claimedPasscodeHash: { salt: string; hash: string } | null = null;
@@ -93,7 +108,7 @@ function issueToken(identity: {
   const nonce = crypto.randomBytes(24).toString('hex');
   const expiresAt = Date.now() + TOKEN_TTL_MS;
   const payload = `${nonce}.${expiresAt}`;
-  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  const sig = crypto.createHmac('sha256', requireSessionSecret()).update(payload).digest('hex');
   const token = `${payload}.${sig}`;
   activeTokens.set(token, { expiresAt, ...identity });
   return {
