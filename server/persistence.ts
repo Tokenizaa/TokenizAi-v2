@@ -39,6 +39,7 @@ function isSupabaseAvailable(): boolean {
 // ------------------------------------------------------------------
 
 export function loadEnterpriseState(): EnterpriseDataState | null {
+  if (process.env.VERCEL) return null;
   try {
     if (!fs.existsSync(STATE_FILE)) return null;
     const raw = fs.readFileSync(STATE_FILE, 'utf8');
@@ -66,6 +67,9 @@ export function loadEnterpriseState(): EnterpriseDataState | null {
 }
 
 export function saveEnterpriseState(state: EnterpriseDataState): void {
+  if (process.env.VERCEL) {
+    throw new Error('Persistência em arquivo local desabilitada na Vercel. Use o repositório Supabase para gravações duráveis.');
+  }
   // Sempre salva no JSON (fonte de verdade local imediata)
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
