@@ -39,6 +39,7 @@ function isSupabaseAvailable(): boolean {
 // ------------------------------------------------------------------
 
 export function loadEnterpriseState(): EnterpriseDataState | null {
+  if (process.env.VERCEL) return null;
   try {
     if (!fs.existsSync(STATE_FILE)) return null;
     const raw = fs.readFileSync(STATE_FILE, 'utf8');
@@ -67,19 +68,18 @@ export function loadEnterpriseState(): EnterpriseDataState | null {
 
 export function saveEnterpriseState(state: EnterpriseDataState): void {
   // Gravacao local no JSON e melhor esforco. Em ambientes serverless (Vercel)
-  // o sistema de arquivos e somente-leitura, entao a gravacao local pode falhar
-  // (EROFS). Nao deixamos isso quebrar a requisicao: a fonte de verdade duravel
-  // e o Supabase, que e sincronizado logo abaixo independentemente do JSON.
-  let localWritten = false;
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
-    localWritten = true;
-  } catch (err) {
-    console.error(
-      '[Persistence] Gravacao local no JSON indisponível (ambiente somente-leitura), continuando apenas com Supabase:',
-      err instanceof Error ? err.message : String(err),
-    );
+  // o sistema de arquivos e somente-leitura, entao a gravacao local e pulada.
+  // A fonte de verdade duravel e o Supabase, sincronizado abaixo.
+  if (!process.env.VERCEL) {
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+    } catch (err) {
+      console.error(
+        '[Persistence] Gravacao local no JSON indisponível, continuando apenas com Supabase:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   }
 
   // Sincroniza com Supabase (aguarda confirmacao; falhas sao reportadas, nao silenciadas)

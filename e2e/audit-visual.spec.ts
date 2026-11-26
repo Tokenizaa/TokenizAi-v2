@@ -1,15 +1,11 @@
 import { test, expect } from '@playwright/test';
+import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const env = fs.readFileSync('.env', 'utf8');
-const getEnv = (k: string) => {
-  const m = env.match(new RegExp('^' + k + '=(.*)$', 'm'));
-  if (!m) return null;
-  let v = m[1].trim();
-  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-  return v;
-};
+// CI injeta os segredos no ambiente; localmente dotenv carrega o arquivo .env
+// quando existir. O teste não deve exigir que .env esteja versionado.
+const getEnv = (key: string): string | null => process.env[key] || null;
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 const adminEmail = getEnv('E2E_ADMIN_EMAIL');
