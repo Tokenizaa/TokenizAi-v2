@@ -2,10 +2,19 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, loadEnv} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({mode}) => {
+  // A chave anon é pública por definição e já é configurada como SUPABASE_ANON_KEY
+  // no projeto Vercel. Injeta somente essa variável no bundle do frontend;
+  // nunca expõe o prefixo SUPABASE_ inteiro (que incluiria a service role).
+  const env = loadEnv(mode, process.cwd(), '');
+  const publicAnonKey = process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || '';
+
   return {
+    define: {
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(publicAnonKey),
+    },
     plugins: [
       react(),
       tailwindcss(),
