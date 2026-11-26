@@ -58,7 +58,8 @@ const PORT = Number(process.env.PORT || 3000);
 // duravel), com degradacao graciosa para estado em memoria + JSON quando
 // Supabase nao estiver configurado. Variaveis declaradas aqui e inicializadas
 // de forma assincrona dentro de startServer().
-let enterpriseState: EnterpriseDataState;
+let enterpriseState: EnterpriseDataState = structuredClone(INITIAL_ENTERPRISE_DATA);
+let serverInitialization: Promise<void> | null = null;
 let supabaseRepo = new SupabaseRepository(structuredClone(INITIAL_ENTERPRISE_DATA));
 
 /**
@@ -67,6 +68,7 @@ let supabaseRepo = new SupabaseRepository(structuredClone(INITIAL_ENTERPRISE_DAT
  */
 async function loadEnterpriseStateFromSupabase(): Promise<EnterpriseDataState> {
   if (!supabaseRepo.isSupabaseAvailable()) {
+    if (process.env.VERCEL) throw new Error('Supabase é obrigatório no ambiente Vercel. Configure SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY.');
     return loadEnterpriseState() ?? structuredClone(INITIAL_ENTERPRISE_DATA);
   }
   try {
@@ -136,6 +138,7 @@ async function loadEnterpriseStateFromSupabase(): Promise<EnterpriseDataState> {
       '[Supabase] Falha ao carregar estado empresarial, usando fallback local:',
       err instanceof Error ? err.message : String(err),
     );
+    if (process.env.VERCEL) throw new Error('Não foi possível carregar o estado empresarial do Supabase no ambiente Vercel.');
     return loadEnterpriseState() ?? structuredClone(INITIAL_ENTERPRISE_DATA);
   }
 }
@@ -295,21 +298,15 @@ function appendAudit(
  * aguardando confirmacao. Nao informa sucesso enquanto a persistencia duravel
  * nao for confirmada (ou Supabase nao estiver configurado).
  */
-function persistState(state: EnterpriseDataState): void {
-  saveEnterpriseState(state);
-  if (supabaseRepo.isSupabaseAvailable()) {
-    // Aguarda a sincronizacao com Supabase para nao mascarar falhas.
-    // Em caso de erro, o e-mail e lancado para o chamador tratar.
-    const syncPromise = supabaseSync(state);
-    // Nao usamos fire-and-forget: o chamador (rotas de escrita) deve tratar
-    // o retorno. Aqui lançamos de forma assíncrona sincronizada com a resposta.
-    void syncPromise.then(
-      () => {},
-      (err) => {
-        console.error('[Supabase] Falha na persistencia duravel:', err.message);
-      },
-    );
+async function persistState(state: EnterpriseDataState): Promise<void> {
+  if (process.env.VERCEL) {
+    if (!supabaseRepo.isSupabaseAvailable()) {
+      throw new Error('Persistência indisponível: Supabase não configurado no ambiente Vercel.');
+    }
+  } else {
+    saveEnterpriseState(state);
   }
+  if (supabaseRepo.isSupabaseAvailable()) await supabaseSync(state);
 }
 
 /**
@@ -555,7 +552,7 @@ export function buildApp(): express.Application {
 
     enterpriseState.projects.unshift(newProject);
     appendAudit(actor.name, `Criou projeto ${newProject.code} (${newProject.name})`, newProject.code);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, project: newProject });
   });
 
@@ -676,7 +673,7 @@ export function buildApp(): express.Application {
       editedDetails = true;
     }
 
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, project });
   });
 
@@ -721,7 +718,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.clients.unshift(newClient);
     appendAudit(actor.name, 'Cadastrou novo cliente', newClient.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, client: newClient });
   });
 
@@ -765,7 +762,7 @@ export function buildApp(): express.Application {
     if (typeof mrrBRL === 'number' && mrrBRL >= 0) client.mrrBRL = mrrBRL;
 
     appendAudit(actor.name, 'Atualizou cadastro do cliente', client.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, client });
   });
 
@@ -792,7 +789,7 @@ export function buildApp(): express.Application {
       note: note.trim(),
     });
     appendAudit(actor.name, `Registrou interação (${channel || 'Reunião'})`, client.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, client });
   });
 
@@ -810,7 +807,7 @@ export function buildApp(): express.Application {
     }
     user.role = role;
     appendAudit(actor.name, `Alterou perfil de acesso para ${role}`, user.email, 'Segurança');
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, user });
   });
 
@@ -822,7 +819,7 @@ export function buildApp(): express.Application {
     }
     enterpriseState = structuredClone(INITIAL_ENTERPRISE_DATA);
     appendAudit(actor.name, 'Restaurou base demonstrativa empresarial padrão', 'Workspace', 'Segurança');
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true });
   });
 
@@ -866,7 +863,7 @@ export function buildApp(): express.Application {
 
     enterpriseState.deals.unshift(deal);
     appendAudit(actor.name, `Criou oportunidade comercial "${deal.title}"`, client.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, deal });
   });
 
@@ -928,7 +925,7 @@ export function buildApp(): express.Application {
     if (note && note.trim()) {
       deal.notes.unshift(note.trim());
     }
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, deal });
   });
 
@@ -960,7 +957,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.products.unshift(prod);
     appendAudit(actor.name, `Cadastrou produto ${prod.sku}`, prod.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, product: prod });
   });
 
@@ -990,7 +987,7 @@ export function buildApp(): express.Application {
     if (typeof description === 'string' && description.trim()) prod.description = description.trim();
 
     appendAudit(actor.name, `Atualizou produto ${prod.sku} (${prod.status})`, prod.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, product: prod });
   });
 
@@ -1035,7 +1032,7 @@ export function buildApp(): express.Application {
     } else if (planName || cycle || typeof mrrBRL === 'number' || nextBillingDate) {
       appendAudit(actor.name, 'Editou assinatura recorrente', `${sub.clientName} — ${sub.planName}`);
     }
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, subscription: sub });
   });
 
@@ -1058,7 +1055,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.financeEntries.unshift(entry);
     appendAudit(actor.name, `Registrou lançamento ${entry.type}`, `${entry.description} (R$ ${entry.amountBRL})`);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, entry });
   });
 
@@ -1079,7 +1076,7 @@ export function buildApp(): express.Application {
     if (status) entry.status = status;
 
     appendAudit(actor.name, `Atualizou lançamento financeiro (${entry.status})`, entry.description);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, entry });
   });
 
@@ -1094,7 +1091,7 @@ export function buildApp(): express.Application {
       flow.active = req.body.active;
       appendAudit(actor.name, `${flow.active ? 'Ativou' : 'Pausou'} fluxo automatizado`, flow.name);
     }
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.json({ ok: true, automation: flow });
   });
 
@@ -1122,7 +1119,7 @@ export function buildApp(): express.Application {
     };
     enterpriseState.automations.unshift(flow);
     appendAudit(actor.name, 'Criou fluxo automatizado entre empresa e agentes', flow.name);
-    persistState(enterpriseState);
+    await persistState(enterpriseState);
     res.status(201).json({ ok: true, automation: flow });
   });
 
@@ -1137,14 +1134,24 @@ export function buildApp(): express.Application {
 // Instância da aplicação (usada por startServer e por testes de integração).
 export const app = buildApp();
 
-async function startServer() {
-  await hermesGateway.initialize();
+export async function initializeServerState(): Promise<void> {
+  if (!serverInitialization) {
+    serverInitialization = (async () => {
+      // Hermes CLI existe apenas no host local; na Vercel o gateway permanece
+      // explicitamente desconectado até existir uma ponte remota autenticada.
+      if (!process.env.VERCEL) await hermesGateway.initialize();
+      enterpriseState = await loadEnterpriseStateFromSupabase();
+      supabaseRepo = new SupabaseRepository(enterpriseState);
+    })().catch((error) => {
+      serverInitialization = null;
+      throw error;
+    });
+  }
+  await serverInitialization;
+}
 
-  // Carrega o estado empresarial do Supabase (fonte de verdade) antes de
-  // definir as rotas, para que as operacoes de leitura/escrita comecem com
-  // os dados duraveis e nao com o seed demonstrativo.
-  enterpriseState = await loadEnterpriseStateFromSupabase();
-  supabaseRepo = new SupabaseRepository(enterpriseState);
+async function startServer() {
+  await initializeServerState();
 
   const httpServer = http.createServer(app);
 
@@ -1175,7 +1182,7 @@ async function startServer() {
 
 // Inicia o servidor apenas fora do ambiente de teste (vitest importa `app` diretamente,
 // sem precisar abrir a porta HTTP).
-if (!process.env.VITEST) {
+if (!process.env.VITEST && !process.env.VERCEL) {
   startServer().catch((err) => {
     console.error('[TokenizAi] Erro fatal ao iniciar servidor:', err);
     process.exit(1);
