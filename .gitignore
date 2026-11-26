@@ -10,3 +10,7 @@ coverage/
 # Estado de runtime da persistência empresarial (nao versionar)
 data/
 .vercel
+
+# Projetos externos alojados neste worktree (nao fazem parte do deploy da TokenizAi)
+Projetos/
+agency-agents-app/
