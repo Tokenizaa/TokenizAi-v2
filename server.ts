@@ -40,6 +40,12 @@ import {
   isPlatformAdmin,
   type SupabaseUser,
 } from './server/supabase.ts';
+import {
+  startExecutionOrchestrator,
+  stopExecutionOrchestrator,
+} from './server/services/execution-orchestrator.ts';
+import { startDevLifecycle } from './server/lifecycle/dev-lifecycle.ts';
+import { createFallbackWorkers } from './server/services/worker-manager.ts';
 
 const VALID_ROLES: TokenizAiRole[] = [
   'Diretoria Executiva',
@@ -1152,6 +1158,14 @@ export async function initializeServerState(): Promise<void> {
 
 async function startServer() {
   await initializeServerState();
+
+  // Inicia o orquestrador de execução autônoma e workers de fallback
+  startExecutionOrchestrator(enterpriseState);
+  createFallbackWorkers();
+
+  // Inicia o ciclo de vida completo (workers, rotinas de departamento,
+  // roteador inter-departamental, recuperação automática)
+  await startDevLifecycle();
 
   const httpServer = http.createServer(app);
 

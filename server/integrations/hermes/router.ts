@@ -26,6 +26,11 @@ import {
 } from './domainParsers.ts';
 import { appendAudit, createRun, listRuns, updateRun, createActivity, listActivities, createAgenteEmpresarial, createDepartamento, createEquipe, listAgentesEmpresariais, listDepartamentos, listEquipes, updateAgenteEmpresarial, updateDepartamento, updateEquipe, deleteAgenteEmpresarial, deleteDepartamento, deleteEquipe } from '../../persistence.ts';
 import type { RunRecord, Departamento, AgenteEmpresarial, Equipe } from '../../../src/types/platform.ts';
+import {
+  getOperationalOverview,
+  checkQueueHealth,
+} from '../../services/monitoring-service.ts';
+import { createQueueItem } from '../../services/execution-queue.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -1132,6 +1137,63 @@ export function createHermesRouter(
       }
       appendAuditFn(actor.name, `Excluiu equipe ${id}`, id, 'Plataforma');
       res.json({ ok: true });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  // ============================================================================
+  // Monitoramento operacional (autonomia)
+  // ============================================================================
+  router.get('/api/monitoring/overview', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const overview = getOperationalOverview();
+      res.json({ ok: true, ...overview });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/monitoring/queue-health', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const health = checkQueueHealth();
+      res.json({ ok: true, ...health });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/monitoring/queue', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = await resolveWorkspaceActor(req);
+      const { title, description, priority, assigneeAgentId, assigneeAgentName, departmentId, departmentName, triggerSource, dependencies } = req.body as {
+        title?: string;
+        description?: string;
+        priority?: 'baixa' | 'media' | 'alta' | 'critica';
+        assigneeAgentId?: string | null;
+        assigneeAgentName?: string | null;
+        departmentId?: string | null;
+        departmentName?: string | null;
+        triggerSource?: 'manual' | 'scheduled' | 'autonomous' | 'dependency';
+        dependencies?: string[];
+      };
+      if (!title || !title.trim()) {
+        res.status(400).json({ error: 'Título é obrigatório.' });
+        return;
+      }
+      const item = createQueueItem({
+        title: title.trim(),
+        description: description?.trim() ?? '',
+        priority: priority ?? 'media',
+        assigneeAgentId,
+        assigneeAgentName,
+        departmentId,
+        departmentName,
+        triggerSource: triggerSource ?? 'manual',
+        dependencies: dependencies ?? [],
+      });
+      appendAudit(actor.name, `Criou item de execução "${item.title}"`, item.id, 'Plataforma');
+      res.status(201).json({ ok: true, item });
     } catch (err) {
       sendError(res, err);
     }
