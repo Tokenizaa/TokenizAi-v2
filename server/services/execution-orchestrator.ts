@@ -8,6 +8,7 @@ import {
   listPendingQueueItems,
   listRunningQueueItems,
   listQueueItems,
+  listFailedQueueItems,
   updateQueueItem,
   createQueueItem,
   markRunning,
@@ -18,6 +19,7 @@ import {
   getQueueItem,
   ExecutionQueueItem,
 } from './execution-queue.ts';
+import { publish } from '../core/events/topics.ts';
 import {
   listPendingTransfers,
   interdepartmentRouter,
@@ -278,6 +280,35 @@ async function autoPlan(_enterpriseState: EnterpriseDataState): Promise<void> {
     });
     addLog(healthItem.id, 'Item de health check gerado pelo auto-planner');
     lastAutoPlanAt = now;
+  }
+
+  // 3. Detecção de ociosidade: se há agentes cadastrados sem trabalho recente,
+  // cria itens de manutenção para mantê-los ativos.
+  const pending = listPendingQueueItems();
+  const running = listRunningQueueItems();
+  if (pending.length === 0 && running.length === 0) {
+    const idleItem = createQueueItem({
+      title: 'Varredura de ociosidade dos departamentos',
+      description: 'Verificar departamentos ociosos e gerar trabalho de manutenção preventiva.',
+      priority: 'baixa',
+      triggerSource: 'autonomous',
+      dependencies: [],
+      maxRetries: 2,
+    });
+    addLog(idleItem.id, 'Item de varredura de ociosidade gerado pelo auto-planner');
+  }
+
+  // 4. Detecção de falhas persistentes: itens que falharam muitas vezes
+  // geram alerta de circuit breaker para investigação manual.
+  const failed = listFailedQueueItems();
+  const criticalFailures = failed.filter((i) => i.retryCount >= (i.maxRetries ?? 3));
+  if (criticalFailures.length > 0) {
+    publish('system.alert', {
+      severity: 'error',
+      message: `${criticalFailures.length} tarefa(s) esgotou(ram) retry(s) e precisa(m) de intervenção manual`,
+      failedIds: criticalFailures.map((i) => i.id),
+      timestamp: new Date().toISOString(),
+    }, 'auto-planner');
   }
 }
 

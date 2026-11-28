@@ -5,6 +5,9 @@ import {
   appendAudit,
 } from '../persistence.ts';
 import { getOrchestratorStatus } from './execution-orchestrator.ts';
+import { existsSync } from 'node:fs';
+import { runCommandSafe } from '../integrations/hermes/cliRunner.ts';
+import { HERMES_CLI } from '../integrations/hermes/domainCache.ts';
 
 export interface OperationalOverview {
   system: {
@@ -29,6 +32,11 @@ export interface OperationalOverview {
     last24h: number;
     total: number;
   };
+  costs: {
+    totalCents: number;
+    currency: string;
+    last24hCents: number;
+  };
   alerts: Array<{
     severity: 'info' | 'warning' | 'error';
     message: string;
@@ -49,6 +57,13 @@ export function getOperationalOverview(): OperationalOverview {
     return now.getTime() - d.getTime() < 24 * 60 * 60 * 1000;
   }).length;
 
+  // Calcula custos totais das execuções registradas
+  const totalCents = runs.reduce((sum, r) => sum + (r.costCents ?? 0), 0);
+  const last24hCents = runs.reduce((sum, r) => {
+    const d = new Date(r.created_at ?? r.createdAt ?? '');
+    return sum + (now.getTime() - d.getTime() < 24 * 60 * 60 * 1000 ? r.costCents ?? 0 : 0);
+  }, 0);
+
   const alerts: OperationalOverview['alerts'] = [];
   if (!hc.connected) {
     alerts.push({
@@ -68,6 +83,13 @@ export function getOperationalOverview(): OperationalOverview {
     alerts.push({
       severity: 'info',
       message: `${queue.blocked} tarefa(s) bloqueada(s) por dependência sem itens pendentes`,
+      timestamp: now.toISOString(),
+    });
+  }
+  if (totalCents > 0) {
+    alerts.push({
+      severity: 'info',
+      message: `Custo total acumulado: R$ ${(totalCents / 100).toFixed(2)}`,
       timestamp: now.toISOString(),
     });
   }
@@ -92,11 +114,16 @@ export function getOperationalOverview(): OperationalOverview {
       last24h,
       total: activities.length,
     },
+    costs: {
+      totalCents,
+      currency: 'BRL',
+      last24hCents,
+    },
     alerts,
   };
 }
 
-export function checkQueueHealth(): {
+export async function checkQueueHealth(): {
   healthy: boolean;
   issues: string[];
 } {
@@ -111,6 +138,39 @@ export function checkQueueHealth(): {
   }
 
   return { healthy: issues.length === 0, issues };
+}
+
+export async function checkHermesHealth(): Promise<{
+  healthy: boolean;
+  cliAvailable: boolean;
+  cliResponsive: boolean;
+  lastError?: string;
+}> {
+  const cliAvailable = existsSync(HERMES_CLI);
+  let cliResponsive = false;
+  let lastError: string | undefined;
+
+  if (cliAvailable) {
+    try {
+      const result = await runCommandSafe(HERMES_CLI, ['profile', 'list'], {
+        timeoutMs: 8000,
+      });
+      if (result.error) {
+        lastError = result.error.message;
+      } else {
+        cliResponsive = true;
+      }
+    } catch (err: any) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  return {
+    healthy: cliAvailable && cliResponsive,
+    cliAvailable,
+    cliResponsive,
+    lastError,
+  };
 }
 
 export function recordAuditEvent(

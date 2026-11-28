@@ -15,6 +15,7 @@ import {
 } from '../services/execution-orchestrator.ts';
 import { createFallbackWorkers, stopAllWorkers } from '../services/worker-manager.ts';
 import { departmentRoutines, stopAllDepartmentRoutines } from '../services/department-routines.ts';
+import { departmentWorkers, stopAllDepartmentWorkers } from '../services/department-workers.ts';
 import { appendAudit } from '../persistence.ts';
 
 let lifecycleStarted = false;
@@ -29,6 +30,14 @@ export async function startDevLifecycle(): Promise<void> {
 
   // Inicia workers de fallback (sem Redis disponível)
   createFallbackWorkers();
+
+  // Inicia workers especializados de departamento
+  await departmentWorkers.startAll().catch((err) => {
+    console.error(
+      '[lifecycle] não foi possível iniciar workers de departamento:',
+      err instanceof Error ? err.message : String(err),
+    );
+  });
 
   // Inicia rotinas autônomas de todos os departamentos
   await departmentRoutines.startAll().catch((err) => {
@@ -52,6 +61,7 @@ export async function stopDevLifecycle(): Promise<void> {
   if (!lifecycleStarted) return;
   lifecycleStarted = false;
 
+  stopAllDepartmentWorkers();
   stopAllDepartmentRoutines();
   stopAllWorkers();
   stopExecutionOrchestrator();

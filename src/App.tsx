@@ -21,10 +21,12 @@ import { ProjectsView } from './modules/projects/ProjectsView';
 import { ReportsView } from './modules/reports/ReportsView';
 import { SubscriptionsView } from './modules/subscriptions/SubscriptionsView';
 import { AuthPage } from './pages/AuthPage';
+import MonitoringView from './modules/admin/MonitoringView';
 import { supabase, mapSupabaseUser } from './lib/supabase.ts';
 import { FOUNDER_EMAIL, isFounderEmail } from './lib/founder.ts';
 import { AuthApi } from './services/api.ts';
 import { HermesApi, PlatformApi } from './services/api';
+import { monitoringService } from './services/monitoring.ts';
 import type { EnterpriseDataState, NavSectionId, HermesOverviewBundle } from './types/platform.ts';
 
 import { DashboardPage } from './modules/ai-ops/pages';
@@ -248,6 +250,9 @@ function AppContent({
             onToast={onToast}
           />
         } />
+
+        {/* MONITORAMENTO OPERACIONAL */}
+        <Route path="/monitoramento" element={<MonitoringView onToast={onToast} />} />
 
         {/* WORKFORCE IA */}
         <Route path="/ia-visao" element={<DashboardPage onNavigate={handleNavigate} onToast={onToast} />} />

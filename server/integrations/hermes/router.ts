@@ -29,8 +29,14 @@ import type { RunRecord, Departamento, AgenteEmpresarial, Equipe } from '../../.
 import {
   getOperationalOverview,
   checkQueueHealth,
+  checkHermesHealth,
 } from '../../services/monitoring-service.ts';
-import { createQueueItem } from '../../services/execution-queue.ts';
+import {
+  listQueueItems,
+  getQueueItem,
+  createQueueItem,
+} from '../../services/execution-queue.ts';
+import { departmentWorkers } from '../../services/department-workers.ts';
 
 function validateResourceId(id: string | undefined, label: string): string {
   const value = typeof id === 'string' ? id.trim() : '';
@@ -1194,6 +1200,84 @@ export function createHermesRouter(
       });
       appendAudit(actor.name, `Criou item de execução "${item.title}"`, item.id, 'Plataforma');
       res.status(201).json({ ok: true, item });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/monitoring/queue/items', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const { status, priority, department, limit } = _req.query as {
+        status?: string;
+        priority?: string;
+        department?: string;
+        limit?: string;
+      };
+      let items = listQueueItems();
+      if (status) items = items.filter((i) => i.status === status);
+      if (priority) items = items.filter((i) => i.priority === priority);
+      if (department) items = items.filter((i) => i.departmentName === department || i.departmentId === department);
+      const lim = limit ? parseInt(limit, 10) : 100;
+      items = items.slice(0, lim);
+      res.json({ ok: true, items, total: items.length });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/monitoring/queue/items/:id', requirePermission('read'), async (req: Request, res: Response) => {
+    try {
+      const item = getQueueItem(req.params.id);
+      if (!item) {
+        res.status(404).json({ error: 'Item não encontrado.' });
+        return;
+      }
+      res.json({ ok: true, item });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/monitoring/workers', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const workers = departmentWorkers.list();
+      res.json({ ok: true, workers, total: workers.length });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.get('/api/monitoring/hermes-health', requirePermission('read'), async (_req: Request, res: Response) => {
+    try {
+      const health = await checkHermesHealth();
+      res.json({ ok: true, ...health });
+    } catch (err) {
+      sendError(res, err);
+    }
+  });
+
+  router.post('/api/monitoring/queue/items/:id/retry', requirePermission('hermes:ops:write'), async (req: Request, res: Response) => {
+    try {
+      const { actor } = await resolveWorkspaceActor(req);
+      const item = getQueueItem(req.params.id);
+      if (!item) {
+        res.status(404).json({ error: 'Item não encontrado.' });
+        return;
+      }
+      if (item.status !== 'failed') {
+        res.status(400).json({ error: 'Somente itens com falha podem ser re-tentados.' });
+        return;
+      }
+      // Reseta para pending com retryCount zerado para nova tentativa
+      const retried = updateQueueItem(item.id, {
+        status: 'pending',
+        retryCount: 0,
+        errorMessage: null,
+        startedAt: null,
+        finishedAt: null,
+      });
+      appendAudit(actor.name, `Re-tentou item de execução "${item.title}"`, item.id, 'Plataforma');
+      res.json({ ok: true, item: retried });
     } catch (err) {
       sendError(res, err);
     }

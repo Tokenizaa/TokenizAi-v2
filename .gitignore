@@ -14,3 +14,5 @@ data/
 # Projetos externos alojados neste worktree (nao fazem parte do deploy da TokenizAi)
 Projetos/
 agency-agents-app/
+.wrangler/
+supabase/.temp/
